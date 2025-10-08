@@ -1,10 +1,8 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JPanel.java to edit this template
+ */
 package GUI.booking;
-
-import javax.swing.*;
-import java.awt.*;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import com.toedter.calendar.JDateChooser;
 
 /**
  *
@@ -12,153 +10,21 @@ import com.toedter.calendar.JDateChooser;
  */
 public class BookingGUI extends javax.swing.JPanel {
 
-    // <CHANGE> Added filter dialog components
-    private JDateChooser dateChooser;
-    private JTextField tfNgayDat;
-    private JComboBox<String> cbTinhTrang;
-    private JComboBox<String> cbNguonDat;
-    private JButton btnChonNgay;
-    private JButton btnApDung;
-    private JButton btnHuy;
-
     /**
      * Creates new form BookingGUI
      */
     public BookingGUI() {
         initComponents();
         initPopupMenu();
-        // <CHANGE> Initialize and setup filter dialog
         jDialog1 = new javax.swing.JDialog((java.awt.Frame) null, "Bộ lọc tìm kiếm", true);
-        initFilterDialog();
         setVisible(true);
     }
 
-    // <CHANGE> New method to initialize filter dialog content
-    private void initFilterDialog() {
-        JPanel filterPanel = new JPanel();
-        filterPanel.setLayout(new GridBagLayout());
-        filterPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-
-        // Ngày đặt
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.anchor = GridBagConstraints.WEST;
-        JLabel lblNgayDat = new JLabel("Ngày đặt:");
-        filterPanel.add(lblNgayDat, gbc);
-
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        tfNgayDat = new JTextField(15);
-        tfNgayDat.setEditable(false);
-        filterPanel.add(tfNgayDat, gbc);
-
-        gbc.gridx = 2;
-        gbc.weightx = 0;
-        btnChonNgay = new JButton("Chọn ngày");
-        btnChonNgay.addActionListener(e -> showDatePicker());
-        filterPanel.add(btnChonNgay, gbc);
-
-        // Tình trạng
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        JLabel lblTinhTrang = new JLabel("Tình trạng:");
-        filterPanel.add(lblTinhTrang, gbc);
-
-        gbc.gridx = 1;
-        gbc.gridwidth = 2;
-        cbTinhTrang = new JComboBox<>(new String[]{"Tất cả", "Trống", "Đã đặt", "Đã nhận phòng", "Đã trả phòng", "Đã hủy"});
-        filterPanel.add(cbTinhTrang, gbc);
-
-        // Nguồn đặt
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        gbc.gridwidth = 1;
-        JLabel lblNguonDat = new JLabel("Nguồn đặt:");
-        filterPanel.add(lblNguonDat, gbc);
-
-        gbc.gridx = 1;
-        gbc.gridwidth = 2;
-        cbNguonDat = new JComboBox<>(new String[]{"Tất cả", "Online", "Trực tiếp", "Điện thoại", "Đại lý"});
-        filterPanel.add(cbNguonDat, gbc);
-
-        // Buttons panel
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        btnApDung = new JButton("Áp dụng");
-        btnApDung.addActionListener(e -> applyFilter());
-        btnHuy = new JButton("Hủy");
-        btnHuy.addActionListener(e -> jDialog1.setVisible(false));
-
-        buttonPanel.add(btnApDung);
-        buttonPanel.add(btnHuy);
-
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        gbc.gridwidth = 3;
-        gbc.anchor = GridBagConstraints.EAST;
-        filterPanel.add(buttonPanel, gbc);
-
-        jDialog1.add(filterPanel);
-        jDialog1.pack();
-    }
-
-    // <CHANGE> Method to show date picker dialog
-    private void showDatePicker() {
-        JDialog dateDialog = new JDialog(jDialog1, "Chọn ngày", true);
-        dateDialog.setLayout(new BorderLayout(10, 10));
-
-        JPanel calendarPanel = new JPanel(new BorderLayout());
-        calendarPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        dateChooser = new JDateChooser();
-        dateChooser.setDateFormatString("dd/MM/yyyy");
-        dateChooser.setPreferredSize(new Dimension(250, 30));
-        calendarPanel.add(dateChooser, BorderLayout.CENTER);
-
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton btnXacNhan = new JButton("Xác nhận");
-        JButton btnHuyChon = new JButton("Hủy");
-
-        btnXacNhan.addActionListener(e -> {
-            Date selectedDate = dateChooser.getDate();
-            if (selectedDate != null) {
-                SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-                tfNgayDat.setText(sdf.format(selectedDate));
-            }
-            dateDialog.dispose();
-        });
-
-        btnHuyChon.addActionListener(e -> dateDialog.dispose());
-
-        btnPanel.add(btnXacNhan);
-        btnPanel.add(btnHuyChon);
-
-        dateDialog.add(calendarPanel, BorderLayout.CENTER);
-        dateDialog.add(btnPanel, BorderLayout.SOUTH);
-        dateDialog.pack();
-        dateDialog.setLocationRelativeTo(jDialog1);
-        dateDialog.setVisible(true);
-    }
-
-    // <CHANGE> Method to apply filter
-    private void applyFilter() {
-        String ngayDat = tfNgayDat.getText();
-        String tinhTrang = (String) cbTinhTrang.getSelectedItem();
-        String nguonDat = (String) cbNguonDat.getSelectedItem();
-
-        // TODO: Implement filter logic here
-        System.out.println("Lọc theo:");
-        System.out.println("Ngày đặt: " + ngayDat);
-        System.out.println("Tình trạng: " + tinhTrang);
-        System.out.println("Nguồn đặt: " + nguonDat);
-
-        jDialog1.setVisible(false);
-    }
-
-    // ... existing code ...
-
+    /**
+     * This method is called from within the constructor to initialize the form.
+     * WARNING: Do NOT modify this code. The content of this method is always
+     * regenerated by the Form Editor.
+     */
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -233,36 +99,6 @@ public class BookingGUI extends javax.swing.JPanel {
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
-<<<<<<< HEAD
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGap(6, 6, 6)
-                .addComponent(tfTimKiem, javax.swing.GroupLayout.PREFERRED_SIZE, 284, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(btnTimKiem, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(cbTieuChi, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 224, Short.MAX_VALUE)
-                .addComponent(btnLoc, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(230, Short.MAX_VALUE))
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 723, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(cbTieuChi, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(btnLoc, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(btnTimKiem, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(tfTimKiem, javax.swing.GroupLayout.Alignment.TRAILING))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 271, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(48, Short.MAX_VALUE))
-=======
                 layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                         .addGroup(layout.createSequentialGroup()
                                 .addContainerGap()
@@ -293,7 +129,6 @@ public class BookingGUI extends javax.swing.JPanel {
                                 .addGap(18, 18, 18)
                                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 271, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addContainerGap(36, Short.MAX_VALUE))
->>>>>>> 3a13905baa53b86abf3e24319274c832380148f7
         );
     }// </editor-fold>//GEN-END:initComponents
 
@@ -312,8 +147,8 @@ public class BookingGUI extends javax.swing.JPanel {
 
         // Sự kiện "Xóa"
         menuXoa.addActionListener(e -> xoaDongDangChon());
-        // Danh sách phòn đặt
-        //menuDanhSachPhongDat.addActionListener(e -> xoaDongDangChon());
+        menuDanhSachPhongDat.addActionListener(e -> hienThiDanhSachPhongDat());
+
         // Thêm MouseListener cho JTable
         tbDatPhong.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
@@ -348,6 +183,7 @@ public class BookingGUI extends javax.swing.JPanel {
     private void btnLocActionPerformed(java.awt.event.ActionEvent evt) {
         // Hiện dialog khi bấm nút Lọc
         jDialog1.setTitle("Bộ lọc tìm kiếm");
+        jDialog1.setSize(400, 300); // có thể chỉnh kích thước phù hợp
         jDialog1.setLocationRelativeTo(this); // canh giữa so với JPanel
         jDialog1.setModal(true); // chỉ cho phép thao tác trên dialog
         jDialog1.setVisible(true);
@@ -381,7 +217,23 @@ public class BookingGUI extends javax.swing.JPanel {
         }
     }
 
+    private void hienThiDanhSachPhongDat() {
+        int row = tbDatPhong.getSelectedRow();
+        if (row != -1) {
+            // Lấy mã đặt phòng từ dòng được chọn
+            Object maDatPhong = tbDatPhong.getValueAt(row, 0);
 
+            // Tạo và hiển thị cửa sổ BookingRoom
+            BookingRoom bookingRoomFrame = new BookingRoom();
+            bookingRoomFrame.setTitle("Danh sách phòng đặt - Mã: " + maDatPhong);
+            bookingRoomFrame.setLocationRelativeTo(this);
+            bookingRoomFrame.setVisible(true);
+        } else {
+            javax.swing.JOptionPane.showMessageDialog(this,
+                    "Vui lòng chọn một dòng đặt phòng trước!",
+                    "Thông báo", javax.swing.JOptionPane.WARNING_MESSAGE);
+        }
+    }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnLoc;
