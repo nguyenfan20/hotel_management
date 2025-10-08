@@ -1,17 +1,15 @@
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
+ * Click nb
+fs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
  */
 package GUI.auth;
 
-import util.DatabaseConnection;
+import BUS.AuthBUS;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -21,18 +19,18 @@ import java.util.Date;
  */
 public class LoginGUI extends javax.swing.JFrame {
 
+    private AuthBUS authBUS;
+
     /**
      * Creates new form LoginGUI
      */
     public LoginGUI() {
         initComponents();
+        authBUS = new AuthBUS();
         startClock();
         setLocationRelativeTo(null);
-        setTitle("Phần mềm Quản lý Khách sạn");
-        // Set fixed window size
         setSize(550, 500);
         setResizable(false);
-        // Add listener for show/hide password checkbox
         cHienMK.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 cHienMKActionPerformed(evt);
@@ -49,100 +47,190 @@ public class LoginGUI extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        lbTieuDe = new javax.swing.JLabel();
-        lbTaiKhoan = new javax.swing.JLabel();
-        tfTaiKhoan = new javax.swing.JTextField();
-        lbMatKhau = new javax.swing.JLabel();
-        cHienMK = new javax.swing.JCheckBox();
-        btnDangNhap = new javax.swing.JButton();
-        jButton2 = new javax.swing.JButton();
-        lbThoiGian = new javax.swing.JLabel();
-        pfMatKhau = new javax.swing.JPasswordField();
-
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-
-        lbTieuDe.setFont(new java.awt.Font("Segoe UI", 3, 18)); // NOI18N
-        lbTieuDe.setForeground(new java.awt.Color(102, 102, 255));
-        lbTieuDe.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/hotel.png"))); // NOI18N
-        lbTieuDe.setText("            QUẢN LÝ KHÁCH SẠN");
-        lbTieuDe.setToolTipText("");
-        lbTieuDe.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
-
-        lbTaiKhoan.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/person.png"))); // NOI18N
-
-        tfTaiKhoan.setBorder(new javax.swing.border.SoftBevelBorder(javax.swing.border.BevelBorder.RAISED));
-
-        lbMatKhau.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/locked-computer.png"))); // NOI18N
-
-        cHienMK.setText("Hiện mật khẩu");
-
-        btnDangNhap.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/enter.png"))); // NOI18N
-        btnDangNhap.setText("Đăng nhập");
-        btnDangNhap.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnDangNhapActionPerformed(evt);
+        JPanel mainPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                int w = getWidth();
+                int h = getHeight();
+                Color color1 = new Color(240, 242, 245);
+                Color color2 = new Color(220, 230, 240);
+                GradientPaint gp = new GradientPaint(0, 0, color1, 0, h, color2);
+                g2d.setPaint(gp);
+                g2d.fillRect(0, 0, w, h);
             }
-        });
+        };
+        mainPanel.setLayout(new BorderLayout());
 
-        jButton2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/key.png"))); // NOI18N
+        // Create header panel with gradient styling (#1c92d2 -> #f2fcfe)
+        JPanel headerPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                int w = getWidth();
+                int h = getHeight();
+                Color color1 = new Color(0x1c92d2); // #1c92d2
+                Color color2 = new Color(0xf2fcfe); // #f2fcfe
+                GradientPaint gp = new GradientPaint(0, 0, color1, 0, h, color2);
+                g2d.setPaint(gp);
+                g2d.fillRect(0, 0, w, h);
+            }
+        };
+        headerPanel.setPreferredSize(new Dimension(550, 100));
+        headerPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 10, 25));
+
+        lbTieuDe = new javax.swing.JLabel();
+        lbTieuDe.setFont(new java.awt.Font("Segoe UI", Font.BOLD, 28));
+        lbTieuDe.setForeground(Color.WHITE);
+        lbTieuDe.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/hotel.png")));
+        lbTieuDe.setText("  QUẢN LÝ KHÁCH SẠN");
+        headerPanel.add(lbTieuDe);
+
+        // Create form panel with rounded border and shadow effect
+        JPanel formPanel = new JPanel();
+        formPanel.setBackground(Color.WHITE);
+        formPanel.setBorder(BorderFactory.createCompoundBorder(
+                new EmptyBorder(30, 40, 30, 40),
+                BorderFactory.createLineBorder(new Color(220, 220, 220), 1, true)
+        ));
+        formPanel.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // Username field with modern styling
+        lbTaiKhoan = new javax.swing.JLabel();
+        lbTaiKhoan.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/person.png")));
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.WEST;
+        formPanel.add(lbTaiKhoan, gbc);
+
+        tfTaiKhoan = new javax.swing.JTextField();
+        tfTaiKhoan.setPreferredSize(new java.awt.Dimension(300, 40));
+        tfTaiKhoan.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        tfTaiKhoan.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200), 1, true),
+                new EmptyBorder(5, 10, 5, 10)
+        ));
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        formPanel.add(tfTaiKhoan, gbc);
+
+        // Password field with modern styling
+        lbMatKhau = new javax.swing.JLabel();
+        lbMatKhau.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/locked-computer.png")));
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 1;
+        formPanel.add(lbMatKhau, gbc);
+
+        pfMatKhau = new javax.swing.JPasswordField();
+        pfMatKhau.setPreferredSize(new java.awt.Dimension(300, 40));
+        pfMatKhau.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        pfMatKhau.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200), 1, true),
+                new EmptyBorder(5, 10, 5, 10)
+        ));
+        gbc.gridx = 1;
+        gbc.gridy = 1;
+        gbc.gridwidth = 2;
+        formPanel.add(pfMatKhau, gbc);
+
+        // Show password checkbox with better styling
+        cHienMK = new javax.swing.JCheckBox();
+        cHienMK.setText("Hiện mật khẩu");
+        cHienMK.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        cHienMK.setBackground(Color.WHITE);
+        cHienMK.setForeground(new Color(100, 100, 100));
+        gbc.gridx = 1;
+        gbc.gridy = 2;
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.WEST;
+        formPanel.add(cHienMK, gbc);
+
+        // Button panel with modern styled buttons
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
+        buttonPanel.setBackground(Color.WHITE);
+
+        jButton2 = new javax.swing.JButton();
+        jButton2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/key.png")));
         jButton2.setText("Quên mật khẩu");
+        jButton2.setPreferredSize(new java.awt.Dimension(160, 40));
+        jButton2.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        jButton2.setBackground(new Color(245, 245, 245));
+        jButton2.setForeground(new Color(80, 80, 80));
+        jButton2.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200), 1, true));
+        jButton2.setFocusPainted(false);
+        jButton2.setCursor(new Cursor(Cursor.HAND_CURSOR));
         jButton2.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButton2ActionPerformed(evt);
             }
         });
+        buttonPanel.add(jButton2);
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(lbTieuDe, javax.swing.GroupLayout.DEFAULT_SIZE, 423, Short.MAX_VALUE)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(jButton2)
-                .addGap(18, 18, 18)
-                .addComponent(btnDangNhap)
-                .addGap(64, 64, 64))
-            .addGroup(layout.createSequentialGroup()
-                .addGap(57, 57, 57)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(cHienMK)
-                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                        .addGroup(layout.createSequentialGroup()
-                            .addComponent(lbMatKhau)
-                            .addGap(18, 18, 18)
-                            .addComponent(pfMatKhau))
-                        .addGroup(layout.createSequentialGroup()
-                            .addComponent(lbTaiKhoan)
-                            .addGap(18, 18, 18)
-                            .addComponent(tfTaiKhoan, javax.swing.GroupLayout.PREFERRED_SIZE, 250, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addGap(0, 0, Short.MAX_VALUE)
-                .addComponent(lbThoiGian, javax.swing.GroupLayout.PREFERRED_SIZE, 129, javax.swing.GroupLayout.PREFERRED_SIZE))
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addComponent(lbTieuDe, javax.swing.GroupLayout.PREFERRED_SIZE, 87, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(lbTaiKhoan, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(tfTaiKhoan, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(18, 18, 18)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(lbMatKhau, javax.swing.GroupLayout.DEFAULT_SIZE, 41, Short.MAX_VALUE)
-                    .addComponent(pfMatKhau))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(cHienMK)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(btnDangNhap)
-                    .addComponent(jButton2))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 29, Short.MAX_VALUE)
-                .addComponent(lbThoiGian))
-        );
+        btnDangNhap = new javax.swing.JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                int w = getWidth();
+                int h = getHeight();
+                Color color1 = new Color(0x1c92d2); // #1c92d2
+                Color color2 = new Color(0xf2fcfe); // #f2fcfe
+                GradientPaint gp = new GradientPaint(0, 0, color1, w, 0, color2);
+                g2d.setPaint(gp);
+                g2d.fillRect(0, 0, w, h);
+            }
+        };
+        btnDangNhap.setText("Đăng nhập");
+        btnDangNhap.setPreferredSize(new java.awt.Dimension(140, 40));
+        btnDangNhap.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnDangNhap.setForeground(Color.WHITE);
+        btnDangNhap.setBorder(BorderFactory.createEmptyBorder());
+        btnDangNhap.setFocusPainted(false);
+        btnDangNhap.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnDangNhap.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnDangNhapActionPerformed(evt);
+            }
+        });
+        buttonPanel.add(btnDangNhap);
 
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.gridwidth = 3;
+        gbc.insets = new Insets(20, 10, 10, 10);
+        formPanel.add(buttonPanel, gbc);
+
+        // Clock label with modern styling
+        lbThoiGian = new javax.swing.JLabel();
+        lbThoiGian.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lbThoiGian.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        lbThoiGian.setForeground(new Color(120, 120, 120));
+
+        // Assemble main layout
+        JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 40));
+        centerPanel.setOpaque(false);
+        centerPanel.add(formPanel);
+
+        JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        footerPanel.setOpaque(false);
+        footerPanel.add(lbThoiGian);
+
+        mainPanel.add(headerPanel, BorderLayout.NORTH);
+        mainPanel.add(centerPanel, BorderLayout.CENTER);
+        mainPanel.add(footerPanel, BorderLayout.SOUTH);
+
+        setContentPane(mainPanel);
+        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
@@ -163,42 +251,16 @@ public class LoginGUI extends javax.swing.JFrame {
         }
     }
 
-    private void btnDangNhapActionPerformed(java.awt.event.ActionEvent evt) {                                            
+    private void btnDangNhapActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnDangNhapActionPerformed
         String username = tfTaiKhoan.getText();
         String password = new String(pfMatKhau.getPassword());
-
-        try {
-            Connection conn = DatabaseConnection.getConnection();
-            if (conn == null){
-                JOptionPane.showMessageDialog(this, "Không thể kết nối đến database!");
-                return;
-            }
-
-            String sql = "SELECT * FROM UserAccount WHERE username = ? AND password_hash = ?";
-            PreparedStatement pst = conn.prepareStatement(sql);
-            pst.setString(1, username);
-            pst.setString(2, password);
-
-            ResultSet rs = pst.executeQuery();
-            if (rs.next()){
-                JOptionPane.showMessageDialog(this, "Đăng nhập thành công!");
-            } else {
-                JOptionPane.showMessageDialog(this, "Sai tài khoản hoặc mật khẩu!");
-            }
-
-            rs.close();
-            pst.close();
-            conn.close();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi: " + e);
-        }
+        String message = authBUS.login(username, password);
+        JOptionPane.showMessageDialog(this, message);
     }
 
-    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-First:event_jButton2ActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_jButton2ActionPerformed
+    }
 
     /**
      * @param args the command line arguments
@@ -206,9 +268,6 @@ public class LoginGUI extends javax.swing.JFrame {
     public static void main(String args[]) {
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html
-         */
         try {
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
                 if ("Nimbus".equals(info.getName())) {
@@ -225,9 +284,6 @@ public class LoginGUI extends javax.swing.JFrame {
         } catch (javax.swing.UnsupportedLookAndFeelException ex) {
             java.util.logging.Logger.getLogger(LoginGUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
         //</editor-fold>
 
         /* Create and display the form */

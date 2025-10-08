@@ -8,6 +8,12 @@ import java.util.List;
 
 public class RoomTypeDAO {
 
+    private RoomTypeAmenityDAO roomTypeAmenityDAO;
+
+    public RoomTypeDAO() {
+        this.roomTypeAmenityDAO = new RoomTypeAmenityDAO();
+    }
+
     // Lấy tất cả loại phòng
     public List<RoomTypeDTO> getAllRoomTypes() {
         List<RoomTypeDTO> roomTypes = new ArrayList<>();
@@ -28,6 +34,7 @@ public class RoomTypeDAO {
                         rs.getBigDecimal("area"),
                         rs.getString("description")
                 );
+                roomType.setAmenities(roomTypeAmenityDAO.getAmenitiesByRoomType(roomType.getRoomTypeId()));
                 roomTypes.add(roomType);
             }
         } catch (SQLException e) {
@@ -48,7 +55,7 @@ public class RoomTypeDAO {
             ResultSet rs = pstmt.executeQuery();
 
             if (rs.next()) {
-                return new RoomTypeDTO(
+                RoomTypeDTO roomType = new RoomTypeDTO(
                         rs.getInt("room_type_id"),
                         rs.getString("name"),
                         rs.getBigDecimal("base_price"),
@@ -58,6 +65,8 @@ public class RoomTypeDAO {
                         rs.getBigDecimal("area"),
                         rs.getString("description")
                 );
+                roomType.setAmenities(roomTypeAmenityDAO.getAmenitiesByRoomType(roomType.getRoomTypeId()));
+                return roomType;
             }
         } catch (SQLException e) {
             System.err.println("Lỗi khi lấy loại phòng: " + e.getMessage());
@@ -151,6 +160,7 @@ public class RoomTypeDAO {
                         rs.getBigDecimal("area"),
                         rs.getString("description")
                 );
+                roomType.setAmenities(roomTypeAmenityDAO.getAmenitiesByRoomType(roomType.getRoomTypeId()));
                 roomTypes.add(roomType);
             }
         } catch (SQLException e) {

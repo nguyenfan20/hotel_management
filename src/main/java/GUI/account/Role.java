@@ -1,7 +1,7 @@
-package GUI.room;
+package GUI.account;
 
-import BUS.AmenityBUS;
-import DTO.AmenityDTO;
+import BUS.RoleBUS;
+import DTO.RoleDTO;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -10,12 +10,11 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class Amenity extends JPanel {
+public class Role extends JPanel {
     private static final Color PRIMARY_COLOR = new Color(41, 98, 255);
     private static final Color BACKGROUND_COLOR = new Color(245, 245, 245);
     private static final Color PANEL_BG = Color.WHITE;
@@ -24,13 +23,13 @@ public class Amenity extends JPanel {
 
     private JScrollPane scrollPane;
     private JTextField searchField;
-    private List<AmenityDTO> amenityData = new ArrayList<>();
-    private List<AmenityDTO> filteredAmenityData = new ArrayList<>();
+    private List<RoleDTO> roleData = new ArrayList<>();
+    private List<RoleDTO> filteredRoleData = new ArrayList<>();
 
-    private AmenityBUS amenityBUS;
+    private RoleBUS roleBUS;
 
-    public Amenity() {
-        amenityBUS = new AmenityBUS();
+    public Role() {
+        roleBUS = new RoleBUS();
         initComponents();
         loadData();
     }
@@ -46,7 +45,7 @@ public class Amenity extends JPanel {
                 BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
 
-        JButton addButton = new JButton("Thêm tiện nghi");
+        JButton addButton = new JButton("Thêm vai trò");
         addButton.setPreferredSize(new Dimension(150, 35));
         addButton.setIcon(new ImageIcon(getClass().getResource("/images/add-button.png")));
         addButton.setBackground(PRIMARY_COLOR);
@@ -55,7 +54,7 @@ public class Amenity extends JPanel {
         addButton.setBorderPainted(false);
         addButton.setFont(new Font("Arial", Font.BOLD, 13));
         addButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        addButton.addActionListener(e -> showAddAmenityDialog());
+        addButton.addActionListener(e -> showAddRoleDialog());
         controlPanel.add(addButton);
 
         controlPanel.add(Box.createHorizontalStrut(20));
@@ -108,27 +107,25 @@ public class Amenity extends JPanel {
 
     private void loadData() {
         try {
-            amenityData = amenityBUS.getAllAmenities();
-            filteredAmenityData = amenityData.stream().collect(Collectors.toList());
+            roleData = roleBUS.getAllRoles();
+            filteredRoleData = roleData.stream().collect(Collectors.toList());
             updateTableView();
         } catch (Exception e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi khi tải dữ liệu tiện nghi: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Lỗi khi tải dữ liệu vai trò: " + e.getMessage());
         }
     }
 
     private void performSearch() {
         String query = searchField.getText().trim().toLowerCase();
         if (query.isEmpty()) {
-            filteredAmenityData = amenityData.stream().collect(Collectors.toList());
+            filteredRoleData = roleData.stream().collect(Collectors.toList());
         } else {
-            filteredAmenityData = amenityData.stream()
-                    .filter(amenity -> {
-                        String name = amenity.getName() != null ? amenity.getName().toLowerCase() : "";
-                        String chargeType = amenity.getChargeType() != null ? amenity.getChargeType().toLowerCase() : "";
-                        String price = String.valueOf(amenity.getPrice());
-                        String description = amenity.getDescription() != null ? amenity.getDescription().toLowerCase() : "";
-                        return name.contains(query) || chargeType.contains(query) || price.contains(query) || description.contains(query);
+            filteredRoleData = roleData.stream()
+                    .filter(role -> {
+                        String name = role.getName() != null ? role.getName().toLowerCase() : "";
+                        String description = role.getDescription() != null ? role.getDescription().toLowerCase() : "";
+                        return name.contains(query) || description.contains(query);
                     })
                     .collect(Collectors.toList());
         }
@@ -136,7 +133,7 @@ public class Amenity extends JPanel {
     }
 
     private void showFilterDialog() {
-        JDialog filterDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Lọc tiện nghi", true);
+        JDialog filterDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Lọc vai trò", true);
         filterDialog.setLayout(new BorderLayout());
         filterDialog.setSize(350, 180);
 
@@ -144,12 +141,12 @@ public class Amenity extends JPanel {
         contentPanel.setBackground(PANEL_BG);
         contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        JLabel chargeTypeLabel = new JLabel("Loại phí:");
-        chargeTypeLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JComboBox<String> chargeTypeCombo = new JComboBox<>(new String[]{"Tất cả", "Per Use", "Per Day", "Per Hour"});
-        chargeTypeCombo.setPreferredSize(new Dimension(150, 30));
-        contentPanel.add(chargeTypeLabel);
-        contentPanel.add(chargeTypeCombo);
+        JLabel nameLabel = new JLabel("Tên vai trò:");
+        nameLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JComboBox<String> nameCombo = new JComboBox<>(new String[]{"Tất cả", "Admin", "Manager", "Staff"}); // Có thể điều chỉnh dựa trên dữ liệu
+        nameCombo.setPreferredSize(new Dimension(150, 30));
+        contentPanel.add(nameLabel);
+        contentPanel.add(nameCombo);
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
         buttonPanel.setBackground(PANEL_BG);
@@ -162,8 +159,8 @@ public class Amenity extends JPanel {
         confirmButton.setFont(new Font("Arial", Font.BOLD, 13));
         confirmButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         confirmButton.addActionListener(e -> {
-            String selectedChargeType = (String) chargeTypeCombo.getSelectedItem();
-            filterAmenities(selectedChargeType);
+            String selectedName = (String) nameCombo.getSelectedItem();
+            filterRoles(selectedName);
             filterDialog.dispose();
         });
         buttonPanel.add(confirmButton);
@@ -174,37 +171,28 @@ public class Amenity extends JPanel {
         filterDialog.setVisible(true);
     }
 
-    private void filterAmenities(String chargeType) {
-        filteredAmenityData = amenityData.stream()
-                .filter(amenity -> {
-                    String rowChargeType = amenity.getChargeType();
-                    return chargeType.equals("Tất cả") || (rowChargeType != null && rowChargeType.equals(chargeType));
+    private void filterRoles(String name) {
+        filteredRoleData = roleData.stream()
+                .filter(role -> {
+                    String roleName = role.getName();
+                    return name.equals("Tất cả") || (roleName != null && roleName.equals(name));
                 })
                 .collect(Collectors.toList());
         updateTableView();
     }
 
-    private void showAddAmenityDialog() {
-        JDialog addDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Thêm tiện nghi", true);
+    private void showAddRoleDialog() {
+        JDialog addDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Thêm vai trò", true);
         addDialog.setLayout(new BorderLayout());
-        addDialog.setSize(400, 320);
+        addDialog.setSize(400, 250);
 
-        JPanel contentPanel = new JPanel(new GridLayout(4, 2, 15, 15));
+        JPanel contentPanel = new JPanel(new GridLayout(2, 2, 15, 15));
         contentPanel.setBackground(PANEL_BG);
         contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        JLabel nameLabel = new JLabel("Tên tiện nghi:");
+        JLabel nameLabel = new JLabel("Tên vai trò:");
         nameLabel.setFont(new Font("Arial", Font.BOLD, 13));
         JTextField nameField = new JTextField();
-
-        JLabel chargeTypeLabel = new JLabel("Loại phí:");
-        chargeTypeLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JComboBox<String> chargeTypeCombo = new JComboBox<>(new String[]{"Per Use", "Per Day", "Per Hour"});
-        chargeTypeCombo.setPreferredSize(new Dimension(150, 30));
-
-        JLabel priceLabel = new JLabel("Giá:");
-        priceLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField priceField = new JTextField();
 
         JLabel descriptionLabel = new JLabel("Mô tả:");
         descriptionLabel.setFont(new Font("Arial", Font.BOLD, 13));
@@ -212,10 +200,6 @@ public class Amenity extends JPanel {
 
         contentPanel.add(nameLabel);
         contentPanel.add(nameField);
-        contentPanel.add(chargeTypeLabel);
-        contentPanel.add(chargeTypeCombo);
-        contentPanel.add(priceLabel);
-        contentPanel.add(priceField);
         contentPanel.add(descriptionLabel);
         contentPanel.add(descriptionField);
 
@@ -232,36 +216,26 @@ public class Amenity extends JPanel {
         confirmButton.addActionListener(e -> {
             try {
                 String name = nameField.getText().trim();
-                String chargeType = (String) chargeTypeCombo.getSelectedItem();
-                String priceText = priceField.getText().trim();
                 String description = descriptionField.getText().trim();
 
-                if (name.isEmpty() || priceText.isEmpty()) {
-                    JOptionPane.showMessageDialog(addDialog, "Vui lòng điền đầy đủ tên và giá!");
+                if (name.isEmpty()) {
+                    JOptionPane.showMessageDialog(addDialog, "Vui lòng điền tên vai trò!");
                     return;
                 }
 
-                BigDecimal price;
-                try {
-                    price = new BigDecimal(priceText);
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(addDialog, "Giá phải là số hợp lệ!");
-                    return;
-                }
-
-                AmenityDTO newAmenity = new AmenityDTO(name, chargeType, price, description.isEmpty() ? null : description);
-                boolean success = amenityBUS.addAmenity(newAmenity);
+                RoleDTO newRole = new RoleDTO(0, name, description.isEmpty() ? null : description);
+                boolean success = roleBUS.addRole(newRole);
 
                 if (success) {
-                    JOptionPane.showMessageDialog(addDialog, "Thêm tiện nghi thành công!");
+                    JOptionPane.showMessageDialog(addDialog, "Thêm vai trò thành công!");
                     loadData();
                     addDialog.dispose();
                 } else {
-                    JOptionPane.showMessageDialog(addDialog, "Không thể thêm tiện nghi!");
+                    JOptionPane.showMessageDialog(addDialog, "Không thể thêm vai trò!");
                 }
             } catch (Exception ex) {
                 ex.printStackTrace();
-                JOptionPane.showMessageDialog(addDialog, "Lỗi khi thêm tiện nghi: " + ex.getMessage());
+                JOptionPane.showMessageDialog(addDialog, "Lỗi khi thêm vai trò: " + ex.getMessage());
             }
         });
         buttonPanel.add(confirmButton);
@@ -272,39 +246,25 @@ public class Amenity extends JPanel {
         addDialog.setVisible(true);
     }
 
-    private void showEditAmenityDialog(AmenityDTO amenity) {
-        JDialog editDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Sửa tiện nghi", true);
+    private void showEditRoleDialog(RoleDTO role) {
+        JDialog editDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Sửa vai trò", true);
         editDialog.setLayout(new BorderLayout());
-        editDialog.setSize(400, 320);
+        editDialog.setSize(400, 250);
 
-        JPanel contentPanel = new JPanel(new GridLayout(4, 2, 15, 15));
+        JPanel contentPanel = new JPanel(new GridLayout(2, 2, 15, 15));
         contentPanel.setBackground(PANEL_BG);
         contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        JLabel nameLabel = new JLabel("Tên tiện nghi:");
+        JLabel nameLabel = new JLabel("Tên vai trò:");
         nameLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField nameField = new JTextField(amenity.getName());
-
-        JLabel chargeTypeLabel = new JLabel("Loại phí:");
-        chargeTypeLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JComboBox<String> chargeTypeCombo = new JComboBox<>(new String[]{"Per Use", "Per Day", "Per Hour"});
-        chargeTypeCombo.setSelectedItem(amenity.getChargeType());
-        chargeTypeCombo.setPreferredSize(new Dimension(150, 30));
-
-        JLabel priceLabel = new JLabel("Giá:");
-        priceLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField priceField = new JTextField(amenity.getPrice().toString());
+        JTextField nameField = new JTextField(role.getName());
 
         JLabel descriptionLabel = new JLabel("Mô tả:");
         descriptionLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField descriptionField = new JTextField(amenity.getDescription() != null ? amenity.getDescription() : "");
+        JTextField descriptionField = new JTextField(role.getDescription() != null ? role.getDescription() : "");
 
         contentPanel.add(nameLabel);
         contentPanel.add(nameField);
-        contentPanel.add(chargeTypeLabel);
-        contentPanel.add(chargeTypeCombo);
-        contentPanel.add(priceLabel);
-        contentPanel.add(priceField);
         contentPanel.add(descriptionLabel);
         contentPanel.add(descriptionField);
 
@@ -321,37 +281,26 @@ public class Amenity extends JPanel {
         confirmButton.addActionListener(e -> {
             try {
                 String newName = nameField.getText().trim();
-                String newChargeType = (String) chargeTypeCombo.getSelectedItem();
-                String newPriceText = priceField.getText().trim();
                 String newDescription = descriptionField.getText().trim();
 
-                if (newName.isEmpty() || newPriceText.isEmpty()) {
-                    JOptionPane.showMessageDialog(editDialog, "Vui lòng điền đầy đủ tên và giá!");
+                if (newName.isEmpty()) {
+                    JOptionPane.showMessageDialog(editDialog, "Vui lòng điền tên vai trò!");
                     return;
                 }
 
-                BigDecimal newPrice;
-                try {
-                    newPrice = new BigDecimal(newPriceText);
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(editDialog, "Giá phải là số hợp lệ!");
-                    return;
-                }
-
-                AmenityDTO updatedAmenity = new AmenityDTO(amenity.getAmenityId(), newName, newChargeType, newPrice,
-                        newDescription.isEmpty() ? null : newDescription);
-                boolean success = amenityBUS.updateAmenity(updatedAmenity);
+                RoleDTO updatedRole = new RoleDTO(role.getRoleId(), newName, newDescription.isEmpty() ? null : newDescription);
+                boolean success = roleBUS.updateRole(updatedRole);
 
                 if (success) {
-                    JOptionPane.showMessageDialog(editDialog, "Sửa tiện nghi thành công!");
+                    JOptionPane.showMessageDialog(editDialog, "Sửa vai trò thành công!");
                     loadData();
                     editDialog.dispose();
                 } else {
-                    JOptionPane.showMessageDialog(editDialog, "Không thể sửa tiện nghi!");
+                    JOptionPane.showMessageDialog(editDialog, "Không thể sửa vai trò!");
                 }
             } catch (Exception ex) {
                 ex.printStackTrace();
-                JOptionPane.showMessageDialog(editDialog, "Lỗi khi sửa tiện nghi: " + ex.getMessage());
+                JOptionPane.showMessageDialog(editDialog, "Lỗi khi sửa vai trò: " + ex.getMessage());
             }
         });
         buttonPanel.add(confirmButton);
@@ -362,37 +311,35 @@ public class Amenity extends JPanel {
         editDialog.setVisible(true);
     }
 
-    private void deleteAmenity(int amenityId) {
-        int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn xóa tiện nghi ID: " + amenityId + "?",
+    private void deleteRole(int roleId) {
+        int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn xóa vai trò ID: " + roleId + "?",
                 "Xác nhận xóa", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             try {
-                boolean success = amenityBUS.deleteAmenity(amenityId);
+                boolean success = roleBUS.deleteRole(roleId);
 
                 if (success) {
-                    JOptionPane.showMessageDialog(this, "Xóa tiện nghi thành công!");
+                    JOptionPane.showMessageDialog(this, "Xóa vai trò thành công!");
                     loadData();
                 } else {
-                    JOptionPane.showMessageDialog(this, "Không thể xóa tiện nghi!");
+                    JOptionPane.showMessageDialog(this, "Không thể xóa vai trò!");
                 }
             } catch (Exception ex) {
                 ex.printStackTrace();
-                JOptionPane.showMessageDialog(this, "Lỗi khi xóa tiện nghi: " + ex.getMessage());
+                JOptionPane.showMessageDialog(this, "Lỗi khi xóa vai trò: " + ex.getMessage());
             }
         }
     }
 
     private void updateTableView() {
-        String[] columnNames = {"ID", "Tên", "Loại phí", "Giá", "Mô tả"};
+        String[] columnNames = {"ID", "Tên", "Mô tả"};
         DefaultTableModel model = new DefaultTableModel(columnNames, 0);
 
-        for (AmenityDTO amenity : filteredAmenityData) {
+        for (RoleDTO role : filteredRoleData) {
             Object[] row = {
-                    amenity.getAmenityId(),
-                    amenity.getName(),
-                    amenity.getChargeType(),
-                    amenity.getPrice(),
-                    amenity.getDescription()
+                    role.getRoleId(),
+                    role.getName(),
+                    role.getDescription()
             };
             model.addRow(row);
         }
@@ -436,10 +383,10 @@ public class Amenity extends JPanel {
                 if (e.isPopupTrigger() && table.getSelectedRow() != -1) {
                     int rowIndex = table.getSelectedRow();
                     int modelRow = table.convertRowIndexToModel(rowIndex);
-                    AmenityDTO amenity = filteredAmenityData.get(modelRow);
+                    RoleDTO role = filteredRoleData.get(modelRow);
 
-                    editItem.addActionListener(e1 -> showEditAmenityDialog(amenity));
-                    deleteItem.addActionListener(e1 -> deleteAmenity(amenity.getAmenityId()));
+                    editItem.addActionListener(e1 -> showEditRoleDialog(role));
+                    deleteItem.addActionListener(e1 -> deleteRole(role.getRoleId()));
 
                     popupMenu.show(e.getComponent(), e.getX(), e.getY());
                 }

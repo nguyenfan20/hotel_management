@@ -1,6 +1,8 @@
 package DTO;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 public class RoomTypeDTO {
     private int roomTypeId;
@@ -11,10 +13,14 @@ public class RoomTypeDTO {
     private byte bedCount;
     private BigDecimal area;
     private String description;
+    private List<AmenityDTO> amenities;
 
+    // Constructor mặc định
     public RoomTypeDTO() {
+        this.amenities = new ArrayList<>();
     }
 
+    // Constructor đầy đủ
     public RoomTypeDTO(int roomTypeId, String name, BigDecimal basePrice,
                        byte capacityAdults, byte capacityChildren,
                        byte bedCount, BigDecimal area, String description) {
@@ -26,8 +32,10 @@ public class RoomTypeDTO {
         this.bedCount = bedCount;
         this.area = area;
         this.description = description;
+        this.amenities = new ArrayList<>();
     }
 
+    // Constructor không có ID (dùng khi thêm mới)
     public RoomTypeDTO(String name, BigDecimal basePrice,
                        byte capacityAdults, byte capacityChildren,
                        byte bedCount, BigDecimal area, String description) {
@@ -38,6 +46,7 @@ public class RoomTypeDTO {
         this.bedCount = bedCount;
         this.area = area;
         this.description = description;
+        this.amenities = new ArrayList<>();
     }
 
     // Getters and Setters
@@ -105,6 +114,14 @@ public class RoomTypeDTO {
         this.description = description;
     }
 
+    public List<AmenityDTO> getAmenities() {
+        return amenities;
+    }
+
+    public void setAmenities(List<AmenityDTO> amenities) {
+        this.amenities = amenities;
+    }
+
     @Override
     public String toString() {
         return "RoomTypeDTO{" +
@@ -116,6 +133,7 @@ public class RoomTypeDTO {
                 ", bedCount=" + bedCount +
                 ", area=" + area +
                 ", description='" + description + '\'' +
+                ", amenities=" + amenities +
                 '}';
     }
 }

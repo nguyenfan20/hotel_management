@@ -1,14 +1,18 @@
 package BUS;
 
 import DAO.RoomTypeDAO;
+import DAO.RoomTypeAmenityDAO;
 import DTO.RoomTypeDTO;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class RoomTypeBUS {
     private RoomTypeDAO roomTypeDAO;
+    private RoomTypeAmenityDAO roomTypeAmenityDAO;
 
     public RoomTypeBUS() {
         this.roomTypeDAO = new RoomTypeDAO();
+        this.roomTypeAmenityDAO = new RoomTypeAmenityDAO();
     }
 
     // Lấy tất cả loại phòng
@@ -26,17 +30,30 @@ public class RoomTypeBUS {
     }
 
     // Thêm loại phòng mới
-    public boolean addRoomType(RoomTypeDTO roomType) {
+    public boolean addRoomType(RoomTypeDTO roomType, List<Integer> amenityIds) {
         // Validate dữ liệu
         if (!validateRoomType(roomType)) {
             return false;
         }
 
-        return roomTypeDAO.addRoomType(roomType);
+        // Thêm room type
+        boolean success = roomTypeDAO.addRoomType(roomType);
+
+        // Nếu thêm thành công và có amenities, thêm amenities
+        if (success && amenityIds != null && !amenityIds.isEmpty()) {
+            // Lấy ID của room type vừa thêm (cần update DAO để trả về ID)
+            List<RoomTypeDTO> allRoomTypes = roomTypeDAO.getAllRoomTypes();
+            if (!allRoomTypes.isEmpty()) {
+                RoomTypeDTO lastRoomType = allRoomTypes.get(allRoomTypes.size() - 1);
+                roomTypeAmenityDAO.updateAmenitiesForRoomType(lastRoomType.getRoomTypeId(), amenityIds);
+            }
+        }
+
+        return success;
     }
 
     // Cập nhật loại phòng
-    public boolean updateRoomType(RoomTypeDTO roomType) {
+    public boolean updateRoomType(RoomTypeDTO roomType, List<Integer> amenityIds) {
         // Validate dữ liệu
         if (roomType.getRoomTypeId() <= 0) {
             System.err.println("ID loại phòng không hợp lệ");
@@ -47,7 +64,15 @@ public class RoomTypeBUS {
             return false;
         }
 
-        return roomTypeDAO.updateRoomType(roomType);
+        // Cập nhật room type
+        boolean success = roomTypeDAO.updateRoomType(roomType);
+
+        // Cập nhật amenities
+        if (success) {
+            roomTypeAmenityDAO.updateAmenitiesForRoomType(roomType.getRoomTypeId(), amenityIds);
+        }
+
+        return success;
     }
 
     // Xóa loại phòng

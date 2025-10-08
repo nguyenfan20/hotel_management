@@ -1,6 +1,9 @@
 package GUI.room;
 
-import util.DatabaseConnection;
+import BUS.RoomTypeBUS;
+import BUS.AmenityBUS;
+import DTO.RoomTypeDTO;
+import DTO.AmenityDTO;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -9,8 +12,9 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.sql.*;
-import java.util.Vector;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 public class RoomType extends JPanel {
@@ -22,10 +26,14 @@ public class RoomType extends JPanel {
 
     private JScrollPane scrollPane;
     private JTextField searchField;
-    private Vector<Vector<Object>> roomTypeData = new Vector<>();
-    private Vector<Vector<Object>> filteredRoomTypeData = new Vector<>();
+    private List<RoomTypeDTO> roomTypeData = new ArrayList<>();
+    private List<RoomTypeDTO> filteredRoomTypeData = new ArrayList<>();
+    private RoomTypeBUS roomTypeBUS;
+    private AmenityBUS amenityBUS;
 
     public RoomType() {
+        roomTypeBUS = new RoomTypeBUS();
+        amenityBUS = new AmenityBUS();
         initComponents();
         loadData();
     }
@@ -103,55 +111,34 @@ public class RoomType extends JPanel {
 
     private void loadData() {
         try {
-            Connection conn = DatabaseConnection.getConnection();
-            Statement st = conn.createStatement();
-            ResultSet rs = st.executeQuery("SELECT room_type_id, name, base_price, capacity_adults, capacity_children, bed_count, area, description FROM RoomType");
-
-            roomTypeData.clear();
-            while (rs.next()) {
-                Vector<Object> row = new Vector<>();
-                row.add(rs.getInt("room_type_id"));
-                row.add(rs.getString("name"));
-                row.add(rs.getDouble("base_price"));
-                row.add(rs.getInt("capacity_adults"));
-                row.add(rs.getInt("capacity_children"));
-                row.add(rs.getInt("bed_count"));
-                row.add(rs.getDouble("area"));
-                row.add(rs.getString("description"));
-                roomTypeData.add(row);
-            }
-
-            rs.close();
-            st.close();
-            conn.close();
-
-            filteredRoomTypeData = new Vector<>(roomTypeData);
+            roomTypeData = roomTypeBUS.getAllRoomTypes();
+            filteredRoomTypeData = new ArrayList<>(roomTypeData);
             updateTableView();
-
         } catch (Exception e) {
             e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi tải dữ liệu loại phòng: " + e.getMessage());
         }
     }
 
     private void performSearch() {
         String query = searchField.getText().trim().toLowerCase();
         if (query.isEmpty()) {
-            filteredRoomTypeData = new Vector<>(roomTypeData);
+            filteredRoomTypeData = new ArrayList<>(roomTypeData);
         } else {
             filteredRoomTypeData = roomTypeData.stream()
-                    .filter(row -> {
-                        String name = row.get(1) != null ? ((String) row.get(1)).toLowerCase() : "";
-                        String basePrice = String.valueOf(row.get(2));
-                        String capacityAdults = String.valueOf(row.get(3));
-                        String capacityChildren = String.valueOf(row.get(4));
-                        String bedCount = String.valueOf(row.get(5));
-                        String area = String.valueOf(row.get(6));
-                        String description = row.get(7) != null ? ((String) row.get(7)).toLowerCase() : "";
+                    .filter(roomType -> {
+                        String name = roomType.getName() != null ? roomType.getName().toLowerCase() : "";
+                        String basePrice = String.valueOf(roomType.getBasePrice());
+                        String capacityAdults = String.valueOf(roomType.getCapacityAdults());
+                        String capacityChildren = String.valueOf(roomType.getCapacityChildren());
+                        String bedCount = String.valueOf(roomType.getBedCount());
+                        String area = String.valueOf(roomType.getArea());
+                        String description = roomType.getDescription() != null ? roomType.getDescription().toLowerCase() : "";
                         return name.contains(query) || basePrice.contains(query) || capacityAdults.contains(query) ||
                                 capacityChildren.contains(query) || bedCount.contains(query) || area.contains(query) ||
                                 description.contains(query);
                     })
-                    .collect(Collectors.toCollection(Vector::new));
+                    .collect(Collectors.toList());
         }
         updateTableView();
     }
@@ -197,67 +184,137 @@ public class RoomType extends JPanel {
 
     private void filterRoomTypes(String capacity) {
         filteredRoomTypeData = roomTypeData.stream()
-                .filter(row -> {
-                    int capacityAdults = (int) row.get(3);
+                .filter(roomType -> {
+                    int capacityAdults = roomType.getCapacityAdults();
                     if (capacity.equals("Tất cả")) return true;
                     if (capacity.equals("5+")) return capacityAdults >= 5;
                     return String.valueOf(capacityAdults).equals(capacity);
                 })
-                .collect(Collectors.toCollection(Vector::new));
+                .collect(Collectors.toList());
         updateTableView();
     }
 
     private void showAddRoomTypeDialog() {
         JDialog addDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Thêm loại phòng", true);
         addDialog.setLayout(new BorderLayout());
-        addDialog.setSize(450, 450);
+        addDialog.setSize(500, 550);
 
-        JPanel contentPanel = new JPanel(new GridLayout(7, 2, 15, 15));
+        JPanel contentPanel = new JPanel(new GridBagLayout());
         contentPanel.setBackground(PANEL_BG);
         contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(5, 5, 5, 5);
 
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 0.3;
         JLabel nameLabel = new JLabel("Tên loại phòng:");
         nameLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField nameField = new JTextField();
+        contentPanel.add(nameLabel, gbc);
 
+        gbc.gridx = 1;
+        gbc.weightx = 0.7;
+        JTextField nameField = new JTextField();
+        contentPanel.add(nameField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.weightx = 0.3;
         JLabel basePriceLabel = new JLabel("Giá cơ bản:");
         basePriceLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField basePriceField = new JTextField();
+        contentPanel.add(basePriceLabel, gbc);
 
+        gbc.gridx = 1;
+        gbc.weightx = 0.7;
+        JTextField basePriceField = new JTextField();
+        contentPanel.add(basePriceField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.weightx = 0.3;
         JLabel capacityAdultsLabel = new JLabel("Người lớn:");
         capacityAdultsLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField capacityAdultsField = new JTextField();
+        contentPanel.add(capacityAdultsLabel, gbc);
 
+        gbc.gridx = 1;
+        gbc.weightx = 0.7;
+        JTextField capacityAdultsField = new JTextField();
+        contentPanel.add(capacityAdultsField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.weightx = 0.3;
         JLabel capacityChildrenLabel = new JLabel("Trẻ em:");
         capacityChildrenLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField capacityChildrenField = new JTextField();
+        contentPanel.add(capacityChildrenLabel, gbc);
 
+        gbc.gridx = 1;
+        gbc.weightx = 0.7;
+        JTextField capacityChildrenField = new JTextField();
+        contentPanel.add(capacityChildrenField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        gbc.weightx = 0.3;
         JLabel bedCountLabel = new JLabel("Số giường:");
         bedCountLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField bedCountField = new JTextField();
+        contentPanel.add(bedCountLabel, gbc);
 
+        gbc.gridx = 1;
+        gbc.weightx = 0.7;
+        JTextField bedCountField = new JTextField();
+        contentPanel.add(bedCountField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        gbc.weightx = 0.3;
         JLabel areaLabel = new JLabel("Diện tích (m²):");
         areaLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField areaField = new JTextField();
+        contentPanel.add(areaLabel, gbc);
 
+        gbc.gridx = 1;
+        gbc.weightx = 0.7;
+        JTextField areaField = new JTextField();
+        contentPanel.add(areaField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 6;
+        gbc.weightx = 0.3;
         JLabel descriptionLabel = new JLabel("Mô tả:");
         descriptionLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField descriptionField = new JTextField();
+        contentPanel.add(descriptionLabel, gbc);
 
-        contentPanel.add(nameLabel);
-        contentPanel.add(nameField);
-        contentPanel.add(basePriceLabel);
-        contentPanel.add(basePriceField);
-        contentPanel.add(capacityAdultsLabel);
-        contentPanel.add(capacityAdultsField);
-        contentPanel.add(capacityChildrenLabel);
-        contentPanel.add(capacityChildrenField);
-        contentPanel.add(bedCountLabel);
-        contentPanel.add(bedCountField);
-        contentPanel.add(areaLabel);
-        contentPanel.add(areaField);
-        contentPanel.add(descriptionLabel);
-        contentPanel.add(descriptionField);
+        gbc.gridx = 1;
+        gbc.weightx = 0.7;
+        JTextField descriptionField = new JTextField();
+        contentPanel.add(descriptionField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 7;
+        gbc.weightx = 0.3;
+        JLabel amenitiesLabel = new JLabel("Tiện nghi:");
+        amenitiesLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        contentPanel.add(amenitiesLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 0.7;
+        List<AmenityDTO> allAmenities = amenityBUS.getAllAmenities();
+        JPanel amenitiesPanel = new JPanel();
+        amenitiesPanel.setLayout(new BoxLayout(amenitiesPanel, BoxLayout.Y_AXIS));
+        amenitiesPanel.setBackground(PANEL_BG);
+
+        List<JCheckBox> amenityCheckboxes = new ArrayList<>();
+        for (AmenityDTO amenity : allAmenities) {
+            JCheckBox checkbox = new JCheckBox(amenity.getName());
+            checkbox.putClientProperty("amenityId", amenity.getAmenityId());
+            amenityCheckboxes.add(checkbox);
+            amenitiesPanel.add(checkbox);
+        }
+
+        JScrollPane amenitiesScroll = new JScrollPane(amenitiesPanel);
+        amenitiesScroll.setPreferredSize(new Dimension(250, 100));
+        contentPanel.add(amenitiesScroll, gbc);
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
         buttonPanel.setBackground(PANEL_BG);
@@ -285,38 +342,40 @@ public class RoomType extends JPanel {
                     return;
                 }
 
-                double basePrice;
-                int capacityAdults, capacityChildren, bedCount;
-                double area;
+                BigDecimal basePrice;
+                byte capacityAdults, capacityChildren, bedCount;
+                BigDecimal area;
                 try {
-                    basePrice = Double.parseDouble(basePriceText);
-                    capacityAdults = Integer.parseInt(capacityAdultsText);
-                    capacityChildren = Integer.parseInt(capacityChildrenText);
-                    bedCount = Integer.parseInt(bedCountText);
-                    area = Double.parseDouble(areaText);
+                    basePrice = new BigDecimal(basePriceText);
+                    capacityAdults = Byte.parseByte(capacityAdultsText);
+                    capacityChildren = Byte.parseByte(capacityChildrenText);
+                    bedCount = Byte.parseByte(bedCountText);
+                    area = new BigDecimal(areaText);
                 } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(addDialog, "Giá, sức chứa, số giường, và diện tích phải là số!");
+                    JOptionPane.showMessageDialog(addDialog, "Giá, sức chứa, số giường, và diện tích phải là số hợp lệ!");
                     return;
                 }
 
-                Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(
-                        "INSERT INTO RoomType (name, base_price, capacity_adults, capacity_children, bed_count, area, description) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                ps.setString(1, name);
-                ps.setDouble(2, basePrice);
-                ps.setInt(3, capacityAdults);
-                ps.setInt(4, capacityChildren);
-                ps.setInt(5, bedCount);
-                ps.setDouble(6, area);
-                ps.setString(7, description.isEmpty() ? null : description);
-                ps.executeUpdate();
+                List<Integer> selectedAmenityIds = new ArrayList<>();
+                for (JCheckBox checkbox : amenityCheckboxes) {
+                    if (checkbox.isSelected()) {
+                        selectedAmenityIds.add((Integer) checkbox.getClientProperty("amenityId"));
+                    }
+                }
 
-                ps.close();
-                conn.close();
+                RoomTypeDTO newRoomType = new RoomTypeDTO(name, basePrice,
+                        capacityAdults, capacityChildren, bedCount,
+                        area, description.isEmpty() ? null : description);
 
-                JOptionPane.showMessageDialog(addDialog, "Thêm loại phòng thành công!");
-                loadData();
-                addDialog.dispose();
+                boolean success = roomTypeBUS.addRoomType(newRoomType, selectedAmenityIds);
+
+                if (success) {
+                    JOptionPane.showMessageDialog(addDialog, "Thêm loại phòng thành công!");
+                    loadData();
+                    addDialog.dispose();
+                } else {
+                    JOptionPane.showMessageDialog(addDialog, "Không thể thêm loại phòng!");
+                }
             } catch (Exception ex) {
                 ex.printStackTrace();
                 JOptionPane.showMessageDialog(addDialog, "Lỗi khi thêm loại phòng: " + ex.getMessage());
@@ -330,57 +389,138 @@ public class RoomType extends JPanel {
         addDialog.setVisible(true);
     }
 
-    private void showEditRoomTypeDialog(int roomTypeId, String name, double basePrice, int capacityAdults, int capacityChildren, int bedCount, double area, String description) {
+    private void showEditRoomTypeDialog(RoomTypeDTO roomType) {
         JDialog editDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Sửa loại phòng", true);
         editDialog.setLayout(new BorderLayout());
-        editDialog.setSize(450, 450);
+        editDialog.setSize(500, 550);
 
-        JPanel contentPanel = new JPanel(new GridLayout(7, 2, 15, 15));
+        JPanel contentPanel = new JPanel(new GridBagLayout());
         contentPanel.setBackground(PANEL_BG);
         contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(5, 5, 5, 5);
 
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 0.3;
         JLabel nameLabel = new JLabel("Tên loại phòng:");
         nameLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField nameField = new JTextField(name);
+        contentPanel.add(nameLabel, gbc);
 
+        gbc.gridx = 1;
+        gbc.weightx = 0.7;
+        JTextField nameField = new JTextField(roomType.getName());
+        contentPanel.add(nameField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.weightx = 0.3;
         JLabel basePriceLabel = new JLabel("Giá cơ bản:");
         basePriceLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField basePriceField = new JTextField(String.valueOf(basePrice));
+        contentPanel.add(basePriceLabel, gbc);
 
+        gbc.gridx = 1;
+        gbc.weightx = 0.7;
+        JTextField basePriceField = new JTextField(String.valueOf(roomType.getBasePrice()));
+        contentPanel.add(basePriceField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.weightx = 0.3;
         JLabel capacityAdultsLabel = new JLabel("Người lớn:");
         capacityAdultsLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField capacityAdultsField = new JTextField(String.valueOf(capacityAdults));
+        contentPanel.add(capacityAdultsLabel, gbc);
 
-        JLabel capacityChildrenLabel = new JLabel("Sức chứa trẻ em:");
+        gbc.gridx = 1;
+        gbc.weightx = 0.7;
+        JTextField capacityAdultsField = new JTextField(String.valueOf(roomType.getCapacityAdults()));
+        contentPanel.add(capacityAdultsField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.weightx = 0.3;
+        JLabel capacityChildrenLabel = new JLabel("Trẻ em:");
         capacityChildrenLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField capacityChildrenField = new JTextField(String.valueOf(capacityChildren));
+        contentPanel.add(capacityChildrenLabel, gbc);
 
+        gbc.gridx = 1;
+        gbc.weightx = 0.7;
+        JTextField capacityChildrenField = new JTextField(String.valueOf(roomType.getCapacityChildren()));
+        contentPanel.add(capacityChildrenField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        gbc.weightx = 0.3;
         JLabel bedCountLabel = new JLabel("Số giường:");
         bedCountLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField bedCountField = new JTextField(String.valueOf(bedCount));
+        contentPanel.add(bedCountLabel, gbc);
 
+        gbc.gridx = 1;
+        gbc.weightx = 0.7;
+        JTextField bedCountField = new JTextField(String.valueOf(roomType.getBedCount()));
+        contentPanel.add(bedCountField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        gbc.weightx = 0.3;
         JLabel areaLabel = new JLabel("Diện tích (m²):");
         areaLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField areaField = new JTextField(String.valueOf(area));
+        contentPanel.add(areaLabel, gbc);
 
+        gbc.gridx = 1;
+        gbc.weightx = 0.7;
+        JTextField areaField = new JTextField(String.valueOf(roomType.getArea()));
+        contentPanel.add(areaField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 6;
+        gbc.weightx = 0.3;
         JLabel descriptionLabel = new JLabel("Mô tả:");
         descriptionLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField descriptionField = new JTextField(description != null ? description : "");
+        contentPanel.add(descriptionLabel, gbc);
 
-        contentPanel.add(nameLabel);
-        contentPanel.add(nameField);
-        contentPanel.add(basePriceLabel);
-        contentPanel.add(basePriceField);
-        contentPanel.add(capacityAdultsLabel);
-        contentPanel.add(capacityAdultsField);
-        contentPanel.add(capacityChildrenLabel);
-        contentPanel.add(capacityChildrenField);
-        contentPanel.add(bedCountLabel);
-        contentPanel.add(bedCountField);
-        contentPanel.add(areaLabel);
-        contentPanel.add(areaField);
-        contentPanel.add(descriptionLabel);
-        contentPanel.add(descriptionField);
+        gbc.gridx = 1;
+        gbc.weightx = 0.7;
+        JTextField descriptionField = new JTextField(roomType.getDescription() != null ? roomType.getDescription() : "");
+        contentPanel.add(descriptionField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 7;
+        gbc.weightx = 0.3;
+        JLabel amenitiesLabel = new JLabel("Tiện nghi:");
+        amenitiesLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        contentPanel.add(amenitiesLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 0.7;
+        List<AmenityDTO> allAmenities = amenityBUS.getAllAmenities();
+        JPanel amenitiesPanel = new JPanel();
+        amenitiesPanel.setLayout(new BoxLayout(amenitiesPanel, BoxLayout.Y_AXIS));
+        amenitiesPanel.setBackground(PANEL_BG);
+
+        List<JCheckBox> amenityCheckboxes = new ArrayList<>();
+        for (AmenityDTO amenity : allAmenities) {
+            JCheckBox checkbox = new JCheckBox(amenity.getName());
+            checkbox.putClientProperty("amenityId", amenity.getAmenityId());
+            amenityCheckboxes.add(checkbox);
+            amenitiesPanel.add(checkbox);
+        }
+
+        JScrollPane amenitiesScroll = new JScrollPane(amenitiesPanel);
+        amenitiesScroll.setPreferredSize(new Dimension(250, 100));
+        contentPanel.add(amenitiesScroll, gbc);
+
+        List<Integer> currentAmenityIds = roomType.getAmenities().stream()
+                .map(AmenityDTO::getAmenityId)
+                .collect(Collectors.toList());
+
+        for (JCheckBox checkbox : amenityCheckboxes) {
+            Integer amenityId = (Integer) checkbox.getClientProperty("amenityId");
+            if (currentAmenityIds.contains(amenityId)) {
+                checkbox.setSelected(true);
+            }
+        }
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
         buttonPanel.setBackground(PANEL_BG);
@@ -408,39 +548,40 @@ public class RoomType extends JPanel {
                     return;
                 }
 
-                double newBasePrice;
-                int newCapacityAdults, newCapacityChildren, newBedCount;
-                double newArea;
+                BigDecimal newBasePrice;
+                byte newCapacityAdults, newCapacityChildren, newBedCount;
+                BigDecimal newArea;
                 try {
-                    newBasePrice = Double.parseDouble(newBasePriceText);
-                    newCapacityAdults = Integer.parseInt(newCapacityAdultsText);
-                    newCapacityChildren = Integer.parseInt(newCapacityChildrenText);
-                    newBedCount = Integer.parseInt(newBedCountText);
-                    newArea = Double.parseDouble(newAreaText);
+                    newBasePrice = new BigDecimal(newBasePriceText);
+                    newCapacityAdults = Byte.parseByte(newCapacityAdultsText);
+                    newCapacityChildren = Byte.parseByte(newCapacityChildrenText);
+                    newBedCount = Byte.parseByte(newBedCountText);
+                    newArea = new BigDecimal(newAreaText);
                 } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(editDialog, "Giá, sức chứa, số giường, và diện tích phải là số!");
+                    JOptionPane.showMessageDialog(editDialog, "Giá, sức chứa, số giường, và diện tích phải là số hợp lệ!");
                     return;
                 }
 
-                Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(
-                        "UPDATE RoomType SET name = ?, base_price = ?, capacity_adults = ?, capacity_children = ?, bed_count = ?, area = ?, description = ? WHERE room_type_id = ?");
-                ps.setString(1, newName);
-                ps.setDouble(2, newBasePrice);
-                ps.setInt(3, newCapacityAdults);
-                ps.setInt(4, newCapacityChildren);
-                ps.setInt(5, newBedCount);
-                ps.setDouble(6, newArea);
-                ps.setString(7, newDescription.isEmpty() ? null : newDescription);
-                ps.setInt(8, roomTypeId);
-                ps.executeUpdate();
+                List<Integer> selectedAmenityIds = new ArrayList<>();
+                for (JCheckBox checkbox : amenityCheckboxes) {
+                    if (checkbox.isSelected()) {
+                        selectedAmenityIds.add((Integer) checkbox.getClientProperty("amenityId"));
+                    }
+                }
 
-                ps.close();
-                conn.close();
+                RoomTypeDTO updatedRoomType = new RoomTypeDTO(roomType.getRoomTypeId(), newName, newBasePrice,
+                        newCapacityAdults, newCapacityChildren, newBedCount,
+                        newArea, newDescription.isEmpty() ? null : newDescription);
 
-                JOptionPane.showMessageDialog(editDialog, "Sửa loại phòng thành công!");
-                loadData();
-                editDialog.dispose();
+                boolean success = roomTypeBUS.updateRoomType(updatedRoomType, selectedAmenityIds);
+
+                if (success) {
+                    JOptionPane.showMessageDialog(editDialog, "Sửa loại phòng thành công!");
+                    loadData();
+                    editDialog.dispose();
+                } else {
+                    JOptionPane.showMessageDialog(editDialog, "Không thể sửa loại phòng!");
+                }
             } catch (Exception ex) {
                 ex.printStackTrace();
                 JOptionPane.showMessageDialog(editDialog, "Lỗi khi sửa loại phòng: " + ex.getMessage());
@@ -455,19 +596,18 @@ public class RoomType extends JPanel {
     }
 
     private void deleteRoomType(int roomTypeId) {
-        int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn xóa loại phòng ID: " + roomTypeId + "?", "Xác nhận xóa", JOptionPane.YES_NO_OPTION);
+        int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn xóa loại phòng ID: " + roomTypeId + "?",
+                "Xác nhận xóa", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             try {
-                Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement("DELETE FROM RoomType WHERE room_type_id = ?");
-                ps.setInt(1, roomTypeId);
-                ps.executeUpdate();
+                boolean success = roomTypeBUS.deleteRoomType(roomTypeId);
 
-                ps.close();
-                conn.close();
-
-                JOptionPane.showMessageDialog(this, "Xóa loại phòng thành công!");
-                loadData();
+                if (success) {
+                    JOptionPane.showMessageDialog(this, "Xóa loại phòng thành công!");
+                    loadData();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Không thể xóa loại phòng!");
+                }
             } catch (Exception ex) {
                 ex.printStackTrace();
                 JOptionPane.showMessageDialog(this, "Lỗi khi xóa loại phòng: " + ex.getMessage());
@@ -476,10 +616,24 @@ public class RoomType extends JPanel {
     }
 
     private void updateTableView() {
-        String[] columnNames = {"ID", "Tên", "Giá", "Người lớn", "Trẻ em", "Số giường", "Diện tích", "Mô tả"};
+        String[] columnNames = {"ID", "Tên", "Giá", "Người lớn", "Trẻ em", "Số giường", "Diện tích", "Tiện nghi"};
         DefaultTableModel model = new DefaultTableModel(columnNames, 0);
 
-        for (Vector<Object> row : filteredRoomTypeData) {
+        for (RoomTypeDTO roomType : filteredRoomTypeData) {
+            String amenitiesStr = roomType.getAmenities().stream()
+                    .map(AmenityDTO::getName)
+                    .collect(Collectors.joining(", "));
+
+            Object[] row = {
+                    roomType.getRoomTypeId(),
+                    roomType.getName(),
+                    roomType.getBasePrice(),
+                    roomType.getCapacityAdults(),
+                    roomType.getCapacityChildren(),
+                    roomType.getBedCount(),
+                    roomType.getArea(),
+                    amenitiesStr.isEmpty() ? "Không có" : amenitiesStr
+            };
             model.addRow(row);
         }
 
@@ -522,18 +676,10 @@ public class RoomType extends JPanel {
                 if (e.isPopupTrigger() && table.getSelectedRow() != -1) {
                     int rowIndex = table.getSelectedRow();
                     int modelRow = table.convertRowIndexToModel(rowIndex);
-                    Vector<Object> row = filteredRoomTypeData.get(modelRow);
-                    int roomTypeId = (int) row.get(0);
-                    String name = (String) row.get(1);
-                    double basePrice = (double) row.get(2);
-                    int capacityAdults = (int) row.get(3);
-                    int capacityChildren = (int) row.get(4);
-                    int bedCount = (int) row.get(5);
-                    double area = (double) row.get(6);
-                    String description = row.get(7) != null ? (String) row.get(7) : "";
+                    RoomTypeDTO roomType = filteredRoomTypeData.get(modelRow);
 
-                    editItem.addActionListener(e1 -> showEditRoomTypeDialog(roomTypeId, name, basePrice, capacityAdults, capacityChildren, bedCount, area, description));
-                    deleteItem.addActionListener(e1 -> deleteRoomType(roomTypeId));
+                    editItem.addActionListener(e1 -> showEditRoomTypeDialog(roomType));
+                    deleteItem.addActionListener(e1 -> deleteRoomType(roomType.getRoomTypeId()));
 
                     popupMenu.show(e.getComponent(), e.getX(), e.getY());
                 }

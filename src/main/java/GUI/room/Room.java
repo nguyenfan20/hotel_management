@@ -4,7 +4,10 @@
  */
 package GUI.room;
 
-import util.DatabaseConnection;
+import BUS.RoomBUS;
+import BUS.RoomTypeBUS;
+import DTO.RoomDTO;
+import DTO.RoomTypeDTO;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -13,10 +16,10 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.sql.*;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 import java.util.stream.Collectors;
 
 /**
@@ -38,14 +41,19 @@ public class Room extends javax.swing.JPanel {
     private boolean isGridView = true; // Mặc định là dạng lưới
     private JButton toggleButton;
     private JTextField searchField;
-    private Vector<Vector<Object>> roomData = new Vector<>(); // Lưu toàn bộ dữ liệu phòng
-    private Vector<Vector<Object>> filteredRoomData = new Vector<>(); // Dữ liệu sau khi lọc
-    private Map<Integer, String> roomTypes = new HashMap<>(); // Lưu room_type_id -> name
+    private List<RoomDTO> roomData = new ArrayList<>();
+    private List<RoomDTO> filteredRoomData = new ArrayList<>();
+    private Map<Integer, String> roomTypes = new HashMap<>();
+
+    private RoomBUS roomBUS;
+    private RoomTypeBUS roomTypeBUS;
 
     /**
      * Creates new form Room
      */
     public Room() {
+        roomBUS = new RoomBUS();
+        roomTypeBUS = new RoomTypeBUS();
         initComponents();
         loadRoomTypes();
         loadData();
@@ -142,65 +150,44 @@ public class Room extends javax.swing.JPanel {
 
     private void loadRoomTypes() {
         try {
-            Connection conn = DatabaseConnection.getConnection();
-            Statement st = conn.createStatement();
-            ResultSet rs = st.executeQuery("SELECT room_type_id, name FROM RoomType");
-            while (rs.next()) {
-                roomTypes.put(rs.getInt("room_type_id"), rs.getString("name"));
+            List<RoomTypeDTO> roomTypeList = roomTypeBUS.getAllRoomTypes();
+            roomTypes.clear();
+            for (RoomTypeDTO roomType : roomTypeList) {
+                roomTypes.put(roomType.getRoomTypeId(), roomType.getName());
             }
-            rs.close();
-            st.close();
-            conn.close();
         } catch (Exception e) {
             e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi tải loại phòng: " + e.getMessage());
         }
     }
 
     private void loadData() {
         try {
-            Connection conn = DatabaseConnection.getConnection();
-            Statement st = conn.createStatement();
-            ResultSet rs = st.executeQuery("SELECT room_id, room_no, floor_no, status, room_type_id, note FROM Room ORDER BY floor_no, room_no");
-
-            roomData.clear();
-            while (rs.next()) {
-                Vector<Object> row = new Vector<>();
-                row.add(rs.getInt("room_id"));
-                row.add(rs.getString("room_no"));
-                row.add(rs.getInt("floor_no"));
-                row.add(rs.getString("status"));
-                row.add(rs.getInt("room_type_id"));
-                row.add(rs.getString("note"));
-                roomData.add(row);
-            }
-
-            rs.close();
-            st.close();
-            conn.close();
-
-            filteredRoomData = new Vector<>(roomData);
+            roomData = roomBUS.getAllRooms();
+            filteredRoomData = roomData.stream().collect(Collectors.toList());
             updateView();
-
         } catch (Exception e) {
             e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi khi tải dữ liệu phòng: " + e.getMessage());
         }
     }
 
     private void performSearch() {
         String query = searchField.getText().trim().toLowerCase();
         if (query.isEmpty()) {
-            filteredRoomData = new Vector<>(roomData);
+            filteredRoomData = roomData.stream().collect(Collectors.toList());
         } else {
             filteredRoomData = roomData.stream()
-                    .filter(row -> {
-                        String roomNo = ((String) row.get(1)).toLowerCase();
-                        String floorNo = String.valueOf(row.get(2));
-                        String status = ((String) row.get(3)).toLowerCase();
-                        String roomType = roomTypes.getOrDefault((Integer) row.get(4), "").toLowerCase();
-                        String note = row.get(5) != null ? ((String) row.get(5)).toLowerCase() : "";
-                        return roomNo.contains(query) || floorNo.contains(query) || status.contains(query) || roomType.contains(query) || note.contains(query);
+                    .filter(room -> {
+                        String roomNo = room.getRoomNo().toLowerCase();
+                        String floorNo = String.valueOf(room.getFloorNo());
+                        String status = room.getStatus().toLowerCase();
+                        String roomType = roomTypes.getOrDefault(room.getRoomTypeId(), "").toLowerCase();
+                        String note = room.getNote() != null ? room.getNote().toLowerCase() : "";
+                        return roomNo.contains(query) || floorNo.contains(query) || status.contains(query) ||
+                                roomType.contains(query) || note.contains(query);
                     })
-                    .collect(Collectors.toCollection(Vector::new));
+                    .collect(Collectors.toList());
         }
         updateView();
     }
@@ -258,12 +245,13 @@ public class Room extends javax.swing.JPanel {
 
     private void filterRooms(String roomType, String status) {
         filteredRoomData = roomData.stream()
-                .filter(row -> {
-                    boolean matchRoomType = roomType.equals("Tất cả") || roomTypes.get((Integer) row.get(4)).equals(roomType);
-                    boolean matchStatus = status.equals("Tất cả") || ((String) row.get(3)).equals(status);
+                .filter(room -> {
+                    boolean matchRoomType = roomType.equals("Tất cả") ||
+                            roomTypes.get(room.getRoomTypeId()).equals(roomType);
+                    boolean matchStatus = status.equals("Tất cả") || room.getStatus().equals(status);
                     return matchRoomType && matchStatus;
                 })
-                .collect(Collectors.toCollection(Vector::new));
+                .collect(Collectors.toList());
         updateView();
     }
 
@@ -338,11 +326,11 @@ public class Room extends javax.swing.JPanel {
                     return;
                 }
 
-                int floorNo;
+                byte floorNo;
                 try {
-                    floorNo = Integer.parseInt(floorNoText);
+                    floorNo = Byte.parseByte(floorNoText);
                 } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(addDialog, "Tầng phải là số nguyên!");
+                    JOptionPane.showMessageDialog(addDialog, "Tầng phải là số nguyên hợp lệ (0-127)!");
                     return;
                 }
 
@@ -352,22 +340,16 @@ public class Room extends javax.swing.JPanel {
                         .findFirst()
                         .orElse(-1);
 
-                Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(
-                        "INSERT INTO Room (room_no, floor_no, status, room_type_id, note) VALUES (?, ?, ?, ?, ?)");
-                ps.setString(1, roomNo);
-                ps.setInt(2, floorNo);
-                ps.setString(3, status);
-                ps.setInt(4, roomTypeId);
-                ps.setString(5, note.isEmpty() ? null : note);
-                ps.executeUpdate();
+                RoomDTO newRoom = new RoomDTO(roomNo, floorNo, roomTypeId, status, note.isEmpty() ? null : note);
+                boolean success = roomBUS.addRoom(newRoom);
 
-                ps.close();
-                conn.close();
-
-                JOptionPane.showMessageDialog(addDialog, "Thêm phòng thành công!");
-                loadData();
-                addDialog.dispose();
+                if (success) {
+                    JOptionPane.showMessageDialog(addDialog, "Thêm phòng thành công!");
+                    loadData();
+                    addDialog.dispose();
+                } else {
+                    JOptionPane.showMessageDialog(addDialog, "Không thể thêm phòng!");
+                }
             } catch (Exception ex) {
                 ex.printStackTrace();
                 JOptionPane.showMessageDialog(addDialog, "Lỗi khi thêm phòng: " + ex.getMessage());
@@ -381,7 +363,7 @@ public class Room extends javax.swing.JPanel {
         addDialog.setVisible(true);
     }
 
-    private void showEditRoomDialog(int roomId, String roomNo, int floorNo, String status, int roomTypeId, String note) {
+    private void showEditRoomDialog(RoomDTO room) {
         JDialog editDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Sửa phòng", true);
         editDialog.setLayout(new BorderLayout());
         editDialog.setSize(400, 350);
@@ -392,18 +374,18 @@ public class Room extends javax.swing.JPanel {
 
         JLabel roomNoLabel = new JLabel("Số phòng:");
         roomNoLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField roomNoField = new JTextField(roomNo);
+        JTextField roomNoField = new JTextField(room.getRoomNo());
         roomNoField.setPreferredSize(new Dimension(150, 30));
 
         JLabel floorNoLabel = new JLabel("Tầng:");
         floorNoLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField floorNoField = new JTextField(String.valueOf(floorNo));
+        JTextField floorNoField = new JTextField(String.valueOf(room.getFloorNo()));
         floorNoField.setPreferredSize(new Dimension(150, 30));
 
         JLabel statusLabel = new JLabel("Trạng thái:");
         statusLabel.setFont(new Font("Arial", Font.BOLD, 13));
         JComboBox<String> statusCombo = new JComboBox<>(new String[]{"AVAILABLE", "RESERVED", "OCCUPIED"});
-        statusCombo.setSelectedItem(status);
+        statusCombo.setSelectedItem(room.getStatus());
         statusCombo.setPreferredSize(new Dimension(150, 30));
 
         JLabel roomTypeLabel = new JLabel("Loại phòng:");
@@ -412,12 +394,12 @@ public class Room extends javax.swing.JPanel {
         for (String typeName : roomTypes.values()) {
             roomTypeCombo.addItem(typeName);
         }
-        roomTypeCombo.setSelectedItem(roomTypes.get(roomTypeId));
+        roomTypeCombo.setSelectedItem(roomTypes.get(room.getRoomTypeId()));
         roomTypeCombo.setPreferredSize(new Dimension(150, 30));
 
         JLabel noteLabel = new JLabel("Ghi chú:");
         noteLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField noteField = new JTextField(note != null ? note : "");
+        JTextField noteField = new JTextField(room.getNote() != null ? room.getNote() : "");
         noteField.setPreferredSize(new Dimension(150, 30));
 
         contentPanel.add(roomNoLabel);
@@ -454,11 +436,11 @@ public class Room extends javax.swing.JPanel {
                     return;
                 }
 
-                int newFloorNo;
+                byte newFloorNo;
                 try {
-                    newFloorNo = Integer.parseInt(floorNoText);
+                    newFloorNo = Byte.parseByte(floorNoText);
                 } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(editDialog, "Tầng phải là số nguyên!");
+                    JOptionPane.showMessageDialog(editDialog, "Tầng phải là số nguyên hợp lệ (0-127)!");
                     return;
                 }
 
@@ -468,23 +450,17 @@ public class Room extends javax.swing.JPanel {
                         .findFirst()
                         .orElse(-1);
 
-                Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement(
-                        "UPDATE Room SET room_no = ?, floor_no = ?, status = ?, room_type_id = ?, note = ? WHERE room_id = ?");
-                ps.setString(1, newRoomNo);
-                ps.setInt(2, newFloorNo);
-                ps.setString(3, newStatus);
-                ps.setInt(4, newRoomTypeId);
-                ps.setString(5, newNote.isEmpty() ? null : newNote);
-                ps.setInt(6, roomId);
-                ps.executeUpdate();
+                RoomDTO updatedRoom = new RoomDTO(room.getRoomId(), newRoomNo, newFloorNo, newRoomTypeId, newStatus,
+                        newNote.isEmpty() ? null : newNote);
+                boolean success = roomBUS.updateRoom(updatedRoom);
 
-                ps.close();
-                conn.close();
-
-                JOptionPane.showMessageDialog(editDialog, "Sửa phòng thành công!");
-                loadData();
-                editDialog.dispose();
+                if (success) {
+                    JOptionPane.showMessageDialog(editDialog, "Sửa phòng thành công!");
+                    loadData();
+                    editDialog.dispose();
+                } else {
+                    JOptionPane.showMessageDialog(editDialog, "Không thể sửa phòng!");
+                }
             } catch (Exception ex) {
                 ex.printStackTrace();
                 JOptionPane.showMessageDialog(editDialog, "Lỗi khi sửa phòng: " + ex.getMessage());
@@ -504,19 +480,18 @@ public class Room extends javax.swing.JPanel {
             return;
         }
 
-        int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn xóa phòng ID: " + roomId + "?", "Xác nhận xóa", JOptionPane.YES_NO_OPTION);
+        int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn xóa phòng ID: " + roomId + "?",
+                "Xác nhận xóa", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             try {
-                Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement ps = conn.prepareStatement("DELETE FROM Room WHERE room_id = ?");
-                ps.setInt(1, roomId);
-                ps.executeUpdate();
+                boolean success = roomBUS.deleteRoom(roomId);
 
-                ps.close();
-                conn.close();
-
-                JOptionPane.showMessageDialog(this, "Xóa phòng thành công!");
-                loadData(); // Tải lại dữ liệu
+                if (success) {
+                    JOptionPane.showMessageDialog(this, "Xóa phòng thành công!");
+                    loadData();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Không thể xóa phòng!");
+                }
             } catch (Exception ex) {
                 ex.printStackTrace();
                 JOptionPane.showMessageDialog(this, "Lỗi khi xóa phòng: " + ex.getMessage());
@@ -540,11 +515,11 @@ public class Room extends javax.swing.JPanel {
         int currentFloor = -1;
         JPanel rowPanel = null;
 
-        for (Vector<Object> row : filteredRoomData) {
-            int roomId = (int) row.get(0);
-            String roomName = (String) row.get(1);
-            int floorNo = (int) row.get(2);
-            String status = (String) row.get(3);
+        for (RoomDTO room : filteredRoomData) {
+            int roomId = room.getRoomId();
+            String roomName = room.getRoomNo();
+            int floorNo = room.getFloorNo();
+            String status = room.getStatus();
 
             if (floorNo != currentFloor) {
                 currentFloor = floorNo;
@@ -603,9 +578,10 @@ public class Room extends javax.swing.JPanel {
             btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
             btn.addActionListener(e -> {
-                String roomType = roomTypes.getOrDefault((Integer) row.get(4), "Unknown");
+                String roomType = roomTypes.getOrDefault(room.getRoomTypeId(), "Unknown");
                 JOptionPane.showMessageDialog(this,
-                        "Bạn chọn phòng: " + roomName + " (ID: " + roomId + ", Tầng: " + floorNo + ", Trạng thái: " + status + ", Loại phòng: " + roomType + ")");
+                        "Bạn chọn phòng: " + roomName + " (ID: " + roomId + ", Tầng: " + floorNo +
+                                ", Trạng thái: " + status + ", Loại phòng: " + roomType + ")");
             });
 
             rowPanel.add(btn);
@@ -625,10 +601,16 @@ public class Room extends javax.swing.JPanel {
         String[] columnNames = {"ID", "Số phòng", "Tầng", "Trạng thái", "Loại phòng", "Ghi chú"};
         DefaultTableModel model = new DefaultTableModel(columnNames, 0);
 
-        for (Vector<Object> row : filteredRoomData) {
-            Vector<Object> displayRow = new Vector<>(row);
-            displayRow.set(4, roomTypes.getOrDefault((Integer) row.get(4), "Unknown"));
-            model.addRow(displayRow);
+        for (RoomDTO room : filteredRoomData) {
+            Object[] row = {
+                    room.getRoomId(),
+                    room.getRoomNo(),
+                    room.getFloorNo(),
+                    room.getStatus(),
+                    roomTypes.getOrDefault(room.getRoomTypeId(), "Unknown"),
+                    room.getNote()
+            };
+            model.addRow(row);
         }
 
         JTable table = new JTable(model);
@@ -670,16 +652,10 @@ public class Room extends javax.swing.JPanel {
                 if (e.isPopupTrigger() && table.getSelectedRow() != -1) {
                     int rowIndex = table.getSelectedRow();
                     int modelRow = table.convertRowIndexToModel(rowIndex);
-                    Vector<Object> row = filteredRoomData.get(modelRow);
-                    int roomId = (int) row.get(0);
-                    String roomNo = (String) row.get(1);
-                    int floorNo = (int) row.get(2);
-                    String status = (String) row.get(3);
-                    int roomTypeId = (int) row.get(4);
-                    String note = row.get(5) != null ? (String) row.get(5) : "";
+                    RoomDTO room = filteredRoomData.get(modelRow);
 
-                    editItem.addActionListener(e1 -> showEditRoomDialog(roomId, roomNo, floorNo, status, roomTypeId, note));
-                    deleteItem.addActionListener(e1 -> deleteRoom(roomId, status));
+                    editItem.addActionListener(e1 -> showEditRoomDialog(room));
+                    deleteItem.addActionListener(e1 -> deleteRoom(room.getRoomId(), room.getStatus()));
 
                     popupMenu.show(e.getComponent(), e.getX(), e.getY());
                 }
@@ -688,7 +664,4 @@ public class Room extends javax.swing.JPanel {
 
         scrollPane.setViewportView(table);
     }
-
-    // Variables declaration - do not modify//GEN-END:variables
-    // End of variables declaration//GEN-END:variables
 }
