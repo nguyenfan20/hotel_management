@@ -1,4 +1,4 @@
-package GUI;
+package GUI.auth;
 
 import util.DatabaseConnection;
 import util.ImagePanel;
