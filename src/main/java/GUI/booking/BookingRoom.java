@@ -63,7 +63,7 @@ public class BookingRoom extends javax.swing.JFrame {
     private void initFilterDialog() {
         jDialog1.setTitle("Lọc phòng đặt");
         jDialog1.setModal(true);
-        jDialog1.setSize(400, 300);
+        jDialog1.setSize(400, 250);
         jDialog1.setLocationRelativeTo(this);
         jDialog1.setDefaultCloseOperation(javax.swing.JDialog.HIDE_ON_CLOSE);
 
@@ -82,42 +82,34 @@ public class BookingRoom extends javax.swing.JFrame {
         javax.swing.JLabel lblNgayNhan = new javax.swing.JLabel("Ngày nhận:");
         mainPanel.add(lblNgayNhan, gbc);
 
-        // Check-in date text field
+        // Check-in date picker
         gbc.gridx = 1;
-        gbc.weightx = 0.5;
-        javax.swing.JTextField tfNgayNhan = new javax.swing.JTextField();
-        tfNgayNhan.setEditable(false);
-        mainPanel.add(tfNgayNhan, gbc);
-
-        // Check-in date button
-        gbc.gridx = 2;
-        gbc.weightx = 0.2;
-        javax.swing.JButton btnChonNgayNhan = new javax.swing.JButton("Chọn ngày");
-        mainPanel.add(btnChonNgayNhan, gbc);
+        gbc.gridwidth = 2;
+        gbc.weightx = 0.7;
+        com.toedter.calendar.JDateChooser dateNgayNhan = new com.toedter.calendar.JDateChooser();
+        dateNgayNhan.setDateFormatString("dd/MM/yyyy");
+        mainPanel.add(dateNgayNhan, gbc);
 
         // Check-out date label
         gbc.gridx = 0;
         gbc.gridy = 1;
+        gbc.gridwidth = 1;
         gbc.weightx = 0.3;
         javax.swing.JLabel lblNgayTra = new javax.swing.JLabel("Ngày trả:");
         mainPanel.add(lblNgayTra, gbc);
 
-        // Check-out date text field
+        // Check-out date picker
         gbc.gridx = 1;
-        gbc.weightx = 0.5;
-        javax.swing.JTextField tfNgayTra = new javax.swing.JTextField();
-        tfNgayTra.setEditable(false);
-        mainPanel.add(tfNgayTra, gbc);
-
-        // Check-out date button
-        gbc.gridx = 2;
-        gbc.weightx = 0.2;
-        javax.swing.JButton btnChonNgayTra = new javax.swing.JButton("Chọn ngày");
-        mainPanel.add(btnChonNgayTra, gbc);
+        gbc.gridwidth = 2;
+        gbc.weightx = 0.7;
+        com.toedter.calendar.JDateChooser dateNgayTra = new com.toedter.calendar.JDateChooser();
+        dateNgayTra.setDateFormatString("dd/MM/yyyy");
+        mainPanel.add(dateNgayTra, gbc);
 
         // Status label
         gbc.gridx = 0;
         gbc.gridy = 2;
+        gbc.gridwidth = 1;
         gbc.weightx = 0.3;
         javax.swing.JLabel lblTrangThai = new javax.swing.JLabel("Trạng thái:");
         mainPanel.add(lblTrangThai, gbc);
@@ -146,53 +138,21 @@ public class BookingRoom extends javax.swing.JFrame {
         jDialog1.add(mainPanel, java.awt.BorderLayout.CENTER);
         jDialog1.add(buttonPanel, java.awt.BorderLayout.SOUTH);
 
-        // Event handlers for date picker buttons
-        btnChonNgayNhan.addActionListener(e -> {
-            javax.swing.JDialog dateDialog = new javax.swing.JDialog(jDialog1, "Chọn ngày nhận", true);
-            dateDialog.setSize(300, 250);
-            dateDialog.setLocationRelativeTo(jDialog1);
-
-            com.toedter.calendar.JCalendar calendar = new com.toedter.calendar.JCalendar();
-            javax.swing.JButton btnXacNhan = new javax.swing.JButton("Xác nhận");
-
-            btnXacNhan.addActionListener(ev -> {
-                java.util.Date selectedDate = calendar.getDate();
-                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
-                tfNgayNhan.setText(sdf.format(selectedDate));
-                dateDialog.dispose();
-            });
-
-            dateDialog.setLayout(new java.awt.BorderLayout());
-            dateDialog.add(calendar, java.awt.BorderLayout.CENTER);
-            dateDialog.add(btnXacNhan, java.awt.BorderLayout.SOUTH);
-            dateDialog.setVisible(true);
-        });
-
-        btnChonNgayTra.addActionListener(e -> {
-            javax.swing.JDialog dateDialog = new javax.swing.JDialog(jDialog1, "Chọn ngày trả", true);
-            dateDialog.setSize(300, 250);
-            dateDialog.setLocationRelativeTo(jDialog1);
-
-            com.toedter.calendar.JCalendar calendar = new com.toedter.calendar.JCalendar();
-            javax.swing.JButton btnXacNhan = new javax.swing.JButton("Xác nhận");
-
-            btnXacNhan.addActionListener(ev -> {
-                java.util.Date selectedDate = calendar.getDate();
-                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
-                tfNgayTra.setText(sdf.format(selectedDate));
-                dateDialog.dispose();
-            });
-
-            dateDialog.setLayout(new java.awt.BorderLayout());
-            dateDialog.add(calendar, java.awt.BorderLayout.CENTER);
-            dateDialog.add(btnXacNhan, java.awt.BorderLayout.SOUTH);
-            dateDialog.setVisible(true);
-        });
-
         // Apply button handler
         btnApDung.addActionListener(e -> {
-            String ngayNhan = tfNgayNhan.getText();
-            String ngayTra = tfNgayTra.getText();
+            String ngayNhan = "";
+            String ngayTra = "";
+
+            if (dateNgayNhan.getDate() != null) {
+                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+                ngayNhan = sdf.format(dateNgayNhan.getDate());
+            }
+
+            if (dateNgayTra.getDate() != null) {
+                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+                ngayTra = sdf.format(dateNgayTra.getDate());
+            }
+
             String trangThai = (String) cbTrangThai.getSelectedItem();
 
             // Implement filter logic here

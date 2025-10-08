@@ -4,6 +4,10 @@
  */
 package GUI.booking;
 
+import com.toedter.calendar.JDateChooser;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 /**
  *
  * @author daoho
@@ -17,6 +21,7 @@ public class BookingGUI extends javax.swing.JPanel {
         initComponents();
         initPopupMenu();
         jDialog1 = new javax.swing.JDialog((java.awt.Frame) null, "Bộ lọc tìm kiếm", true);
+        initFilterDialog();
         setVisible(true);
     }
 
@@ -235,6 +240,75 @@ public class BookingGUI extends javax.swing.JPanel {
         }
     }
 
+    private void initFilterDialog() {
+        jDialog1.setLayout(null);
+        jDialog1.setSize(400, 280);
+
+        javax.swing.JLabel lblNgayDat = new javax.swing.JLabel("Ngày đặt:");
+        lblNgayDat.setBounds(30, 30, 100, 25);
+        jDialog1.add(lblNgayDat);
+
+        dateChooser = new JDateChooser();
+        dateChooser.setDateFormatString("dd/MM/yyyy");
+        dateChooser.setBounds(140, 30, 200, 25);
+        jDialog1.add(dateChooser);
+
+        // Label và ComboBox cho Tình trạng
+        javax.swing.JLabel lblTinhTrang = new javax.swing.JLabel("Tình trạng:");
+        lblTinhTrang.setBounds(30, 80, 100, 25);
+        jDialog1.add(lblTinhTrang);
+
+        cbTinhTrang = new javax.swing.JComboBox<>(new String[]{
+                "Tất cả", "Trống", "Đã đặt", "Đã nhận phòng", "Đã trả phòng", "Đã hủy"
+        });
+        cbTinhTrang.setBounds(140, 80, 200, 25);
+        jDialog1.add(cbTinhTrang);
+
+        // Label và ComboBox cho Nguồn đặt
+        javax.swing.JLabel lblNguonDat = new javax.swing.JLabel("Nguồn đặt:");
+        lblNguonDat.setBounds(30, 130, 100, 25);
+        jDialog1.add(lblNguonDat);
+
+        cbNguonDat = new javax.swing.JComboBox<>(new String[]{
+                "Tất cả", "Online", "Trực tiếp", "Điện thoại", "Đại lý"
+        });
+        cbNguonDat.setBounds(140, 130, 200, 25);
+        jDialog1.add(cbNguonDat);
+
+        // Nút Áp dụng
+        javax.swing.JButton btnApDung = new javax.swing.JButton("Áp dụng");
+        btnApDung.setBounds(100, 190, 100, 30);
+        btnApDung.addActionListener(e -> applyFilter());
+        jDialog1.add(btnApDung);
+
+        // Nút Hủy
+        javax.swing.JButton btnHuy = new javax.swing.JButton("Hủy");
+        btnHuy.setBounds(220, 190, 100, 30);
+        btnHuy.addActionListener(e -> jDialog1.setVisible(false));
+        jDialog1.add(btnHuy);
+    }
+
+    private void applyFilter() {
+        // TODO: Implement filter logic here
+        String ngayDat = "";
+        Date selectedDate = dateChooser.getDate();
+        if (selectedDate != null) {
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+            ngayDat = sdf.format(selectedDate);
+        }
+
+        String tinhTrang = (String) cbTinhTrang.getSelectedItem();
+        String nguonDat = (String) cbNguonDat.getSelectedItem();
+
+        // Apply filter to table
+        javax.swing.JOptionPane.showMessageDialog(this,
+                "Áp dụng bộ lọc:\nNgày đặt: " + ngayDat +
+                        "\nTình trạng: " + tinhTrang +
+                        "\nNguồn đặt: " + nguonDat);
+
+        jDialog1.setVisible(false);
+    }
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnLoc;
     private javax.swing.JButton btnTimKiem;
@@ -244,5 +318,8 @@ public class BookingGUI extends javax.swing.JPanel {
     private javax.swing.JTable tbDatPhong;
     private javax.swing.JTextField tfTimKiem;
     private javax.swing.JDialog jDialog1;
+    private javax.swing.JComboBox<String> cbTinhTrang;
+    private javax.swing.JComboBox<String> cbNguonDat;
+    private JDateChooser dateChooser;
     // End of variables declaration//GEN-END:variables
 }
