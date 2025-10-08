@@ -16,8 +16,9 @@ public class BookingRoom extends javax.swing.JFrame {
     public BookingRoom() {
         initComponents();
         initPopupMenu();
-
+        initFilterDialog();
     }
+
     private void initPopupMenu() {
         // Tạo các menu item
         javax.swing.JMenuItem menuSua = new javax.swing.JMenuItem("Sửa");
@@ -58,12 +59,168 @@ public class BookingRoom extends javax.swing.JFrame {
             }
         });
     }
+
+    private void initFilterDialog() {
+        jDialog1.setTitle("Lọc phòng đặt");
+        jDialog1.setModal(true);
+        jDialog1.setSize(400, 300);
+        jDialog1.setLocationRelativeTo(this);
+        jDialog1.setDefaultCloseOperation(javax.swing.JDialog.HIDE_ON_CLOSE);
+
+        // Main panel
+        javax.swing.JPanel mainPanel = new javax.swing.JPanel();
+        mainPanel.setLayout(new java.awt.GridBagLayout());
+        mainPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+        gbc.insets = new java.awt.Insets(5, 5, 5, 5);
+        gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+
+        // Check-in date label
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 0.3;
+        javax.swing.JLabel lblNgayNhan = new javax.swing.JLabel("Ngày nhận:");
+        mainPanel.add(lblNgayNhan, gbc);
+
+        // Check-in date text field
+        gbc.gridx = 1;
+        gbc.weightx = 0.5;
+        javax.swing.JTextField tfNgayNhan = new javax.swing.JTextField();
+        tfNgayNhan.setEditable(false);
+        mainPanel.add(tfNgayNhan, gbc);
+
+        // Check-in date button
+        gbc.gridx = 2;
+        gbc.weightx = 0.2;
+        javax.swing.JButton btnChonNgayNhan = new javax.swing.JButton("Chọn ngày");
+        mainPanel.add(btnChonNgayNhan, gbc);
+
+        // Check-out date label
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.weightx = 0.3;
+        javax.swing.JLabel lblNgayTra = new javax.swing.JLabel("Ngày trả:");
+        mainPanel.add(lblNgayTra, gbc);
+
+        // Check-out date text field
+        gbc.gridx = 1;
+        gbc.weightx = 0.5;
+        javax.swing.JTextField tfNgayTra = new javax.swing.JTextField();
+        tfNgayTra.setEditable(false);
+        mainPanel.add(tfNgayTra, gbc);
+
+        // Check-out date button
+        gbc.gridx = 2;
+        gbc.weightx = 0.2;
+        javax.swing.JButton btnChonNgayTra = new javax.swing.JButton("Chọn ngày");
+        mainPanel.add(btnChonNgayTra, gbc);
+
+        // Status label
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.weightx = 0.3;
+        javax.swing.JLabel lblTrangThai = new javax.swing.JLabel("Trạng thái:");
+        mainPanel.add(lblTrangThai, gbc);
+
+        // Status combobox
+        gbc.gridx = 1;
+        gbc.gridwidth = 2;
+        gbc.weightx = 0.7;
+        javax.swing.JComboBox<String> cbTrangThai = new javax.swing.JComboBox<>(
+                new String[]{"Tất cả", "Đã đặt", "Đã nhận", "Đã trả", "Đã hủy"}
+        );
+        mainPanel.add(cbTrangThai, gbc);
+
+        // Button panel
+        javax.swing.JPanel buttonPanel = new javax.swing.JPanel();
+        buttonPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT));
+
+        javax.swing.JButton btnApDung = new javax.swing.JButton("Áp dụng");
+        javax.swing.JButton btnHuy = new javax.swing.JButton("Hủy");
+
+        buttonPanel.add(btnApDung);
+        buttonPanel.add(btnHuy);
+
+        // Add panels to dialog
+        jDialog1.setLayout(new java.awt.BorderLayout());
+        jDialog1.add(mainPanel, java.awt.BorderLayout.CENTER);
+        jDialog1.add(buttonPanel, java.awt.BorderLayout.SOUTH);
+
+        // Event handlers for date picker buttons
+        btnChonNgayNhan.addActionListener(e -> {
+            javax.swing.JDialog dateDialog = new javax.swing.JDialog(jDialog1, "Chọn ngày nhận", true);
+            dateDialog.setSize(300, 250);
+            dateDialog.setLocationRelativeTo(jDialog1);
+
+            com.toedter.calendar.JCalendar calendar = new com.toedter.calendar.JCalendar();
+            javax.swing.JButton btnXacNhan = new javax.swing.JButton("Xác nhận");
+
+            btnXacNhan.addActionListener(ev -> {
+                java.util.Date selectedDate = calendar.getDate();
+                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+                tfNgayNhan.setText(sdf.format(selectedDate));
+                dateDialog.dispose();
+            });
+
+            dateDialog.setLayout(new java.awt.BorderLayout());
+            dateDialog.add(calendar, java.awt.BorderLayout.CENTER);
+            dateDialog.add(btnXacNhan, java.awt.BorderLayout.SOUTH);
+            dateDialog.setVisible(true);
+        });
+
+        btnChonNgayTra.addActionListener(e -> {
+            javax.swing.JDialog dateDialog = new javax.swing.JDialog(jDialog1, "Chọn ngày trả", true);
+            dateDialog.setSize(300, 250);
+            dateDialog.setLocationRelativeTo(jDialog1);
+
+            com.toedter.calendar.JCalendar calendar = new com.toedter.calendar.JCalendar();
+            javax.swing.JButton btnXacNhan = new javax.swing.JButton("Xác nhận");
+
+            btnXacNhan.addActionListener(ev -> {
+                java.util.Date selectedDate = calendar.getDate();
+                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+                tfNgayTra.setText(sdf.format(selectedDate));
+                dateDialog.dispose();
+            });
+
+            dateDialog.setLayout(new java.awt.BorderLayout());
+            dateDialog.add(calendar, java.awt.BorderLayout.CENTER);
+            dateDialog.add(btnXacNhan, java.awt.BorderLayout.SOUTH);
+            dateDialog.setVisible(true);
+        });
+
+        // Apply button handler
+        btnApDung.addActionListener(e -> {
+            String ngayNhan = tfNgayNhan.getText();
+            String ngayTra = tfNgayTra.getText();
+            String trangThai = (String) cbTrangThai.getSelectedItem();
+
+            // Implement filter logic here
+            applyFilter(ngayNhan, ngayTra, trangThai);
+            jDialog1.setVisible(false);
+        });
+
+        // Cancel button handler
+        btnHuy.addActionListener(e -> {
+            jDialog1.setVisible(false);
+        });
+    }
+
+    private void applyFilter(String ngayNhan, String ngayTra, String trangThai) {
+        // Implement your filter logic here
+        // Filter the table based on check-in date, check-out date, and status
+        System.out.println("Filtering with:");
+        System.out.println("Ngày nhận: " + ngayNhan);
+        System.out.println("Ngày trả: " + ngayTra);
+        System.out.println("Trạng thái: " + trangThai);
+    }
+
     private void suaDongDangChon() {
         int row = tbPhongDat.getSelectedRow();
         if (row != -1) {
             Object maPhong = tbPhongDat.getValueAt(row, 0);
-            javax.swing.JOptionPane.showMessageDialog(this, 
-                "Sửa dòng có Mã phòng đặt: " + maPhong);
+            javax.swing.JOptionPane.showMessageDialog(this,
+                    "Sửa dòng có Mã phòng đặt: " + maPhong);
             // TODO: mở form sửa dữ liệu tại đây
         }
     }
@@ -73,8 +230,8 @@ public class BookingRoom extends javax.swing.JFrame {
         if (row != -1) {
             Object maPhong = tbPhongDat.getValueAt(row, 0);
             int confirm = javax.swing.JOptionPane.showConfirmDialog(this,
-                "Bạn có chắc muốn xóa Mã phòng đặt: " + maPhong + "?",
-                "Xác nhận", javax.swing.JOptionPane.YES_NO_OPTION);
+                    "Bạn có chắc muốn xóa Mã phòng đặt: " + maPhong + "?",
+                    "Xác nhận", javax.swing.JOptionPane.YES_NO_OPTION);
             if (confirm == javax.swing.JOptionPane.YES_OPTION) {
                 ((javax.swing.table.DefaultTableModel) tbPhongDat.getModel()).removeRow(row);
             }
@@ -92,9 +249,11 @@ public class BookingRoom extends javax.swing.JFrame {
     private void initComponents() {
 
         jPopupMenu1 = new javax.swing.JPopupMenu();
+        jDialog1 = new javax.swing.JDialog();
         jPanel1 = new javax.swing.JPanel();
         tfTimKiem = new javax.swing.JTextField();
         btnTimKiem = new javax.swing.JButton();
+        btnLoc = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
         tbPhongDat = new javax.swing.JTable();
         cbTieuChi = new javax.swing.JComboBox<>();
@@ -109,21 +268,28 @@ public class BookingRoom extends javax.swing.JFrame {
 
         btnTimKiem.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/search.png"))); // NOI18N
 
-        tbPhongDat.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-                {null, null, null, null, null, null, null},
-                {null, null, null, null, null, null, null},
-                {null, null, null, null, null, null, null}
-            },
-            new String [] {
-                "Mã phòng đặt", "Mã đặt phòng", "Mã phòng", "Ngày nhận ", "Ngày trả", "Thuế", "Trạng thái"
+        btnLoc.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/filter.png"))); // NOI18N
+        btnLoc.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnLocActionPerformed(evt);
             }
+        });
+
+        tbPhongDat.setModel(new javax.swing.table.DefaultTableModel(
+                new Object [][] {
+                        {null, null, null, null, null, null, null},
+                        {null, null, null, null, null, null, null},
+                        {null, null, null, null, null, null, null}
+                },
+                new String [] {
+                        "Mã phòng đặt", "Mã đặt phòng", "Mã phòng", "Ngày nhận ", "Ngày trả", "Thuế", "Trạng thái"
+                }
         ) {
             Class[] types = new Class [] {
-                java.lang.String.class, java.lang.String.class, java.lang.String.class, java.lang.String.class, java.lang.String.class, java.lang.String.class, java.lang.String.class
+                    java.lang.String.class, java.lang.String.class, java.lang.String.class, java.lang.String.class, java.lang.String.class, java.lang.String.class, java.lang.String.class
             };
             boolean[] canEdit = new boolean [] {
-                false, false, false, false, false, false, false
+                    false, false, false, false, false, false, false
             };
 
             public Class getColumnClass(int columnIndex) {
@@ -155,52 +321,55 @@ public class BookingRoom extends javax.swing.JFrame {
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addComponent(tfTimKiem, javax.swing.GroupLayout.PREFERRED_SIZE, 284, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(btnTimKiem, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(cbTieuChi, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 638, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addGroup(jPanel1Layout.createSequentialGroup()
+                                                .addComponent(tfTimKiem, javax.swing.GroupLayout.PREFERRED_SIZE, 284, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                                .addComponent(btnTimKiem, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                                .addComponent(btnLoc, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                                .addComponent(cbTieuChi, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 638, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addComponent(tfTimKiem, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(btnTimKiem, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(cbTieuChi, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(18, 18, 18)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 271, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(36, Short.MAX_VALUE))
+                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                .addComponent(tfTimKiem, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addComponent(btnTimKiem, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addComponent(btnLoc, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addComponent(cbTieuChi, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(18, 18, 18)
+                                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 271, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap(36, Short.MAX_VALUE))
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 650, Short.MAX_VALUE)
-            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(layout.createSequentialGroup()
-                    .addGap(0, 0, Short.MAX_VALUE)
-                    .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGap(0, 0, Short.MAX_VALUE)))
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGap(0, 650, Short.MAX_VALUE)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                .addGroup(layout.createSequentialGroup()
+                                        .addGap(0, 0, Short.MAX_VALUE)
+                                        .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addGap(0, 0, Short.MAX_VALUE)))
         );
         layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 353, Short.MAX_VALUE)
-            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(layout.createSequentialGroup()
-                    .addGap(0, 0, Short.MAX_VALUE)
-                    .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGap(0, 0, Short.MAX_VALUE)))
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGap(0, 353, Short.MAX_VALUE)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                .addGroup(layout.createSequentialGroup()
+                                        .addGap(0, 0, Short.MAX_VALUE)
+                                        .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addGap(0, 0, Short.MAX_VALUE)))
         );
 
         pack();
@@ -214,6 +383,10 @@ public class BookingRoom extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_cbTieuChiActionPerformed
 
+    private void btnLocActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnLocActionPerformed
+        jDialog1.setVisible(true);
+    }//GEN-LAST:event_btnLocActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -221,7 +394,7 @@ public class BookingRoom extends javax.swing.JFrame {
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
+         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html
          */
         try {
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
@@ -251,9 +424,11 @@ public class BookingRoom extends javax.swing.JFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnTimKiem;
+    private javax.swing.JButton btnLoc;
     private javax.swing.JComboBox<String> cbTieuChi;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPopupMenu jPopupMenu1;
+    private javax.swing.JDialog jDialog1;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JTable tbPhongDat;
     private javax.swing.JTextField tfTimKiem;
