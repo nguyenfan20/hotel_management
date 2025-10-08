@@ -85,7 +85,7 @@ public class LoginGUI extends javax.swing.JFrame {
 
         lbTieuDe = new javax.swing.JLabel();
         lbTieuDe.setFont(new java.awt.Font("Segoe UI", Font.BOLD, 28));
-        lbTieuDe.setForeground(Color.WHITE);
+        lbTieuDe.setForeground(new Color(0xFFFF00)); // Bright yellow for prominence
         lbTieuDe.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/hotel.png")));
         lbTieuDe.setText("  QUẢN LÝ KHÁCH SẠN");
         headerPanel.add(lbTieuDe);
@@ -175,24 +175,11 @@ public class LoginGUI extends javax.swing.JFrame {
         });
         buttonPanel.add(jButton2);
 
-        btnDangNhap = new javax.swing.JButton() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2d = (Graphics2D) g;
-                g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-                int w = getWidth();
-                int h = getHeight();
-                Color color1 = new Color(0x1c92d2); // #1c92d2
-                Color color2 = new Color(0xf2fcfe); // #f2fcfe
-                GradientPaint gp = new GradientPaint(0, 0, color1, w, 0, color2);
-                g2d.setPaint(gp);
-                g2d.fillRect(0, 0, w, h);
-            }
-        };
+        btnDangNhap = new javax.swing.JButton();
         btnDangNhap.setText("Đăng nhập");
         btnDangNhap.setPreferredSize(new java.awt.Dimension(140, 40));
         btnDangNhap.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnDangNhap.setBackground(new Color(41, 98, 255)); // Revert to original solid color
         btnDangNhap.setForeground(Color.WHITE);
         btnDangNhap.setBorder(BorderFactory.createEmptyBorder());
         btnDangNhap.setFocusPainted(false);
