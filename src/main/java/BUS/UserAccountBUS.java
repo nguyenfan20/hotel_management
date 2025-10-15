@@ -99,4 +99,32 @@ public class UserAccountBUS {
             return "Lỗi: " + e.getMessage();
         }
     }
+
+    public String getUserFullName(int userId) {
+        try {
+            UserAccountDTO user = userAccountDAO.getUserById(userId);
+            return user != null ? user.getFullName() : "N/A";
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return "N/A";
+        }
+    }
+
+    public UserAccountDTO getUserById(int userId) {
+        try {
+            return userAccountDAO.getUserById(userId);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Lỗi khi lấy thông tin người dùng: " + e.getMessage());
+        }
+    }
+
+    public List<UserAccountDTO> getUsersByRoleId(int roleId) {
+        try {
+            return userAccountDAO.getUsersByRoleId(roleId);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Lỗi khi lấy danh sách người dùng theo vai trò: " + e.getMessage());
+        }
+    }
 }

@@ -1,7 +1,6 @@
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nb
-fs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
+ * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
  */
 package GUI.auth;
 
@@ -158,22 +157,22 @@ public class LoginGUI extends javax.swing.JFrame {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
         buttonPanel.setBackground(Color.WHITE);
 
-        jButton2 = new javax.swing.JButton();
-        jButton2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/key.png")));
-        jButton2.setText("Quên mật khẩu");
-        jButton2.setPreferredSize(new java.awt.Dimension(160, 40));
-        jButton2.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        jButton2.setBackground(new Color(245, 245, 245));
-        jButton2.setForeground(new Color(80, 80, 80));
-        jButton2.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200), 1, true));
-        jButton2.setFocusPainted(false);
-        jButton2.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        jButton2.addActionListener(new java.awt.event.ActionListener() {
+        btnQuenMK = new javax.swing.JButton();
+        btnQuenMK.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/key.png")));
+        btnQuenMK.setText("Quên mật khẩu");
+        btnQuenMK.setPreferredSize(new java.awt.Dimension(160, 40));
+        btnQuenMK.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        btnQuenMK.setBackground(new Color(245, 245, 245));
+        btnQuenMK.setForeground(new Color(80, 80, 80));
+        btnQuenMK.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200), 1, true));
+        btnQuenMK.setFocusPainted(false);
+        btnQuenMK.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnQuenMK.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton2ActionPerformed(evt);
+                btnQuenMKActionPerformed(evt);
             }
         });
-        buttonPanel.add(jButton2);
+        buttonPanel.add(btnQuenMK);
 
         btnDangNhap = new javax.swing.JButton();
         btnDangNhap.setText("Đăng nhập");
@@ -245,8 +244,9 @@ public class LoginGUI extends javax.swing.JFrame {
         JOptionPane.showMessageDialog(this, message);
     }
 
-    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-First:event_jButton2ActionPerformed
-        // TODO add your handling code here:
+    private void btnQuenMKActionPerformed(java.awt.event.ActionEvent evt) {//GEN-First:event_btnQuenMKActionPerformed
+        ForgotPasswordGUI forgotPasswordDialog = new ForgotPasswordGUI(this);
+        forgotPasswordDialog.setVisible(true);
     }
 
     /**
@@ -284,7 +284,7 @@ public class LoginGUI extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnDangNhap;
     private javax.swing.JCheckBox cHienMK;
-    private javax.swing.JButton jButton2;
+    private javax.swing.JButton btnQuenMK;
     private javax.swing.JLabel lbMatKhau;
     private javax.swing.JLabel lbTaiKhoan;
     private javax.swing.JLabel lbThoiGian;

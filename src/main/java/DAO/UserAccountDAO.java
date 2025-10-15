@@ -179,4 +179,147 @@ public class UserAccountDAO {
 
         return user;
     }
+
+    public UserAccountDTO getUserById(int userId) throws SQLException {
+        Connection conn = null;
+        PreparedStatement pst = null;
+        ResultSet rs = null;
+        UserAccountDTO user = null;
+
+        try {
+            conn = DatabaseConnection.getConnection();
+            if (conn == null) {
+                throw new SQLException("Không thể kết nối đến database!");
+            }
+
+            String sql = "SELECT * FROM UserAccount WHERE user_id = ?";
+            pst = conn.prepareStatement(sql);
+            pst.setInt(1, userId);
+
+            rs = pst.executeQuery();
+            if (rs.next()) {
+                user = new UserAccountDTO();
+                user.setUserId(rs.getInt("user_id"));
+                user.setUsername(rs.getString("username"));
+                user.setPasswordHash(rs.getString("password_hash"));
+                user.setFullName(rs.getString("full_name"));
+                user.setPhone(rs.getString("phone"));
+                user.setEmail(rs.getString("email"));
+                user.setRoleId(rs.getInt("role_id"));
+                user.setStatus(rs.getString("status"));
+                user.setCreatedAt(rs.getTimestamp("created_at") != null ?
+                        rs.getTimestamp("created_at").toLocalDateTime() : null);
+            }
+        } finally {
+            if (rs != null) rs.close();
+            if (pst != null) pst.close();
+            if (conn != null) conn.close();
+        }
+
+        return user;
+    }
+
+    public List<UserAccountDTO> getUsersByRoleId(int roleId) throws SQLException {
+        List<UserAccountDTO> users = new ArrayList<>();
+        Connection conn = null;
+        PreparedStatement pst = null;
+        ResultSet rs = null;
+
+        try {
+            conn = DatabaseConnection.getConnection();
+            if (conn == null) {
+                throw new SQLException("Không thể kết nối đến database!");
+            }
+
+            String sql = "SELECT * FROM UserAccount WHERE role_id = ? AND status = 'Active'";
+            pst = conn.prepareStatement(sql);
+            pst.setInt(1, roleId);
+            rs = pst.executeQuery();
+
+            while (rs.next()) {
+                UserAccountDTO user = new UserAccountDTO();
+                user.setUserId(rs.getInt("user_id"));
+                user.setUsername(rs.getString("username"));
+                user.setPasswordHash(rs.getString("password_hash"));
+                user.setFullName(rs.getString("full_name"));
+                user.setPhone(rs.getString("phone"));
+                user.setEmail(rs.getString("email"));
+                user.setRoleId(rs.getInt("role_id"));
+                user.setStatus(rs.getString("status"));
+                user.setCreatedAt(rs.getTimestamp("created_at") != null ?
+                        rs.getTimestamp("created_at").toLocalDateTime() : null);
+                users.add(user);
+            }
+        } finally {
+            if (rs != null) rs.close();
+            if (pst != null) pst.close();
+            if (conn != null) conn.close();
+        }
+
+        return users;
+    }
+
+    public UserAccountDTO getUserByEmail(String email) throws SQLException {
+        Connection conn = null;
+        PreparedStatement pst = null;
+        ResultSet rs = null;
+        UserAccountDTO user = null;
+
+        try {
+            conn = DatabaseConnection.getConnection();
+            if (conn == null) {
+                throw new SQLException("Không thể kết nối đến database!");
+            }
+
+            String sql = "SELECT * FROM UserAccount WHERE email = ? AND status = 'Active'";
+            pst = conn.prepareStatement(sql);
+            pst.setString(1, email);
+
+            rs = pst.executeQuery();
+            if (rs.next()) {
+                user = new UserAccountDTO();
+                user.setUserId(rs.getInt("user_id"));
+                user.setUsername(rs.getString("username"));
+                user.setPasswordHash(rs.getString("password_hash"));
+                user.setFullName(rs.getString("full_name"));
+                user.setPhone(rs.getString("phone"));
+                user.setEmail(rs.getString("email"));
+                user.setRoleId(rs.getInt("role_id"));
+                user.setStatus(rs.getString("status"));
+                user.setCreatedAt(rs.getTimestamp("created_at") != null ?
+                        rs.getTimestamp("created_at").toLocalDateTime() : null);
+            }
+        } finally {
+            if (rs != null) rs.close();
+            if (pst != null) pst.close();
+            if (conn != null) conn.close();
+        }
+
+        return user;
+    }
+
+    public boolean updatePasswordByEmail(String email, String newPasswordHash) throws SQLException {
+        Connection conn = null;
+        PreparedStatement pst = null;
+        boolean success = false;
+
+        try {
+            conn = DatabaseConnection.getConnection();
+            if (conn == null) {
+                throw new SQLException("Không thể kết nối đến database!");
+            }
+
+            String sql = "UPDATE UserAccount SET password_hash = ? WHERE email = ? AND status = 'Active'";
+            pst = conn.prepareStatement(sql);
+            pst.setString(1, newPasswordHash);
+            pst.setString(2, email);
+
+            success = pst.executeUpdate() > 0;
+        } finally {
+            if (pst != null) pst.close();
+            if (conn != null) conn.close();
+        }
+
+        return success;
+    }
 }
