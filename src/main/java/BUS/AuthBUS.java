@@ -13,17 +13,13 @@ public class AuthBUS {
         this.userAccountDAO = new UserAccountDAO();
     }
 
-    public String login(String username, String password) {
+    public UserAccountDTO authenticate(String username, String password) {
         try {
             UserAccountDTO user = userAccountDAO.authenticate(username, password);
-            if (user != null) {
-                return "Đăng nhập thành công!";
-            } else {
-                return "Sai tài khoản hoặc mật khẩu!";
-            }
+            return user;
         } catch (SQLException e) {
             e.printStackTrace();
-            return "Lỗi: " + e.getMessage();
+            return null;
         }
     }
 

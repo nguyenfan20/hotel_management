@@ -5,6 +5,8 @@
 package GUI.auth;
 
 import BUS.AuthBUS;
+import DTO.UserAccountDTO;
+import GUI.dashboard.main;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -238,10 +240,37 @@ public class LoginGUI extends javax.swing.JFrame {
     }
 
     private void btnDangNhapActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnDangNhapActionPerformed
-        String username = tfTaiKhoan.getText();
+        String username = tfTaiKhoan.getText().trim();
         String password = new String(pfMatKhau.getPassword());
-        String message = authBUS.login(username, password);
-        JOptionPane.showMessageDialog(this, message);
+
+        if (username.isEmpty() || password.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Vui lòng nhập đầy đủ thông tin!",
+                    "Cảnh báo",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        UserAccountDTO user = authBUS.authenticate(username, password);
+
+        if (user != null) {
+            JOptionPane.showMessageDialog(this,
+                    "Đăng nhập thành công!\nXin chào, " + user.getFullName(),
+                    "Thành công",
+                    JOptionPane.INFORMATION_MESSAGE);
+
+            // Open main dashboard
+            this.dispose();
+            java.awt.EventQueue.invokeLater(() -> {
+                main mainFrame = new main();
+                mainFrame.setVisible(true);
+            });
+        } else {
+            JOptionPane.showMessageDialog(this,
+                    "Sai tài khoản hoặc mật khẩu!",
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void btnQuenMKActionPerformed(java.awt.event.ActionEvent evt) {//GEN-First:event_btnQuenMKActionPerformed
