@@ -1,6 +1,6 @@
-
 package GUI.dashboard;
 
+import event.EventMenuSelected;
 import java.awt.Color;
 import java.awt.GradientPaint;
 import java.awt.Graphics;
@@ -12,17 +12,22 @@ import java.awt.event.MouseMotionAdapter;
 import javax.swing.JFrame;
 import model.Model_Menu;
 
-
 public class Menu extends javax.swing.JPanel {
 
+    private EventMenuSelected event;
     
+    public void addEventMenuSelected(EventMenuSelected event) {
+        this.event = event;
+        listMenu1.addEventMenuSelected(event);
+    }
+
     public Menu() {
         initComponents();
         setOpaque(false);
         listMenu1.setOpaque(false);
         init();
     }
-    
+
     private void init() {
         listMenu1.addItem(new Model_Menu("1", "Dashboard", Model_Menu.MenuType.MENU));
         listMenu1.addItem(new Model_Menu("2", "UI Elements", Model_Menu.MenuType.MENU));
@@ -34,7 +39,7 @@ public class Menu extends javax.swing.JPanel {
         listMenu1.addItem(new Model_Menu("", "My Data", Model_Menu.MenuType.TITLE));
         listMenu1.addItem(new Model_Menu("", " ", Model_Menu.MenuType.EMPTY));
         listMenu1.addItem(new Model_Menu("6", "Icons", Model_Menu.MenuType.MENU));
-        listMenu1.addItem(new Model_Menu ("7", "Sample Page", Model_Menu.MenuType.MENU));
+        listMenu1.addItem(new Model_Menu("7", "Sample Page", Model_Menu.MenuType.MENU));
         listMenu1.addItem(new Model_Menu("8", "Extra", Model_Menu.MenuType.MENU));
         listMenu1.addItem(new Model_Menu("9", "More", Model_Menu.MenuType.MENU));
         listMenu1.addItem(new Model_Menu("10", "Logout", Model_Menu.MenuType.MENU));
@@ -91,37 +96,36 @@ public class Menu extends javax.swing.JPanel {
 
     @Override
     protected void paintChildren(Graphics grphcs) {
-        Graphics2D g2=(Graphics2D)grphcs;
+        Graphics2D g2 = (Graphics2D) grphcs;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        GradientPaint g=new GradientPaint(0, 0, Color.decode("#1c92d2"), 0, getHeight(), Color.decode("#f2fcfe"));
+        GradientPaint g = new GradientPaint(0, 0, Color.decode("#1c92d2"), 0, getHeight(), Color.decode("#f2fcfe"));
         g2.setPaint(g);
         g2.fillRoundRect(0, 0, getWidth(), getHeight(), 15, 15);
-        g2.fillRect(getWidth()-20, 0, getWidth(), getHeight());
+        g2.fillRect(getWidth() - 20, 0, getWidth(), getHeight());
         super.paintChildren(grphcs);
     }
 
-    
     private int x;
     private int y;
-    
-    public void initMoving(JFrame fram){
+
+    public void initMoving(JFrame fram) {
         panelMoving.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                x=e.getX();
-                y=e.getY();
+                x = e.getX();
+                y = e.getY();
             }
-        
+
         });
         panelMoving.addMouseMotionListener(new MouseMotionAdapter() {
             @Override
             public void mouseDragged(MouseEvent e) {
-                fram.setLocation(e.getXOnScreen()-x, e.getYOnScreen()-y);
-            }           
+                fram.setLocation(e.getXOnScreen() - x, e.getYOnScreen() - y);
+            }
         });
     }
-    
-    
+
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel jLabel1;
     private GUI.dashboard.ListMenu<String> listMenu1;
