@@ -1,4 +1,4 @@
-package GUI.billing.service;
+package GUI.service;
 
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
@@ -9,7 +9,7 @@ import DTO.ServiceDTO;
 import javax.swing.JOptionPane;
 
 public class ServiceDialog extends javax.swing.JDialog {
- private boolean editMode = false;
+    private boolean editMode = false;
     private ServiceDTO currentService;
     private ServiceDTO resultService;
 
@@ -18,6 +18,19 @@ public class ServiceDialog extends javax.swing.JDialog {
         initComponents();
         setLocationRelativeTo(parent);
         setTitle("Thông tin Dịch vụ");
+        setupComboBox();
+    }
+
+    // Constructor mới: Window (cho JPanel)
+    public ServiceDialog(java.awt.Window owner, boolean modal) {
+        super(JOptionPane.getFrameForComponent(owner), modal);
+        initComponents();
+        setLocationRelativeTo(owner);
+        setTitle("Thông tin Dịch vụ");
+        setupComboBox();
+    }
+
+    private void setupComboBox() {
         cbChargeType.removeAllItems();
         cbChargeType.addItem("FREE");
         cbChargeType.addItem("PER_UNIT");
@@ -73,63 +86,35 @@ public class ServiceDialog extends javax.swing.JDialog {
     }
 
     private boolean validateForm() {
-    String name = txtName.getText().trim();
-    String unit = txtUnit.getText().trim();
-    String priceText = txtPrice.getText().trim();
+        String name = txtName.getText().trim();
+        String unit = txtUnit.getText().trim();
+        String priceText = txtPrice.getText().trim();
+        if (name.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập tên dịch vụ!", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+            txtName.requestFocus();
+            return false;
+        }
 
-    if (name.isEmpty()) {
-        JOptionPane.showMessageDialog(
-            this,
-            " Vui lòng nhập tên dịch vụ!",
-            "Thiếu thông tin",
-            JOptionPane.WARNING_MESSAGE
-        );
-        txtName.requestFocus();
-        return false;
+        if (unit.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập đơn vị tính!", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+            txtUnit.requestFocus();
+            return false;
+        }
+
+        Double price = parsePrice(priceText);
+        if (price == null || price < 0) {
+            JOptionPane.showMessageDialog(this, "Giá phải là số hợp lệ và >= 0!", "Lỗi nhập giá", JOptionPane.ERROR_MESSAGE);
+            txtPrice.requestFocus();
+            return false;
+        }
+
+        if (cbChargeType.getSelectedItem() == null) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn loại tính phí.", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+
+        return true;
     }
-
-    if (unit.isEmpty()) {
-        JOptionPane.showMessageDialog(
-            this,
-            " Vui lòng nhập đơn vị tính (VD: giờ, lần, kg...)!",
-            "Thiếu thông tin",
-            JOptionPane.WARNING_MESSAGE
-        );
-        txtUnit.requestFocus();
-        return false;
-    }
-
-    Double price = parsePrice(priceText);
-    if (price == null || price < 0) {
-        JOptionPane.showMessageDialog(
-            this,
-            " Giá phải là số hợp lệ và >= 0!",
-            "Lỗi nhập giá",
-            JOptionPane.ERROR_MESSAGE
-        );
-        txtPrice.requestFocus();
-        return false;
-    }
-
-    if (cbChargeType.getSelectedItem() == null) {
-        JOptionPane.showMessageDialog(
-            this,
-            " Vui lòng chọn loại tính phí (FREE / PER_UNIT).",
-            "Thiếu thông tin",
-            JOptionPane.WARNING_MESSAGE
-        );
-        cbChargeType.requestFocus();
-        return false;
-    }
-
-    return true;
-}
-
-    
-
-   
-
-    
     /**
      * Creates new form EditDialog
      */
@@ -343,8 +328,8 @@ public class ServiceDialog extends javax.swing.JDialog {
     }//GEN-LAST:event_btnSaveActionPerformed
 
     private void btnCancelActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCancelActionPerformed
- resultService = null;
-    dispose();         
+         resultService = null;
+         dispose();
     }//GEN-LAST:event_btnCancelActionPerformed
 
 public ServiceDTO getResult() {

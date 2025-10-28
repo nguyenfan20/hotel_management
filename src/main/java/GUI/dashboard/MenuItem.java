@@ -47,7 +47,7 @@ public class MenuItem extends javax.swing.JPanel {
 
         lbName.setFont(new java.awt.Font("Times New Roman", 0, 12)); // NOI18N
         lbName.setForeground(new java.awt.Color(255, 255, 255));
-        lbName.setText("Hotel");
+//        lbName.setText("Hotel");
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);

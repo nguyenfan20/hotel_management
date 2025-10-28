@@ -1,5 +1,19 @@
 package GUI.dashboard;
 
+import GUI.account.Role;
+import GUI.account.UserAccount;
+import GUI.billing.discount.Discount;
+import GUI.billing.invoice.Invoice;
+import GUI.billing.payment.Payment;
+import GUI.operation.housekeeping.HousekeepingTask;
+import GUI.operation.maintenance.MaintenanceTicket;
+import GUI.service.ServiceForm;
+import GUI.booking.BookingGUI;
+import GUI.custom.CustomGUI;
+import GUI.room.Amenity;
+import GUI.room.Room;
+import GUI.room.RoomType;
+import GUI.service.ServiceOrdersform;
 import event.EventMenuSelected;
 import java.awt.Color;
 import javax.swing.JComponent;
@@ -8,17 +22,52 @@ public class main extends javax.swing.JFrame {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(main.class.getName());
     private Form_Home home;
-    private Form_1 form1;
-    private Form_2 form2;
-    private Form_3 form3;
+
+    private Role role;
+    private UserAccount userAccount;
+    
+    private CustomGUI customGUI;
+    private BookingGUI bookingGUI;
+
+    private RoomType roomType;
+    private Room room;
+    private Amenity amenity;
+
+    private ServiceForm serviceForm;
+    private ServiceOrdersform serviceOrdersform;
+
+    private Invoice invoice;
+    private Discount discount;
+    private Payment payment;
+
+    private HousekeepingTask housekeepingTask;
+    private MaintenanceTicket maintenanceTicket;
     
     public main() {
         initComponents();
         setBackground(new Color(0, 0, 0, 0));
         home = new Form_Home();
-        form1 = new Form_1();
-        form2 = new Form_2();
-        form3 = new Form_3();
+
+        role = new Role();
+        userAccount = new UserAccount();
+
+        customGUI = new CustomGUI();
+        bookingGUI = new BookingGUI();
+
+        roomType = new RoomType();
+        room = new Room();
+        amenity = new Amenity();
+
+        serviceForm = new ServiceForm();
+        serviceOrdersform = new ServiceOrdersform();
+        
+        invoice = new Invoice();
+        discount = new Discount();
+        payment = new Payment();
+        
+        housekeepingTask = new HousekeepingTask();
+        maintenanceTicket = new MaintenanceTicket();
+
         Menu menu = new Menu();
         add(menu);
         menu.initMoving(main.this);
@@ -28,12 +77,40 @@ public class main extends javax.swing.JFrame {
             public void selected(int index) {
                 if (index == 0) {
                     setForm(home);
-                } else if (index == 1) {
-                    setForm(form1);
                 } else if (index == 2) {
-                    setForm(form2);
+                    setForm(role);
                 } else if (index == 3) {
-                    setForm(form3);
+                    setForm(userAccount);
+                } else if (index == 5) {
+                    setForm(customGUI);
+                } else if (index == 6) {
+                    setForm(bookingGUI);
+                } else if (index == 8) {
+                    setForm(roomType);
+                } else if (index == 9) {
+                    setForm(room); 
+                } else if (index == 10) {
+                    setForm(amenity);
+                } else if (index == 12) {
+                    setForm(serviceForm);
+                } else if (index == 13) {
+                    setForm(serviceOrdersform);
+                } else if (index == 15) {
+                    setForm(invoice);
+                } else if (index == 16) {
+                    setForm(discount);
+                } else if (index == 17) {
+                    setForm(payment);
+                } else if (index == 19) {
+                    setForm(housekeepingTask);
+                } else if (index == 20) {
+                    setForm(maintenanceTicket);
+                } else if (index == 22) {
+                    
+                } else if (index == 23) {
+                    
+                } else if (index == 24) {
+                    
                 }
             }
         });

@@ -2,13 +2,14 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
  */
-package GUI.billing.service;
+package GUI.service;
 
 import javax.swing.DefaultComboBoxModel;
 import BUS.ServiceBUS;
 import DTO.ServiceDTO;
 import DTO.ServiceOrderDTO;
-import java.awt.Frame;
+
+import java.awt.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,14 @@ public class ServiceOrderDialog extends javax.swing.JDialog {
         super(parent, modal);
         initComponents();
         setLocationRelativeTo(parent);
+        setTitle("Thông tin Đơn Dịch vụ");
+        loadServicesToComboBox();
+    }
+
+    public ServiceOrderDialog(Window owner, boolean modal) {
+        super(JOptionPane.getFrameForComponent(owner), modal);
+        initComponents();
+        setLocationRelativeTo(owner);
         setTitle("Thông tin Đơn Dịch vụ");
         loadServicesToComboBox();
     }
@@ -65,52 +74,47 @@ public class ServiceOrderDialog extends javax.swing.JDialog {
         cbServiceorder.setSelectedItem(serviceName);
     }
 
-private void loadServicesToComboBox() {
-    cbServiceorder.removeAllItems();
+    private void loadServicesToComboBox() {
+        cbServiceorder.removeAllItems();
 
-    ServiceBUS serviceBUS = new ServiceBUS();
-    services = serviceBUS.getAll();
+        ServiceBUS serviceBUS = new ServiceBUS();
+        services = serviceBUS.getAll();
 
-     DefaultComboBoxModel<ServiceDTO> model = new DefaultComboBoxModel<>();
+         DefaultComboBoxModel<ServiceDTO> model = new DefaultComboBoxModel<>();
 
-    
-    for (ServiceDTO s : services) {
-        if (s != null && s.isActive()) {
-            model.addElement(s);
-        }
-    }
 
-    
-    cbServiceorder.setModel(model);
-
-    
-    cbServiceorder.setRenderer(new javax.swing.DefaultListCellRenderer() {
-        @Override
-        public java.awt.Component getListCellRendererComponent(
-                javax.swing.JList<?> list,
-                Object value,
-                int index,
-                boolean isSelected,
-                boolean cellHasFocus) {
-
-            super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-
-            if (value != null && value instanceof ServiceDTO) {
-                ServiceDTO s = (ServiceDTO) value;
-                setText(s.getName());  
-            } else {
-                setText("");  
+        for (ServiceDTO s : services) {
+            if (s != null && s.isActive()) {
+                model.addElement(s);
             }
-
-            return this;
         }
-    });
-}
 
 
+        cbServiceorder.setModel(model);
 
 
-    
+        cbServiceorder.setRenderer(new javax.swing.DefaultListCellRenderer() {
+            @Override
+            public java.awt.Component getListCellRendererComponent(
+                    javax.swing.JList<?> list,
+                    Object value,
+                    int index,
+                    boolean isSelected,
+                    boolean cellHasFocus) {
+
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+
+                if (value != null && value instanceof ServiceDTO) {
+                    ServiceDTO s = (ServiceDTO) value;
+                    setText(s.getName());
+                } else {
+                    setText("");
+                }
+
+                return this;
+            }
+        });
+    }
 
     private boolean validateForm() {
         if (txtBookingId.getText().trim().isEmpty()) {
@@ -123,10 +127,6 @@ private void loadServicesToComboBox() {
         }
         return true;
     }
-
-
-
-
 
     private void btnCancelActionPerformed(java.awt.event.ActionEvent evt) {
         resultOrder = null;
