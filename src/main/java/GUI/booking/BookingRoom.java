@@ -484,7 +484,7 @@ public class BookingRoom extends javax.swing.JFrame {
         tbPhongDat = new JTable();
         cbTieuChi = new JComboBox<>();
 
-        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("Quản lý phòng đặt");
 
         tfTimKiem.addActionListener(new java.awt.event.ActionListener() {

@@ -68,7 +68,10 @@ public class main extends javax.swing.JFrame {
 
     public main() {
         initComponents();
-        setBackground(new Color(0, 0, 0, 0));
+//        setBackground(new Color(0, 0, 0, 0));
+        setResizable(true);
+        setSize(1200, 700);
+
         home = new Form_Home();
 
         role = new Role();
@@ -180,7 +183,7 @@ public class main extends javax.swing.JFrame {
         header2 = new GUI.dashboard.Header();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-        setUndecorated(true);
+//        setUndecorated(true);
 
         paneBorder1.setOpaque(true);
 
@@ -196,7 +199,7 @@ public class main extends javax.swing.JFrame {
                         .addGroup(paneBorder1Layout.createSequentialGroup()
                                 .addComponent(menu2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addGroup(paneBorder1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                        .addComponent(mainPanel, javax.swing.GroupLayout.DEFAULT_SIZE, 965, Short.MAX_VALUE)
+                                        .addComponent(mainPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                         .addGroup(paneBorder1Layout.createSequentialGroup()
                                                 .addGap(0, 0, 0)
                                                 .addComponent(header2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
@@ -206,8 +209,8 @@ public class main extends javax.swing.JFrame {
                         .addComponent(menu2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addGroup(paneBorder1Layout.createSequentialGroup()
                                 .addComponent(header2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(0, 0, Short.MAX_VALUE)
-                                .addComponent(mainPanel, javax.swing.GroupLayout.PREFERRED_SIZE, 577, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(0, 0, 0)
+                                .addComponent(mainPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
@@ -221,7 +224,6 @@ public class main extends javax.swing.JFrame {
                         .addComponent(paneBorder1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
 
-        pack();
     }// </editor-fold>//GEN-END:initComponents
 
     /**
