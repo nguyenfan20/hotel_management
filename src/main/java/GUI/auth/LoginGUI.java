@@ -37,6 +37,22 @@ public class LoginGUI extends javax.swing.JFrame {
                 cHienMKActionPerformed(evt);
             }
         });
+
+        tfTaiKhoan.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                if (evt.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
+                    btnDangNhapActionPerformed(null);
+                }
+            }
+        });
+
+        pfMatKhau.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                if (evt.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
+                    btnDangNhapActionPerformed(null);
+                }
+            }
+        });
     }
 
     /**
@@ -255,14 +271,13 @@ public class LoginGUI extends javax.swing.JFrame {
 
         if (user != null) {
             JOptionPane.showMessageDialog(this,
-                    "Đăng nhập thành công!\nXin chào, " + user.getFullName(),
+                    "Đăng nhập thành công!",
                     "Thành công",
                     JOptionPane.INFORMATION_MESSAGE);
 
-            // Open main dashboard
             this.dispose();
             java.awt.EventQueue.invokeLater(() -> {
-                main mainFrame = new main();
+                main mainFrame = new main(user.getUsername(), user.getFullName());
                 mainFrame.setVisible(true);
             });
         } else {

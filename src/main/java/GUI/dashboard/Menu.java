@@ -76,7 +76,7 @@ public class Menu extends javax.swing.JPanel {
 
         panelMoving.setOpaque(false);
 
-        jLabel1.setFont(new java.awt.Font("Times New Roman", 1, 18));
+        jLabel1.setFont(new java.awt.Font("Arial", 1, 18));
         jLabel1.setForeground(new java.awt.Color(255, 255, 255));
         jLabel1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icon/logo.png")));
         jLabel1.setText("Application");
