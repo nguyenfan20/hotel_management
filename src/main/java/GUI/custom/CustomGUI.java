@@ -1,276 +1,472 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JPanel.java to edit this template
- */
 package GUI.custom;
 
-import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Frame;
+import java.awt.Insets;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.text.SimpleDateFormat;
+import java.util.List;
+
+import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
-import java.awt.*;
-import java.awt.event.*;
-import java.sql.*;
+import javax.swing.table.JTableHeader;
 
-/**
- *
- * @author duhieu
- */
-public class CustomGUI extends javax.swing.JPanel {
+import BUS.CustomerBUS;
+import DTO.CustomerDTO;
 
-    /**
-     * Creates new form CustomGUI
-     */
+public class CustomGUI extends JPanel {
+
+    // === MÀU SẮC HIỆN ĐẠI (giống BookingGUI) ===
+    private static final Color PRIMARY_COLOR = new Color(41, 128, 185);      // Xanh dương
+    private static final Color PRIMARY_DARK = new Color(31, 97, 141);
+    private static final Color SECONDARY_COLOR = new Color(52, 152, 219);    // Xanh nhạt
+    private static final Color SUCCESS_COLOR = new Color(46, 204, 113);
+    private static final Color DANGER_COLOR = new Color(231, 76, 60);
+    private static final Color WARNING_COLOR = new Color(241, 196, 15);
+    private static final Color BACKGROUND_COLOR = new Color(236, 240, 241);
+    private static final Color TEXT_COLOR = new Color(44, 62, 80);
+    private static final Color BORDER_COLOR = new Color(189, 195, 199);
+    private static final Color ROW_EVEN = Color.WHITE;
+    private static final Color ROW_ODD = new Color(248, 249, 250);
+
+    // Components
+    private JTextField tfTimKiem;
+    private JButton btnTimKiem;
+    private JButton btnLoc;
+    private JTable tbDatPhong;
+    private JScrollPane jScrollPane1;
+    private JPopupMenu popupMenu;
+    private JDialog filterDialog;
+    private CustomerBUS customerBUS;
+    private DefaultTableModel tableModel;
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+
     public CustomGUI() {
         initComponents();
-        addRightClickMenu(); // ✅ Thêm hàm menu chuột phải
+        customerBUS = new CustomerBUS();
+        initTableModel();
+        loadCustomerData();
+        styleComponents();
+        initPopupMenu();
+        initFilterDialog();
+        setupSearchAndFilter();
     }
 
-    /**
-     * Hàm tạo menu chuột phải cho JTable
-     */
-    private void addRightClickMenu() {
-        // Tạo popup menu
-        JPopupMenu popupMenu = new JPopupMenu();
+    private void initComponents() {
+        setLayout(new BorderLayout());
+        setBackground(BACKGROUND_COLOR);
+        setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        JMenuItem itemXem = new JMenuItem("Xem chi tiết");
-        JMenuItem itemSua = new JMenuItem("Sửa");
-        JMenuItem itemXoa = new JMenuItem("Xóa");
+        // Top panel: search + filter
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        topPanel.setBackground(BACKGROUND_COLOR);
 
-        // Gắn sự kiện cho các menu item
-        itemXem.addActionListener(e -> {
-            int row = tbDatPhong.getSelectedRow();
-            if (row != -1) {
-                Object id = tbDatPhong.getValueAt(row, 0);
-                if (id != null) {
-                    showCustomerDetailDialog(id.toString());
-                } else {
-                    JOptionPane.showMessageDialog(this, "Không có mã khách hàng!");
+        tfTimKiem = new JTextField(25);
+        btnTimKiem = new JButton("Tìm kiếm");
+        btnTimKiem.setIcon(new ImageIcon(getClass().getResource("/images/search.png")));
+        btnLoc = new JButton("Lọc");
+        btnLoc.setIcon(new ImageIcon(getClass().getResource("/images/filter.png")));
+
+        topPanel.add(tfTimKiem);
+        topPanel.add(btnTimKiem);
+        topPanel.add(btnLoc);
+
+        // Table
+        tbDatPhong = new JTable();
+        jScrollPane1 = new JScrollPane(tbDatPhong);
+        jScrollPane1.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
+
+        add(topPanel, BorderLayout.NORTH);
+        add(jScrollPane1, BorderLayout.CENTER);
+    }
+
+    private void initTableModel() {
+        tableModel = new DefaultTableModel(
+            new Object[][]{},
+            new String[]{"Mã KH", "Họ và tên", "Ngày sinh", "Số điện thoại", "Giới tính", "Quốc tịch"}
+        ) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        tbDatPhong.setModel(tableModel);
+    }
+
+    private void loadCustomerData() {
+        tableModel.setRowCount(0);
+        List<CustomerDTO> customers = customerBUS.getAllCustomers();
+        for (CustomerDTO c : customers) {
+            tableModel.addRow(new Object[]{
+                c.getCustomer_id(),
+                c.getFull_name(),
+                c.getDob() != null ? dateFormat.format(c.getDob()) : "Chưa có",
+                c.getPhone() > 0 ? c.getPhone() : "Chưa có",
+                c.getGender() != null ? c.getGender() : "Chưa chọn",
+                c.getNationality() != null ? c.getNationality() : "Chưa có"
+            });
+        }
+    }
+
+    // === GIAO DIỆN ĐẸP NHƯ BOOKINGGUI ===
+    private void styleComponents() {
+        // TextField
+        tfTimKiem.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        tfTimKiem.setPreferredSize(new Dimension(300, 35));
+        tfTimKiem.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER_COLOR, 1),
+            BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+        tfTimKiem.setBackground(Color.WHITE);
+        tfTimKiem.setForeground(TEXT_COLOR);
+
+        // Buttons
+        styleButton(btnTimKiem, PRIMARY_COLOR, Color.WHITE);
+        styleButton(btnLoc, SECONDARY_COLOR, Color.WHITE);
+
+        // Table styling
+        styleTable();
+    }
+
+    private void styleButton(JButton btn, Color bg, Color fg) {
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btn.setBackground(bg);
+        btn.setForeground(fg);
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
+
+        btn.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) { btn.setBackground(bg.darker()); }
+            public void mouseExited(MouseEvent e) { btn.setBackground(bg); }
+        });
+    }
+
+    private void styleTable() {
+        tbDatPhong.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        tbDatPhong.setRowHeight(35);
+        tbDatPhong.setGridColor(BORDER_COLOR);
+        tbDatPhong.setSelectionBackground(SECONDARY_COLOR);
+        tbDatPhong.setSelectionForeground(Color.WHITE);
+        tbDatPhong.setShowGrid(true);
+        tbDatPhong.setIntercellSpacing(new Dimension(1, 1));
+
+        // Header
+        JTableHeader header = tbDatPhong.getTableHeader();
+        header.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        header.setBackground(PRIMARY_COLOR);
+        header.setForeground(Color.WHITE);
+        header.setPreferredSize(new Dimension(0, 40));
+        header.setBorder(BorderFactory.createLineBorder(PRIMARY_DARK, 1));
+        ((DefaultTableCellRenderer) header.getDefaultRenderer()).setHorizontalAlignment(JLabel.CENTER);
+
+        // Center cells
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(JLabel.CENTER);
+        for (int i = 0; i < tbDatPhong.getColumnCount(); i++) {
+            tbDatPhong.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
+        }
+
+        // Alternating rows + status color
+        tbDatPhong.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                JLabel label = (JLabel) c;
+                label.setHorizontalAlignment(JLabel.CENTER);
+
+                if (!isSelected) {
+                    c.setBackground(row % 2 == 0 ? ROW_EVEN : ROW_ODD);
+                    c.setForeground(TEXT_COLOR);
                 }
-            }
-        });
 
-        itemSua.addActionListener(e -> {
-            int row = tbDatPhong.getSelectedRow();
-            if (row != -1) {
-                Object ten = tbDatPhong.getValueAt(row, 1);
-                JOptionPane.showMessageDialog(this, "Sửa thông tin: " + ten);
-            }
-        });
-
-        itemXoa.addActionListener(e -> {
-            int row = tbDatPhong.getSelectedRow();
-            if (row != -1) {
-                Object ten = tbDatPhong.getValueAt(row, 1);
-                int confirm = JOptionPane.showConfirmDialog(this,
-                        "Bạn có chắc muốn xóa " + ten + "?",
-                        "Xác nhận", JOptionPane.YES_NO_OPTION);
-                if (confirm == JOptionPane.YES_OPTION) {
-                    ((DefaultTableModel) tbDatPhong.getModel()).removeRow(row);
+                // Tô màu giới tính
+                if (column == 4 && value != null) {
+                    String gender = value.toString();
+                    if ("Nam".equals(gender)) c.setForeground(PRIMARY_COLOR);
+                    else if ("Nữ".equals(gender)) c.setForeground(new Color(231, 76, 133));
+                    else if ("Khác".equals(gender)) c.setForeground(WARNING_COLOR);
+                    else c.setForeground(new Color(149, 165, 166));
                 }
+
+                return c;
             }
         });
+    }
 
-        // Thêm item vào popup
+    private void initPopupMenu() {
+        popupMenu = new JPopupMenu();
+        popupMenu.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
+        popupMenu.setBackground(Color.WHITE);
+
+        JMenuItem itemXem = createMenuItem("Xem chi tiết", PRIMARY_COLOR);
+        JMenuItem itemSua = createMenuItem("Sửa", SECONDARY_COLOR);
+        JMenuItem itemXoa = createMenuItem("Xóa", DANGER_COLOR);
+
+        itemXem.addActionListener(e -> showDetailAction());
+        itemSua.addActionListener(e -> editAction());
+        itemXoa.addActionListener(e -> deleteAction());
+
         popupMenu.add(itemXem);
         popupMenu.add(itemSua);
         popupMenu.add(itemXoa);
 
-        // Gắn popup menu vào JTable
         tbDatPhong.setComponentPopupMenu(popupMenu);
 
-        // Khi click chuột phải, chọn dòng đó
         tbDatPhong.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
                 if (SwingUtilities.isRightMouseButton(e)) {
                     int row = tbDatPhong.rowAtPoint(e.getPoint());
-                    if (row >= 0 && row < tbDatPhong.getRowCount()) {
-                        tbDatPhong.setRowSelectionInterval(row, row);
-                    } else {
-                        tbDatPhong.clearSelection();
-                    }
+                    if (row >= 0) tbDatPhong.setRowSelectionInterval(row, row);
                 }
             }
         });
     }
 
-    /**
-     * ✅ Hàm hiển thị dialog chi tiết khách hàng
-     */
-    private void showCustomerDetailDialog(String customerId) {
-        try (Connection conn = getConnection()) {
-            String sql = "SELECT * FROM Customer WHERE customer_id = ?";
-            PreparedStatement ps = conn.prepareStatement(sql);
-            ps.setString(1, customerId);
-            ResultSet rs = ps.executeQuery();
+    private JMenuItem createMenuItem(String text, Color color) {
+        JMenuItem item = new JMenuItem(text);
+        item.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        item.setForeground(color);
+        item.setBackground(Color.WHITE);
+        item.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
+        item.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) { item.setBackground(new Color(248, 249, 250)); }
+            public void mouseExited(MouseEvent e) { item.setBackground(Color.WHITE); }
+        });
+        return item;
+    }
 
-            if (rs.next()) {
-                // Tạo dialog hiển thị thông tin
-                JDialog dialog = new JDialog((Frame) null, "Chi tiết khách hàng", true);
-                dialog.setSize(400, 400);
-                dialog.setLocationRelativeTo(this);
-                dialog.setLayout(new BorderLayout());
+    private void showDetailAction() {
+        int row = tbDatPhong.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn một khách hàng!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
 
-                JTextArea info = new JTextArea();
-                info.setEditable(false);
-                info.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-                info.setText(
-                        "🆔 Mã khách hàng: " + rs.getInt("customer_id") + "\n" +
-                        "👤 Họ và tên: " + rs.getString("full_name") + "\n" +
-                        "📞 Số điện thoại: " + rs.getString("phone") + "\n" +
-                        "📧 Email: " + rs.getString("email") + "\n" +
-                        "🪪 CMND/CCCD: " + rs.getString("id_card") + "\n" +
-                        "🏠 Địa chỉ: " + rs.getString("address") + "\n" +
-                        "🌏 Quốc tịch: " + rs.getString("nationality") + "\n" +
-                        "🎂 Ngày sinh: " + rs.getDate("dob") + "\n" +
-                        "🚻 Giới tính: " + rs.getString("gender") + "\n" +
-                        "📝 Ghi chú: " + rs.getString("note")
-                );
+        int customerId = (int) tableModel.getValueAt(row, 0);
+        CustomerDTO customer = customerBUS.getCustomerById(customerId);
+        if (customer != null) showCustomerDetailDialog(customer);
+    }
 
-                dialog.add(new JScrollPane(info), BorderLayout.CENTER);
+    private void showCustomerDetailDialog(CustomerDTO customer) {
+        JDialog dialog = new JDialog((Frame) null, "Chi tiết khách hàng", true);
+        dialog.setSize(480, 560);
+        dialog.setLocationRelativeTo(this);
+        dialog.setLayout(new BorderLayout());
 
-                JButton closeBtn = new JButton("Đóng");
-                closeBtn.addActionListener(ev -> dialog.dispose());
-                JPanel bottom = new JPanel();
-                bottom.add(closeBtn);
-                dialog.add(bottom, BorderLayout.SOUTH);
+        JTextArea info = new JTextArea();
+        info.setEditable(false);
+        info.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        info.setMargin(new Insets(20, 20, 20, 20));
+        info.setBackground(Color.WHITE);
+        info.setForeground(TEXT_COLOR);
+        info.setText(
+            "Mã khách hàng: " + customer.getCustomer_id() + "\n\n" +
+            "Họ và tên: " + customer.getFull_name() + "\n" +
+            "Số điện thoại: " + (customer.getPhone() > 0 ? customer.getPhone() : "Chưa có") + "\n" +
+            "Email: " + (customer.getEmail() != null && !customer.getEmail().isEmpty() ? customer.getEmail() : "Chưa có") + "\n" +
+            "CMND/CCCD: " + (customer.getId_card() != null ? customer.getId_card() : "Chưa có") + "\n" +
+            "Địa chỉ: Chưa hỗ trợ hiển thị\n" +
+            "Quốc tịch: " + (customer.getNationality() != null ? customer.getNationality() : "Chưa có") + "\n" +
+            "Ngày sinh: " + (customer.getDob() != null ? dateFormat.format(customer.getDob()) : "Chưa có") + "\n" +
+            "Giới tính: " + (customer.getGender() != null ? customer.getGender() : "Chưa chọn") + "\n" +
+            "Ghi chú: " + (customer.getNote() != null && !customer.getNote().isEmpty() ? customer.getNote() : "Không có")
+        );
 
-                dialog.setVisible(true);
+        JScrollPane scroll = new JScrollPane(info);
+        scroll.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
+        dialog.add(scroll, BorderLayout.CENTER);
+
+        JButton closeBtn = new JButton("Đóng");
+        styleButton(closeBtn, new Color(149, 165, 166), Color.WHITE);
+        closeBtn.addActionListener(e -> dialog.dispose());
+
+        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        bottom.setBackground(BACKGROUND_COLOR);
+        bottom.add(closeBtn);
+        dialog.add(bottom, BorderLayout.SOUTH);
+
+        dialog.getContentPane().setBackground(BACKGROUND_COLOR);
+        dialog.setVisible(true);
+    }
+
+    private void editAction() {
+        int row = tbDatPhong.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn khách hàng để sửa!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        int customerId = (int) tableModel.getValueAt(row, 0);
+        JOptionPane.showMessageDialog(this,
+            "Chức năng sửa khách hàng ID: " + customerId + "\n(Chưa triển khai form chỉnh sửa)\nGợi ý: Tạo CustomerEditDialog extends JDialog",
+            "Sửa khách hàng", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void deleteAction() {
+        int row = tbDatPhong.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn khách hàng để xóa!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String name = (String) tableModel.getValueAt(row, 1);
+        int customerId = (int) tableModel.getValueAt(row, 0);
+
+        int confirm = JOptionPane.showConfirmDialog(
+            this, "Xóa khách hàng:\n" + name + " (ID: " + customerId + ")",
+            "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            boolean success = customerBUS.deleteCustomer(customerId);
+            if (success) {
+                tableModel.removeRow(row);
+                JOptionPane.showMessageDialog(this, "Xóa thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
             } else {
-                JOptionPane.showMessageDialog(this, "Không tìm thấy khách hàng ID: " + customerId);
+                JOptionPane.showMessageDialog(this,
+                    "Xóa thất bại!\nKhách hàng có thể đã đặt phòng hoặc lỗi hệ thống.",
+                    "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi khi truy vấn CSDL: " + e.getMessage());
         }
     }
 
-    /**
-     * ✅ Kết nối tới SQL Server (sửa lại cho đúng thông tin của bạn)
-     */
-    private Connection getConnection() throws Exception {
-        String url = "jdbc:sqlserver://localhost:1433;databaseName=HotelDB;encrypt=false";
-        String user = "sa";
-        String pass = "123456";
-        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-        return DriverManager.getConnection(url, user, pass);
+    private void setupSearchAndFilter() {
+        tfTimKiem.addActionListener(e -> performSearch());
+        btnTimKiem.addActionListener(e -> performSearch());
+        btnLoc.addActionListener(e -> filterDialog.setVisible(true));
     }
 
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
-    @SuppressWarnings("unchecked")
-    private void initComponents() {
+    private void performSearch() {
+        String keyword = tfTimKiem.getText().trim();
+        List<CustomerDTO> results = customerBUS.searchCustomers(keyword);
+        updateTable(results);
+    }
 
-        jMenuBar1 = new javax.swing.JMenuBar();
-        jMenu1 = new javax.swing.JMenu();
-        jMenu2 = new javax.swing.JMenu();
-        jMenu3 = new javax.swing.JMenu();
-        jMenuBar2 = new javax.swing.JMenuBar();
-        jMenu4 = new javax.swing.JMenu();
-        jMenu5 = new javax.swing.JMenu();
-        jFrame1 = new javax.swing.JFrame();
-        jPopupMenu1 = new javax.swing.JPopupMenu();
-        jPopupMenu2 = new javax.swing.JPopupMenu();
-        btnTimKiem = new javax.swing.JButton();
-        tfTimKiem = new javax.swing.JTextField();
-        jScrollPane1 = new javax.swing.JScrollPane();
-        tbDatPhong = new javax.swing.JTable();
-        btnLoc = new javax.swing.JButton();
+    private void initFilterDialog() {
+        filterDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Bộ lọc khách hàng", true);
+        filterDialog.setSize(420, 380);
+        filterDialog.setLocationRelativeTo(this);
+        filterDialog.setLayout(null);
+        filterDialog.getContentPane().setBackground(BACKGROUND_COLOR);
 
-        jMenu1.setText("File");
-        jMenuBar1.add(jMenu1);
+        // Title
+        JPanel titlePanel = new JPanel();
+        titlePanel.setBackground(PRIMARY_COLOR);
+        titlePanel.setBounds(0, 0, 420, 50);
+        JLabel titleLabel = new JLabel("BỘ LỌC KHÁCH HÀNG");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        titleLabel.setForeground(Color.WHITE);
+        titlePanel.add(titleLabel);
+        filterDialog.add(titlePanel);
 
-        jMenu2.setText("Edit");
-        jMenuBar1.add(jMenu2);
+        // Quốc tịch
+        JLabel lblQuocTich = new JLabel("Quốc tịch:");
+        lblQuocTich.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        lblQuocTich.setBounds(40, 70, 100, 30);
+        filterDialog.add(lblQuocTich);
 
-        jMenu3.setText("jMenu3");
+        JComboBox<String> cbQuocTich = new JComboBox<>();
+        cbQuocTich.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        cbQuocTich.addItem("Tất cả");
+        List<String> nationalities = customerBUS.getAllNationalities();
+        for (String nat : nationalities) cbQuocTich.addItem(nat);
+        cbQuocTich.setBounds(150, 70, 220, 35);
+        cbQuocTich.setBackground(Color.WHITE);
+        cbQuocTich.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
+        filterDialog.add(cbQuocTich);
 
-        jMenu4.setText("File");
-        jMenuBar2.add(jMenu4);
+        // Giới tính
+        JLabel lblGioiTinh = new JLabel("Giới tính:");
+        lblGioiTinh.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        lblGioiTinh.setBounds(40, 130, 100, 30);
+        filterDialog.add(lblGioiTinh);
 
-        jMenu5.setText("Edit");
-        jMenuBar2.add(jMenu5);
+        JComboBox<String> cbGioiTinh = new JComboBox<>(new String[]{"Tất cả", "Nam", "Nữ", "Khác"});
+        cbGioiTinh.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        cbGioiTinh.setBounds(150, 130, 220, 35);
+        cbGioiTinh.setBackground(Color.WHITE);
+        cbGioiTinh.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
+        filterDialog.add(cbGioiTinh);
 
-        javax.swing.GroupLayout jFrame1Layout = new javax.swing.GroupLayout(jFrame1.getContentPane());
-        jFrame1.getContentPane().setLayout(jFrame1Layout);
-        jFrame1Layout.setHorizontalGroup(
-            jFrame1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 400, Short.MAX_VALUE)
-        );
-        jFrame1Layout.setVerticalGroup(
-            jFrame1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 300, Short.MAX_VALUE)
-        );
-
-        btnTimKiem.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/search.png"))); // NOI18N
-
-        tfTimKiem.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                tfTimKiemActionPerformed(evt);
-            }
+        // Buttons
+        JButton btnApDung = new JButton("Áp dụng");
+        btnApDung.setBounds(100, 210, 100, 40);
+        styleButton(btnApDung, SUCCESS_COLOR, Color.WHITE);
+        btnApDung.addActionListener(e -> {
+            applyFilter(cbQuocTich.getSelectedItem().toString(), cbGioiTinh.getSelectedItem().toString());
+            filterDialog.dispose();
         });
+        filterDialog.add(btnApDung);
 
-        tbDatPhong.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-                {"1", "Nguyễn Văn A", "01/01/2000", "0123456789", "Nam", null},
-                {"2", "Trần Thị B", "10/03/1999", "0987654321", "Nữ", null}
-            },
-            new String [] {
-                "Mã khách hàng", "Họ và tên", "Ngày sinh", "Số điện thoại", "Giới tính", "Xem chi tiết"
-            }
-        ));
-        jScrollPane1.setViewportView(tbDatPhong);
+        JButton btnHuy = new JButton("Hủy");
+        btnHuy.setBounds(220, 210, 100, 40);
+        styleButton(btnHuy, new Color(149, 165, 166), Color.WHITE);
+        btnHuy.addActionListener(e -> filterDialog.dispose());
+        filterDialog.add(btnHuy);
 
-        btnLoc.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/filter.png"))); // NOI18N
+        JButton btnReset = new JButton("Đặt lại");
+        btnReset.setBounds(160, 270, 100, 35);
+        styleButton(btnReset, WARNING_COLOR, Color.WHITE);
+        btnReset.addActionListener(e -> {
+            cbQuocTich.setSelectedIndex(0);
+            cbGioiTinh.setSelectedIndex(0);
+        });
+        filterDialog.add(btnReset);
+    }
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
-        this.setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(tfTimKiem, javax.swing.GroupLayout.PREFERRED_SIZE, 284, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(btnTimKiem)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(btnLoc))
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 692, Short.MAX_VALUE))
-                .addGap(43, 43, 43))
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(btnTimKiem, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(btnLoc)
-                    .addComponent(tfTimKiem, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 137, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(256, Short.MAX_VALUE))
-        );
-    }// </editor-fold>//GEN-END:initComponents
+    private void applyFilter(String nationality, String gender) {
+        List<CustomerDTO> results = customerBUS.getAllCustomers();
 
-    private void tfTimKiemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tfTimKiemActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_tfTimKiemActionPerformed
+        if (!"Tất cả".equals(nationality)) {
+            results = results.stream()
+                .filter(c -> c.getNationality() != null && c.getNationality().equals(nationality))
+                .toList();
+        }
 
+        if (!"Tất cả".equals(gender)) {
+            results = results.stream()
+                .filter(c -> c.getGender() != null && c.getGender().equals(gender))
+                .toList();
+        }
 
-    // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton btnLoc;
-    private javax.swing.JButton btnTimKiem;
-    private javax.swing.JFrame jFrame1;
-    private javax.swing.JMenu jMenu1;
-    private javax.swing.JMenu jMenu2;
-    private javax.swing.JMenu jMenu3;
-    private javax.swing.JMenu jMenu4;
-    private javax.swing.JMenu jMenu5;
-    private javax.swing.JMenuBar jMenuBar1;
-    private javax.swing.JMenuBar jMenuBar2;
-    private javax.swing.JPopupMenu jPopupMenu1;
-    private javax.swing.JPopupMenu jPopupMenu2;
-    private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JTable tbDatPhong;
-    private javax.swing.JTextField tfTimKiem;
-    // End of variables declaration//GEN-END:variables
+        updateTable(results);
+    }
+
+    private void updateTable(List<CustomerDTO> customers) {
+        tableModel.setRowCount(0);
+        for (CustomerDTO c : customers) {
+            tableModel.addRow(new Object[]{
+                c.getCustomer_id(),
+                c.getFull_name(),
+                c.getDob() != null ? dateFormat.format(c.getDob()) : "Chưa có",
+                c.getPhone() > 0 ? c.getPhone() : "Chưa có",
+                c.getGender() != null ? c.getGender() : "Chưa chọn",
+                c.getNationality() != null ? c.getNationality() : "Chưa có"
+            });
+        }
+    }
 }
