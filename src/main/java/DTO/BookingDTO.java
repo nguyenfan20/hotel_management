@@ -1,41 +1,48 @@
 package DTO;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
-public class BookingDTO {
-    private int bookingId ;
+/**
+ * Data Transfer Object for Booking entity
+ */
+public class BookingDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    private int bookingId;
     private String code;
-    private int customerID;
-    private LocalDateTime booking_date;
+    private int customerId;
+    private LocalDateTime bookingDate;
     private String source;
     private String status;
-    private int created_by;
+    private int createdBy;
     private String note;
 
+    // Constructors
     public BookingDTO() {
     }
 
-    public BookingDTO(int bookingId, String code, int customerID, LocalDateTime booking_date, String source, String status, int created_by, String note) {
+    public BookingDTO(String code, int customerId, LocalDateTime bookingDate, String source, String status) {
+        this.code = code;
+        this.customerId = customerId;
+        this.bookingDate = bookingDate;
+        this.source = source;
+        this.status = status;
+    }
+
+    public BookingDTO(int bookingId, String code, int customerId, LocalDateTime bookingDate,
+                      String source, String status, int createdBy, String note) {
         this.bookingId = bookingId;
         this.code = code;
-        this.customerID = customerID;
-        this.booking_date = booking_date;
+        this.customerId = customerId;
+        this.bookingDate = bookingDate;
         this.source = source;
         this.status = status;
-        this.created_by = created_by;
+        this.createdBy = createdBy;
         this.note = note;
     }
 
-    public BookingDTO(String code, int customerID, LocalDateTime booking_date, String source, String status, int created_by, String note) {
-        this.code = code;
-        this.customerID = customerID;
-        this.booking_date = booking_date;
-        this.source = source;
-        this.status = status;
-        this.created_by = created_by;
-        this.note = note;
-    }
-
+    // Getters and Setters
     public int getBookingId() {
         return bookingId;
     }
@@ -52,20 +59,20 @@ public class BookingDTO {
         this.code = code;
     }
 
-    public int getCustomerID() {
-        return customerID;
+    public int getCustomerId() {
+        return customerId;
     }
 
-    public void setCustomerID(int customerID) {
-        this.customerID = customerID;
+    public void setCustomerId(int customerId) {
+        this.customerId = customerId;
     }
 
-    public LocalDateTime getBooking_date() {
-        return booking_date;
+    public LocalDateTime getBookingDate() {
+        return bookingDate;
     }
 
-    public void setBooking_date(LocalDateTime booking_date) {
-        this.booking_date = booking_date;
+    public void setBookingDate(LocalDateTime bookingDate) {
+        this.bookingDate = bookingDate;
     }
 
     public String getSource() {
@@ -84,12 +91,12 @@ public class BookingDTO {
         this.status = status;
     }
 
-    public int getCreated_by() {
-        return created_by;
+    public int getCreatedBy() {
+        return createdBy;
     }
 
-    public void setCreated_by(int created_by) {
-        this.created_by = created_by;
+    public void setCreatedBy(int createdBy) {
+        this.createdBy = createdBy;
     }
 
     public String getNote() {
@@ -98,5 +105,19 @@ public class BookingDTO {
 
     public void setNote(String note) {
         this.note = note;
+    }
+
+    @Override
+    public String toString() {
+        return "BookingDTO{" +
+                "bookingId=" + bookingId +
+                ", code='" + code + '\'' +
+                ", customerId=" + customerId +
+                ", bookingDate=" + bookingDate +
+                ", source='" + source + '\'' +
+                ", status='" + status + '\'' +
+                ", createdBy=" + createdBy +
+                ", note='" + note + '\'' +
+                '}';
     }
 }

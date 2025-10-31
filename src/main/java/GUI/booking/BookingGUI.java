@@ -1,496 +1,319 @@
 package GUI.booking;
 
+import BUS.BookingBUS;
+import DAO.BookingDAO;
+import DTO.BookingDTO;
 import com.toedter.calendar.JDateChooser;
 import java.awt.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.List;
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.JTableHeader;
+import javax.swing.table.DefaultTableModel;
 
-/**
- * Optimized BookingGUI with modern colors and styling
- * @author daoho
- */
 public class BookingGUI extends javax.swing.JPanel {
+    private static final Color PRIMARY_COLOR = new Color(41, 98, 255);
+    private static final Color BACKGROUND_COLOR = new Color(245, 245, 245);
+    private static final Color PANEL_BG = Color.WHITE;
+    private static final Color BORDER_COLOR = new Color(224, 224, 224);
+    private static final Color TEXT_COLOR = new Color(33, 33, 33);
+    private static final Color SUCCESS_COLOR = new Color(34, 197, 94);
+    private static final Color DANGER_COLOR = new Color(239, 68, 68);
+    private static final Color WARNING_COLOR = new Color(241, 196, 15);
 
-    // Color scheme
-    private static final Color PRIMARY_COLOR = new Color(41, 128, 185);      // Blue
-    private static final Color PRIMARY_DARK = new Color(31, 97, 141);        // Dark Blue
-    private static final Color SECONDARY_COLOR = new Color(52, 152, 219);    // Light Blue
-    private static final Color SUCCESS_COLOR = new Color(46, 204, 113);      // Green
-    private static final Color DANGER_COLOR = new Color(231, 76, 60);        // Red
-    private static final Color WARNING_COLOR = new Color(241, 196, 15);      // Yellow
-    private static final Color BACKGROUND_COLOR = new Color(236, 240, 241);  // Light Gray
-    private static final Color TEXT_COLOR = new Color(44, 62, 80);           // Dark Gray
-    private static final Color BORDER_COLOR = new Color(189, 195, 199);      // Gray
+    private BookingBUS bookingBUS;
+    private javax.swing.JDialog jDialog1;
+    private JScrollPane scrollPane;
+    private JTextField searchField;
+    private List<BookingDTO> bookingData;
 
     public BookingGUI() {
+        bookingBUS = new BookingBUS(new BookingDAO());
+        bookingData = new java.util.ArrayList<>();
         initComponents();
-        styleComponents();
-        initPopupMenu();
-        jDialog1 = new javax.swing.JDialog((java.awt.Frame) null, "Bộ lọc tìm kiếm", true);
-        initFilterDialog();
-        setVisible(true);
+        loadBookingData();
     }
 
-    @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">
     private void initComponents() {
+        setLayout(new BorderLayout());
+        setBackground(BACKGROUND_COLOR);
 
-        jPopupMenu1 = new javax.swing.JPopupMenu();
-        tfTimKiem = new javax.swing.JTextField();
-        btnTimKiem = new javax.swing.JButton();
-        btnLoc = new javax.swing.JButton();
-        jScrollPane1 = new javax.swing.JScrollPane();
-        tbDatPhong = new javax.swing.JTable();
-        cbTieuChi = new javax.swing.JComboBox<>();
-
-        tfTimKiem.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                tfTimKiemActionPerformed(evt);
-            }
-        });
-
-        btnTimKiem.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/search.png")));
-        btnTimKiem.setText("Tìm kiếm");
-
-        btnLoc.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/filter.png")));
-        btnLoc.setText("Lọc");
-        btnLoc.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnLocActionPerformed(evt);
-            }
-        });
-
-        tbDatPhong.setModel(new javax.swing.table.DefaultTableModel(
-                new Object [][] {
-                        {"DP001", "231", "KH001", "20/08/2025", "Trống", "Online", "Không"},
-                        {"DP002", "232", "KH002", "21/08/2025", "Đã đặt", "Trực tiếp", "VIP"},
-                        {"DP003", "233", "KH003", "22/08/2025", "Đã nhận phòng", "Điện thoại", "Không"},
-                        {"DP004", "234", "KH004", "23/08/2025", "Đã trả phòng", "Đại lý", "Không"}
-                },
-                new String [] {
-                        "Mã đặt phòng", "Mã Phòng", "Mã khách hàng", "Ngày đặt", "Tình trạng", "Nguồn đặt", "Ghi chú"
-                }
-        ) {
-            Class[] types = new Class [] {
-                    java.lang.String.class, java.lang.String.class, java.lang.String.class,
-                    java.lang.String.class, java.lang.String.class, java.lang.String.class,
-                    java.lang.String.class
-            };
-            boolean[] canEdit = new boolean [] {
-                    false, false, false, false, false, false, false
-            };
-
-            public Class getColumnClass(int columnIndex) {
-                return types [columnIndex];
-            }
-
-            public boolean isCellEditable(int rowIndex, int columnIndex) {
-                return canEdit [columnIndex];
-            }
-        });
-
-        jScrollPane1.setViewportView(tbDatPhong);
-        if (tbDatPhong.getColumnModel().getColumnCount() > 0) {
-            tbDatPhong.getColumnModel().getColumn(0).setResizable(false);
-            tbDatPhong.getColumnModel().getColumn(1).setResizable(false);
-            tbDatPhong.getColumnModel().getColumn(2).setResizable(false);
-            tbDatPhong.getColumnModel().getColumn(3).setResizable(false);
-            tbDatPhong.getColumnModel().getColumn(4).setResizable(false);
-            tbDatPhong.getColumnModel().getColumn(5).setResizable(false);
-            tbDatPhong.getColumnModel().getColumn(6).setResizable(false);
-        }
-
-        cbTieuChi.setModel(new javax.swing.DefaultComboBoxModel<>(
-                new String[] { "Mã đặt phòng", "Mã phòng", "Mã khách hàng" }
+        JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
+        controlPanel.setBackground(PANEL_BG);
+        controlPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_COLOR),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
-        cbTieuChi.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                cbTieuChiActionPerformed(evt);
-            }
-        });
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
-        this.setLayout(layout);
-        layout.setHorizontalGroup(
-                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(layout.createSequentialGroup()
-                                .addGap(20, 20, 20)
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                        .addGroup(layout.createSequentialGroup()
-                                                .addComponent(tfTimKiem, javax.swing.GroupLayout.PREFERRED_SIZE, 300, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                .addGap(10, 10, 10)
-                                                .addComponent(btnTimKiem, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                .addGap(10, 10, 10)
-                                                .addComponent(cbTieuChi, javax.swing.GroupLayout.PREFERRED_SIZE, 150, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                                .addComponent(btnLoc, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                        .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 760, Short.MAX_VALUE))
-                                .addGap(20, 20, 20))
-        );
-        layout.setVerticalGroup(
-                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(layout.createSequentialGroup()
-                                .addGap(20, 20, 20)
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                        .addComponent(tfTimKiem, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addComponent(btnTimKiem, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addComponent(cbTieuChi, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addComponent(btnLoc, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addGap(20, 20, 20)
-                                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 400, Short.MAX_VALUE)
-                                .addGap(20, 20, 20))
-        );
-    }// </editor-fold>
-
-    private void styleComponents() {
-        // Set background color
-        this.setBackground(BACKGROUND_COLOR);
-
-        // Style search text field
-        tfTimKiem.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        tfTimKiem.setBorder(BorderFactory.createCompoundBorder(
+        searchField = new JTextField(20);
+        searchField.setPreferredSize(new Dimension(250, 35));
+        searchField.setFont(new Font("Arial", Font.PLAIN, 13));
+        searchField.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER_COLOR, 1),
                 BorderFactory.createEmptyBorder(5, 10, 5, 10)
         ));
-        tfTimKiem.setBackground(Color.WHITE);
-        tfTimKiem.setForeground(TEXT_COLOR);
-
-        // Style combo box
-        cbTieuChi.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        cbTieuChi.setBackground(Color.WHITE);
-        cbTieuChi.setForeground(TEXT_COLOR);
-        cbTieuChi.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
-
-        // Style search button
-        styleButton(btnTimKiem, PRIMARY_COLOR, Color.WHITE);
-
-        // Style filter button
-        styleButton(btnLoc, SECONDARY_COLOR, Color.WHITE);
-
-        // Style table
-        styleTable();
-
-        // Style scroll pane
-        jScrollPane1.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
-        jScrollPane1.getViewport().setBackground(Color.WHITE);
-    }
-
-    private void styleButton(JButton button, Color bgColor, Color fgColor) {
-        button.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        button.setBackground(bgColor);
-        button.setForeground(fgColor);
-        button.setFocusPainted(false);
-        button.setBorderPainted(false);
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
-
-        // Add hover effect
-        button.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                button.setBackground(bgColor.darker());
-            }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                button.setBackground(bgColor);
+        searchField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    performSearch();
+                }
             }
         });
+        controlPanel.add(searchField);
+
+        JButton searchButton = createIconButton("/images/search.png");
+        searchButton.addActionListener(e -> performSearch());
+        controlPanel.add(searchButton);
+
+        JButton filterButton = createIconButton("/images/filter.png");
+        filterButton.addActionListener(e -> showFilterDialog());
+        controlPanel.add(filterButton);
+
+        add(controlPanel, BorderLayout.NORTH);
+
+        scrollPane = new JScrollPane();
+        scrollPane.setBorder(null);
+        scrollPane.getViewport().setBackground(BACKGROUND_COLOR);
+        add(scrollPane, BorderLayout.CENTER);
+
+        updateTableView();
     }
 
-    private void styleTable() {
-        // Table font and colors
-        tbDatPhong.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        tbDatPhong.setRowHeight(35);
-        tbDatPhong.setGridColor(BORDER_COLOR);
-        tbDatPhong.setSelectionBackground(SECONDARY_COLOR);
-        tbDatPhong.setSelectionForeground(Color.WHITE);
-        tbDatPhong.setShowGrid(true);
-        tbDatPhong.setIntercellSpacing(new Dimension(1, 1));
+    private JButton createIconButton(String iconPath) {
+        JButton button = new JButton();
+        button.setPreferredSize(new Dimension(35, 35));
+        try {
+            button.setIcon(new ImageIcon(getClass().getResource(iconPath)));
+        } catch (Exception e) {
+            button.setText("...");
+        }
+        button.setBackground(PANEL_BG);
+        button.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
+        button.setFocusPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        return button;
+    }
 
-        // Style table header
-        JTableHeader header = tbDatPhong.getTableHeader();
-        header.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        header.setBackground(PRIMARY_COLOR);
-        header.setForeground(Color.WHITE);
-        header.setPreferredSize(new Dimension(header.getWidth(), 40));
-        header.setBorder(BorderFactory.createLineBorder(PRIMARY_DARK, 1));
+    private void loadBookingData() {
+        try {
+            bookingData = bookingBUS.getAllBookings();
+            updateTableView();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Lỗi tải dữ liệu: " + e.getMessage(),
+                    "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
+    }
 
-        // Center align header text
-        ((DefaultTableCellRenderer)header.getDefaultRenderer()).setHorizontalAlignment(JLabel.CENTER);
-
-        // Center align cell content
-        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
-        centerRenderer.setHorizontalAlignment(JLabel.CENTER);
-        for (int i = 0; i < tbDatPhong.getColumnCount(); i++) {
-            tbDatPhong.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
+    private void performSearch() {
+        String query = searchField.getText().trim().toLowerCase();
+        if (query.isEmpty()) {
+            updateTableView();
+            return;
         }
 
-        // Alternating row colors
-        tbDatPhong.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+        try {
+            BookingDTO booking = bookingBUS.getBookingByCode(query);
+            if (booking != null) {
+                List<BookingDTO> results = List.of(booking);
+                updateTableViewWithData(results);
+            } else {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy đặt phòng: " + query,
+                        "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                updateTableView();
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Lỗi tìm kiếm: " + e.getMessage(),
+                    "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void showFilterDialog() {
+        JDialog filterDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Lọc đặt phòng", true);
+        filterDialog.setLayout(new BorderLayout());
+        filterDialog.setSize(350, 220);
+
+        JPanel contentPanel = new JPanel(new GridLayout(2, 2, 15, 15));
+        contentPanel.setBackground(PANEL_BG);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel statusLabel = new JLabel("Trạng thái:");
+        statusLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JComboBox<String> statusCombo = new JComboBox<>(new String[]{"Tất cả", "Đã đặt", "Đã nhận phòng", "Đã trả phòng", "Đã hủy"});
+        statusCombo.setPreferredSize(new Dimension(150, 30));
+        contentPanel.add(statusLabel);
+        contentPanel.add(statusCombo);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        buttonPanel.setBackground(PANEL_BG);
+        JButton confirmButton = new JButton("Xác nhận");
+        confirmButton.setPreferredSize(new Dimension(100, 35));
+        confirmButton.setBackground(PRIMARY_COLOR);
+        confirmButton.setForeground(Color.WHITE);
+        confirmButton.setFocusPainted(false);
+        confirmButton.setBorderPainted(false);
+        confirmButton.setFont(new Font("Arial", Font.BOLD, 13));
+        confirmButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        confirmButton.addActionListener(e -> {
+            String selectedStatus = (String) statusCombo.getSelectedItem();
+            filterBookings(selectedStatus);
+            filterDialog.dispose();
+        });
+        buttonPanel.add(confirmButton);
+
+        filterDialog.add(contentPanel, BorderLayout.CENTER);
+        filterDialog.add(buttonPanel, BorderLayout.SOUTH);
+        filterDialog.setLocationRelativeTo(this);
+        filterDialog.setVisible(true);
+    }
+
+    private void filterBookings(String status) {
+        try {
+            List<BookingDTO> results;
+            if ("Tất cả".equals(status)) {
+                results = bookingData;
+            } else {
+                results = bookingBUS.getBookingsByStatus(status);
+            }
+            updateTableViewWithData(results);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Lỗi lọc: " + e.getMessage(),
+                    "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void updateTableView() {
+        if (bookingData == null) {
+            bookingData = new java.util.ArrayList<>();
+        }
+        updateTableViewWithData(bookingData);
+    }
+
+    private void updateTableViewWithData(List<BookingDTO> data) {
+        if (data == null || data.isEmpty()) {
+            String[] columnNames = {"Mã đặt phòng", "Mã phòng", "Mã khách", "Ngày đặt", "Trạng thái", "Nguồn đặt", "Ghi chú"};
+            DefaultTableModel model = new DefaultTableModel(columnNames, 0);
+            JTable table = new JTable(model);
+            table.setRowHeight(40);
+            table.setFont(new Font("Arial", Font.PLAIN, 13));
+            table.setGridColor(BORDER_COLOR);
+            table.setSelectionBackground(new Color(232, 240, 254));
+            table.setSelectionForeground(TEXT_COLOR);
+            table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 14));
+            table.getTableHeader().setBackground(PANEL_BG);
+            table.getTableHeader().setForeground(TEXT_COLOR);
+            table.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, PRIMARY_COLOR));
+            table.getTableHeader().setPreferredSize(new Dimension(0, 45));
+            scrollPane.setViewportView(table);
+            return;
+        }
+
+        String[] columnNames = {"Mã đặt phòng", "Mã phòng", "Mã khách", "Ngày đặt", "Trạng thái", "Nguồn đặt", "Ghi chú"};
+        DefaultTableModel model = new DefaultTableModel(columnNames, 0);
+
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+        for (BookingDTO booking : data) {
+            Object[] row = {
+                    booking.getCode(),
+                    "P00" + booking.getBookingId(),
+                    "KH00" + booking.getCustomerId(),
+                    sdf.format(java.sql.Timestamp.valueOf(booking.getBookingDate())),
+                    booking.getStatus(),
+                    booking.getSource(),
+                    booking.getNote() != null ? booking.getNote() : "Không"
+            };
+            model.addRow(row);
+        }
+
+        JTable table = new JTable(model);
+        table.setRowHeight(40);
+        table.setFont(new Font("Arial", Font.PLAIN, 13));
+        table.setGridColor(BORDER_COLOR);
+        table.setSelectionBackground(new Color(232, 240, 254));
+        table.setSelectionForeground(TEXT_COLOR);
+        table.setShowVerticalLines(true);
+        table.setIntercellSpacing(new Dimension(1, 1));
+
+        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 14));
+        table.getTableHeader().setBackground(PANEL_BG);
+        table.getTableHeader().setForeground(TEXT_COLOR);
+        table.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, PRIMARY_COLOR));
+        table.getTableHeader().setPreferredSize(new Dimension(0, 45));
+
+        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
-            public Component getTableCellRendererComponent(JTable table, Object value,
-                                                           boolean isSelected, boolean hasFocus, int row, int column) {
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-
                 if (!isSelected) {
-                    if (row % 2 == 0) {
-                        c.setBackground(Color.WHITE);
-                    } else {
-                        c.setBackground(new Color(248, 249, 250));
-                    }
-                    c.setForeground(TEXT_COLOR);
+                    c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(250, 250, 250));
                 }
-
-                // Center align
-                ((JLabel) c).setHorizontalAlignment(JLabel.CENTER);
-
-                // Color code status column
-                if (column == 4 && value != null) {
-                    String status = value.toString();
-                    if (status.equals("Trống")) {
-                        c.setForeground(new Color(149, 165, 166));
-                    } else if (status.equals("Đã đặt")) {
-                        c.setForeground(WARNING_COLOR);
-                    } else if (status.equals("Đã nhận phòng")) {
-                        c.setForeground(SUCCESS_COLOR);
-                    } else if (status.equals("Đã trả phòng")) {
-                        c.setForeground(PRIMARY_COLOR);
-                    } else if (status.equals("Đã hủy")) {
-                        c.setForeground(DANGER_COLOR);
-                    }
-                }
-
+                setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
                 return c;
             }
         });
-    }
 
-    private void initPopupMenu() {
-        // Style popup menu
-        jPopupMenu1.setBackground(Color.WHITE);
-        jPopupMenu1.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
+        JPopupMenu popupMenu = new JPopupMenu();
+        JMenuItem editItem = new JMenuItem("Sửa");
+        JMenuItem deleteItem = new JMenuItem("Xóa");
+        JMenuItem bookingRoomItem = new JMenuItem("Danh sách phòng đặt");
+        popupMenu.add(editItem);
+        popupMenu.add(deleteItem);
+        popupMenu.addSeparator();
+        popupMenu.add(bookingRoomItem);
 
-        // Create menu items with icons and colors
-        javax.swing.JMenuItem menuSua = new javax.swing.JMenuItem("Sửa");
-        javax.swing.JMenuItem menuXoa = new javax.swing.JMenuItem("Xóa");
-        javax.swing.JMenuItem menuDanhSachPhongDat = new javax.swing.JMenuItem("Danh sách phòng đặt");
-
-        // Style menu items
-        styleMenuItem(menuSua, PRIMARY_COLOR);
-        styleMenuItem(menuXoa, DANGER_COLOR);
-        styleMenuItem(menuDanhSachPhongDat, SUCCESS_COLOR);
-
-        // Add to popup
-        jPopupMenu1.add(menuSua);
-        jPopupMenu1.add(menuXoa);
-        jPopupMenu1.add(menuDanhSachPhongDat);
-
-        // Event handlers
-        menuSua.addActionListener(e -> suaDongDangChon());
-        menuXoa.addActionListener(e -> xoaDongDangChon());
-        menuDanhSachPhongDat.addActionListener(e -> hienThiDanhSachPhongDat());
-
-        // Add mouse listener to table
-        tbDatPhong.addMouseListener(new java.awt.event.MouseAdapter() {
+        table.addMouseListener(new MouseAdapter() {
             @Override
-            public void mousePressed(java.awt.event.MouseEvent e) {
-                showPopup(e);
-            }
+            public void mouseReleased(MouseEvent e) {
+                if (e.isPopupTrigger() && table.getSelectedRow() != -1) {
+                    int rowIndex = table.getSelectedRow();
+                    BookingDTO booking = data.get(rowIndex);
 
-            @Override
-            public void mouseReleased(java.awt.event.MouseEvent e) {
-                showPopup(e);
-            }
+                    editItem.addActionListener(e1 -> editBooking(booking));
+                    deleteItem.addActionListener(e1 -> deleteBooking(booking));
+                    bookingRoomItem.addActionListener(e1 -> openBookingRoomGUI(booking));
 
-            private void showPopup(java.awt.event.MouseEvent e) {
-                if (e.isPopupTrigger()) {
-                    int row = tbDatPhong.rowAtPoint(e.getPoint());
-                    if (row >= 0 && row < tbDatPhong.getRowCount()) {
-                        tbDatPhong.setRowSelectionInterval(row, row);
-                    } else {
-                        tbDatPhong.clearSelection();
-                    }
-                    jPopupMenu1.show(e.getComponent(), e.getX(), e.getY());
+                    popupMenu.show(e.getComponent(), e.getX(), e.getY());
                 }
             }
         });
+
+        scrollPane.setViewportView(table);
     }
 
-    private void styleMenuItem(JMenuItem item, Color color) {
-        item.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        item.setForeground(color);
-        item.setBackground(Color.WHITE);
-        item.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
-
-        item.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                item.setBackground(new Color(248, 249, 250));
-            }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                item.setBackground(Color.WHITE);
-            }
-        });
+    private void editBooking(BookingDTO booking) {
+        JOptionPane.showMessageDialog(this, "Sửa đặt phòng: " + booking.getCode(),
+                "Thông báo", JOptionPane.INFORMATION_MESSAGE);
     }
 
-    private void tfTimKiemActionPerformed(java.awt.event.ActionEvent evt) {
-        // TODO: Implement search functionality
-    }
-
-    private void btnLocActionPerformed(java.awt.event.ActionEvent evt) {
-        jDialog1.setTitle("Bộ lọc tìm kiếm");
-        jDialog1.setSize(450, 350);
-        jDialog1.setLocationRelativeTo(this);
-        jDialog1.setModal(true);
-        jDialog1.setVisible(true);
-    }
-
-    private void cbTieuChiActionPerformed(java.awt.event.ActionEvent evt) {
-        // TODO: Handle criteria change
-    }
-
-    private void suaDongDangChon() {
-        int row = tbDatPhong.getSelectedRow();
-        if (row != -1) {
-            Object maDatPhong = tbDatPhong.getValueAt(row, 0);
-            JOptionPane.showMessageDialog(this,
-                    "Sửa dòng có Mã đặt phòng: " + maDatPhong,
-                    "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-        }
-    }
-
-    private void xoaDongDangChon() {
-        int row = tbDatPhong.getSelectedRow();
-        if (row != -1) {
-            Object maDatPhong = tbDatPhong.getValueAt(row, 0);
-            int confirm = JOptionPane.showConfirmDialog(this,
-                    "Bạn có chắc muốn xóa Mã đặt phòng: " + maDatPhong + "?",
-                    "Xác nhận", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-            if (confirm == JOptionPane.YES_OPTION) {
-                ((javax.swing.table.DefaultTableModel) tbDatPhong.getModel()).removeRow(row);
+    private void deleteBooking(BookingDTO booking) {
+        int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn xóa đặt phòng: " + booking.getCode() + "?",
+                "Xác nhận xóa", JOptionPane.YES_NO_OPTION);
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                if (bookingBUS.deleteBooking(booking.getBookingId())) {
+                    JOptionPane.showMessageDialog(this, "Xóa thành công!");
+                    loadBookingData();
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Lỗi xóa: " + e.getMessage(),
+                        "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
 
-    private void hienThiDanhSachPhongDat() {
-        int row = tbDatPhong.getSelectedRow();
-        if (row != -1) {
-            Object maDatPhong = tbDatPhong.getValueAt(row, 0);
+    private void openBookingRoomGUI(BookingDTO booking) {
+        try {
             BookingRoom bookingRoomFrame = new BookingRoom();
-            bookingRoomFrame.setTitle("Danh sách phòng đặt - Mã: " + maDatPhong);
+            bookingRoomFrame.setTitle("Danh sách phòng đặt - Mã: " + booking.getCode());
             bookingRoomFrame.setLocationRelativeTo(this);
             bookingRoomFrame.setVisible(true);
-        } else {
-            JOptionPane.showMessageDialog(this,
-                    "Vui lòng chọn một dòng đặt phòng trước!",
-                    "Thông báo", JOptionPane.WARNING_MESSAGE);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Lỗi mở giao diện: " + e.getMessage(),
+                    "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
-
-    private void initFilterDialog() {
-        jDialog1.setLayout(null);
-        jDialog1.getContentPane().setBackground(BACKGROUND_COLOR);
-
-        // Title panel
-        JPanel titlePanel = new JPanel();
-        titlePanel.setBackground(PRIMARY_COLOR);
-        titlePanel.setBounds(0, 0, 450, 50);
-        JLabel titleLabel = new JLabel("BỘ LỌC TÌM KIẾM");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        titleLabel.setForeground(Color.WHITE);
-        titlePanel.add(titleLabel);
-        jDialog1.add(titlePanel);
-
-        // Ngày đặt
-        JLabel lblNgayDat = new JLabel("Ngày đặt:");
-        lblNgayDat.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        lblNgayDat.setForeground(TEXT_COLOR);
-        lblNgayDat.setBounds(40, 80, 120, 30);
-        jDialog1.add(lblNgayDat);
-
-        dateChooser = new JDateChooser();
-        dateChooser.setDateFormatString("dd/MM/yyyy");
-        dateChooser.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        dateChooser.setBounds(170, 80, 240, 35);
-        dateChooser.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
-        jDialog1.add(dateChooser);
-
-        // Tình trạng
-        JLabel lblTinhTrang = new JLabel("Tình trạng:");
-        lblTinhTrang.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        lblTinhTrang.setForeground(TEXT_COLOR);
-        lblTinhTrang.setBounds(40, 140, 120, 30);
-        jDialog1.add(lblTinhTrang);
-
-        cbTinhTrang = new JComboBox<>(new String[]{
-                "Tất cả", "Trống", "Đã đặt", "Đã nhận phòng", "Đã trả phòng", "Đã hủy"
-        });
-        cbTinhTrang.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        cbTinhTrang.setBackground(Color.WHITE);
-        cbTinhTrang.setBounds(170, 140, 240, 35);
-        cbTinhTrang.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
-        jDialog1.add(cbTinhTrang);
-
-        // Nguồn đặt
-        JLabel lblNguonDat = new JLabel("Nguồn đặt:");
-        lblNguonDat.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        lblNguonDat.setForeground(TEXT_COLOR);
-        lblNguonDat.setBounds(40, 200, 120, 30);
-        jDialog1.add(lblNguonDat);
-
-        cbNguonDat = new JComboBox<>(new String[]{
-                "Tất cả", "Online", "Trực tiếp", "Điện thoại", "Đại lý"
-        });
-        cbNguonDat.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        cbNguonDat.setBackground(Color.WHITE);
-        cbNguonDat.setBounds(170, 200, 240, 35);
-        cbNguonDat.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
-        jDialog1.add(cbNguonDat);
-
-        // Buttons
-        JButton btnApDung = new JButton("Áp dụng");
-        btnApDung.setBounds(120, 270, 120, 40);
-        styleButton(btnApDung, SUCCESS_COLOR, Color.WHITE);
-        btnApDung.addActionListener(e -> applyFilter());
-        jDialog1.add(btnApDung);
-
-        JButton btnHuy = new JButton("Hủy");
-        btnHuy.setBounds(260, 270, 120, 40);
-        styleButton(btnHuy, new Color(149, 165, 166), Color.WHITE);
-        btnHuy.addActionListener(e -> jDialog1.setVisible(false));
-        jDialog1.add(btnHuy);
-    }
-
-    private void applyFilter() {
-        String ngayDat = "";
-        Date selectedDate = dateChooser.getDate();
-        if (selectedDate != null) {
-            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-            ngayDat = sdf.format(selectedDate);
-        }
-
-        String tinhTrang = (String) cbTinhTrang.getSelectedItem();
-        String nguonDat = (String) cbNguonDat.getSelectedItem();
-
-        JOptionPane.showMessageDialog(this,
-                "Áp dụng bộ lọc:\nNgày đặt: " + ngayDat +
-                        "\nTình trạng: " + tinhTrang +
-                        "\nNguồn đặt: " + nguonDat,
-                "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-
-        jDialog1.setVisible(false);
-    }
-
-    // Variables declaration
-    private javax.swing.JButton btnLoc;
-    private javax.swing.JButton btnTimKiem;
-    private javax.swing.JComboBox<String> cbTieuChi;
-    private javax.swing.JPopupMenu jPopupMenu1;
-    private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JTable tbDatPhong;
-    private javax.swing.JTextField tfTimKiem;
-    private javax.swing.JDialog jDialog1;
-    private javax.swing.JComboBox<String> cbTinhTrang;
-    private javax.swing.JComboBox<String> cbNguonDat;
-    private JDateChooser dateChooser;
 }
