@@ -48,8 +48,6 @@ public class CustomGUI extends JPanel {
     private static final Color BACKGROUND_COLOR = new Color(236, 240, 241);
     private static final Color TEXT_COLOR = new Color(44, 62, 80);
     private static final Color BORDER_COLOR = new Color(189, 195, 199);
-    private static final Color ROW_EVEN = Color.WHITE;
-    private static final Color ROW_ODD = new Color(248, 249, 250);
 
     // Components
     private JTextField tfTimKiem;
@@ -130,7 +128,7 @@ public class CustomGUI extends JPanel {
         }
     }
 
-    // === GIAO DIỆN ĐẸP NHƯ BOOKINGGUI ===
+    // === GIAO DIỆN ĐẸP NHƯ BOOKINGGUI + NỀN TRẮNG HOÀN TOÀN ===
     private void styleComponents() {
         // TextField
         tfTimKiem.setFont(new Font("Segoe UI", Font.PLAIN, 14));
@@ -167,19 +165,20 @@ public class CustomGUI extends JPanel {
 
     private void styleTable() {
         tbDatPhong.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        tbDatPhong.setRowHeight(35);
-        tbDatPhong.setGridColor(BORDER_COLOR);
+        tbDatPhong.setRowHeight(40);
+        tbDatPhong.setShowGrid(true);
+        tbDatPhong.setGridColor(new Color(230, 230, 230)); // Viền nhẹ
+        tbDatPhong.setIntercellSpacing(new Dimension(1, 1));
         tbDatPhong.setSelectionBackground(SECONDARY_COLOR);
         tbDatPhong.setSelectionForeground(Color.WHITE);
-        tbDatPhong.setShowGrid(true);
-        tbDatPhong.setIntercellSpacing(new Dimension(1, 1));
 
         // Header
+        
         JTableHeader header = tbDatPhong.getTableHeader();
         header.setFont(new Font("Segoe UI", Font.BOLD, 13));
         header.setBackground(PRIMARY_COLOR);
-        header.setForeground(Color.WHITE);
-        header.setPreferredSize(new Dimension(0, 40));
+        header.setForeground(Color.BLACK);
+        header.setPreferredSize(new Dimension(0, 45));
         header.setBorder(BorderFactory.createLineBorder(PRIMARY_DARK, 1));
         ((DefaultTableCellRenderer) header.getDefaultRenderer()).setHorizontalAlignment(JLabel.CENTER);
 
@@ -190,7 +189,7 @@ public class CustomGUI extends JPanel {
             tbDatPhong.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
         }
 
-        // Alternating rows + status color
+        // === NỀN TRẮNG HOÀN TOÀN + HOVER + MÀU GIỚI TÍNH ===
         tbDatPhong.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
@@ -200,8 +199,12 @@ public class CustomGUI extends JPanel {
                 label.setHorizontalAlignment(JLabel.CENTER);
 
                 if (!isSelected) {
-                    c.setBackground(row % 2 == 0 ? ROW_EVEN : ROW_ODD);
+                    // Nền trắng hoàn toàn
+                    c.setBackground(Color.WHITE);
                     c.setForeground(TEXT_COLOR);
+                } else {
+                    c.setBackground(SECONDARY_COLOR);
+                    c.setForeground(Color.WHITE);
                 }
 
                 // Tô màu giới tính
@@ -211,11 +214,29 @@ public class CustomGUI extends JPanel {
                     else if ("Nữ".equals(gender)) c.setForeground(new Color(231, 76, 133));
                     else if ("Khác".equals(gender)) c.setForeground(WARNING_COLOR);
                     else c.setForeground(new Color(149, 165, 166));
+                } else if (!isSelected) {
+                    c.setForeground(TEXT_COLOR);
                 }
 
                 return c;
             }
         });
+
+        // === HOVER DÒNG (tăng tính tương tác) ===
+        tbDatPhong.addMouseMotionListener(new MouseAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                int row = tbDatPhong.rowAtPoint(e.getPoint());
+                if (row >= 0 && !tbDatPhong.isRowSelected(row)) {
+                    tbDatPhong.repaint(tbDatPhong.getCellRect(row, 0, true));
+                }
+            }
+        });
+
+        // Đảm bảo nền trắng cho toàn bộ table và scrollpane
+        tbDatPhong.setBackground(Color.WHITE);
+        jScrollPane1.setBackground(Color.WHITE);
+        jScrollPane1.getViewport().setBackground(Color.WHITE);
     }
 
     private void initPopupMenu() {
@@ -283,8 +304,9 @@ public class CustomGUI extends JPanel {
         info.setEditable(false);
         info.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         info.setMargin(new Insets(20, 20, 20, 20));
-        info.setBackground(Color.WHITE);
-        info.setForeground(TEXT_COLOR);
+        info.setBackground(Color.BLACK);
+
+        info.setForeground(TEXT_COLOR); 
         info.setText(
             "Mã khách hàng: " + customer.getCustomer_id() + "\n\n" +
             "Họ và tên: " + customer.getFull_name() + "\n" +
