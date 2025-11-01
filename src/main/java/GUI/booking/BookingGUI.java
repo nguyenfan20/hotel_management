@@ -38,6 +38,7 @@ public class BookingGUI extends javax.swing.JPanel {
         loadBookingData();
     }
 
+    // Khởi tạo các thành phần UI
     private void initComponents() {
         setLayout(new BorderLayout());
         setBackground(BACKGROUND_COLOR);
@@ -84,6 +85,7 @@ public class BookingGUI extends javax.swing.JPanel {
         updateTableView();
     }
 
+    // Tạo nút icon
     private JButton createIconButton(String iconPath) {
         JButton button = new JButton();
         button.setPreferredSize(new Dimension(35, 35));
@@ -99,6 +101,7 @@ public class BookingGUI extends javax.swing.JPanel {
         return button;
     }
 
+    // Tải dữ liệu đặt phòng
     private void loadBookingData() {
         try {
             bookingData = bookingBUS.getAllBookings();
@@ -109,6 +112,7 @@ public class BookingGUI extends javax.swing.JPanel {
         }
     }
 
+    // Thực hiện tìm kiếm
     private void performSearch() {
         String query = searchField.getText().trim().toLowerCase();
         if (query.isEmpty()) {
@@ -132,6 +136,7 @@ public class BookingGUI extends javax.swing.JPanel {
         }
     }
 
+    // Hiển thị dialog lọc
     private void showFilterDialog() {
         JDialog filterDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Lọc đặt phòng", true);
         filterDialog.setLayout(new BorderLayout());
@@ -171,6 +176,7 @@ public class BookingGUI extends javax.swing.JPanel {
         filterDialog.setVisible(true);
     }
 
+    // Lọc đặt phòng theo trạng thái
     private void filterBookings(String status) {
         try {
             List<BookingDTO> results;
@@ -186,6 +192,7 @@ public class BookingGUI extends javax.swing.JPanel {
         }
     }
 
+    // Cập nhật bảng hiển thị
     private void updateTableView() {
         if (bookingData == null) {
             bookingData = new java.util.ArrayList<>();
@@ -193,6 +200,7 @@ public class BookingGUI extends javax.swing.JPanel {
         updateTableViewWithData(bookingData);
     }
 
+    // Cập nhật bảng với dữ liệu
     private void updateTableViewWithData(List<BookingDTO> data) {
         if (data == null || data.isEmpty()) {
             String[] columnNames = {"Mã đặt phòng", "Mã phòng", "Mã khách", "Ngày đặt", "Trạng thái", "Nguồn đặt", "Ghi chú"};
@@ -284,11 +292,91 @@ public class BookingGUI extends javax.swing.JPanel {
         scrollPane.setViewportView(table);
     }
 
+    // Dialog sửa đặt phòng
     private void editBooking(BookingDTO booking) {
-        JOptionPane.showMessageDialog(this, "Sửa đặt phòng: " + booking.getCode(),
-                "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+        JDialog editDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Sửa đặt phòng", true);
+        editDialog.setLayout(new BorderLayout());
+        editDialog.setSize(450, 350);
+
+        JPanel contentPanel = new JPanel(new GridLayout(5, 2, 15, 15));
+        contentPanel.setBackground(PANEL_BG);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel codeLabel = new JLabel("Mã đặt phòng:");
+        codeLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JTextField codeField = new JTextField(booking.getCode());
+        codeField.setEditable(false);
+        codeField.setFont(new Font("Arial", Font.PLAIN, 13));
+        contentPanel.add(codeLabel);
+        contentPanel.add(codeField);
+
+        JLabel statusLabel = new JLabel("Trạng thái:");
+        statusLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JComboBox<String> statusCombo = new JComboBox<>(new String[]{"Đã đặt", "Đã nhận phòng", "Đã trả phòng", "Đã hủy"});
+        statusCombo.setSelectedItem(booking.getStatus());
+        statusCombo.setFont(new Font("Arial", Font.PLAIN, 13));
+        contentPanel.add(statusLabel);
+        contentPanel.add(statusCombo);
+
+        JLabel sourceLabel = new JLabel("Nguồn đặt:");
+        sourceLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JTextField sourceField = new JTextField(booking.getSource());
+        sourceField.setFont(new Font("Arial", Font.PLAIN, 13));
+        contentPanel.add(sourceLabel);
+        contentPanel.add(sourceField);
+
+        JLabel noteLabel = new JLabel("Ghi chú:");
+        noteLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JTextField noteField = new JTextField(booking.getNote() != null ? booking.getNote() : "");
+        noteField.setFont(new Font("Arial", Font.PLAIN, 13));
+        contentPanel.add(noteLabel);
+        contentPanel.add(noteField);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        buttonPanel.setBackground(PANEL_BG);
+        JButton saveButton = new JButton("Lưu");
+        saveButton.setPreferredSize(new Dimension(80, 35));
+        saveButton.setBackground(PRIMARY_COLOR);
+        saveButton.setForeground(Color.WHITE);
+        saveButton.setFocusPainted(false);
+        saveButton.setBorderPainted(false);
+        saveButton.setFont(new Font("Arial", Font.BOLD, 13));
+        saveButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        saveButton.addActionListener(e -> {
+            try {
+                booking.setStatus((String) statusCombo.getSelectedItem());
+                booking.setSource(sourceField.getText());
+                booking.setNote(noteField.getText());
+                if (bookingBUS.updateBooking(booking)) {
+                    JOptionPane.showMessageDialog(editDialog, "Cập nhật thành công!");
+                    editDialog.dispose();
+                    loadBookingData();
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(editDialog, "Lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        JButton cancelButton = new JButton("Hủy");
+        cancelButton.setPreferredSize(new Dimension(80, 35));
+        cancelButton.setBackground(new Color(200, 200, 200));
+        cancelButton.setForeground(TEXT_COLOR);
+        cancelButton.setFocusPainted(false);
+        cancelButton.setBorderPainted(false);
+        cancelButton.setFont(new Font("Arial", Font.BOLD, 13));
+        cancelButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        cancelButton.addActionListener(e -> editDialog.dispose());
+
+        buttonPanel.add(saveButton);
+        buttonPanel.add(cancelButton);
+
+        editDialog.add(contentPanel, BorderLayout.CENTER);
+        editDialog.add(buttonPanel, BorderLayout.SOUTH);
+        editDialog.setLocationRelativeTo(this);
+        editDialog.setVisible(true);
     }
 
+    // Xóa đặt phòng
     private void deleteBooking(BookingDTO booking) {
         int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn xóa đặt phòng: " + booking.getCode() + "?",
                 "Xác nhận xóa", JOptionPane.YES_NO_OPTION);
@@ -305,6 +393,7 @@ public class BookingGUI extends javax.swing.JPanel {
         }
     }
 
+    // Mở giao diện phòng đặt
     private void openBookingRoomGUI(BookingDTO booking) {
         try {
             BookingRoom bookingRoomFrame = new BookingRoom();

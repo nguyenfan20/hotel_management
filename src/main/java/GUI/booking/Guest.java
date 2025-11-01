@@ -8,11 +8,13 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.time.LocalDate;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
+// Giao diện quản lý khách hàng
 public class Guest extends javax.swing.JFrame {
     private static final Color PRIMARY_COLOR = new Color(41, 98, 255);
     private static final Color BACKGROUND_COLOR = new Color(245, 245, 245);
@@ -32,6 +34,7 @@ public class Guest extends javax.swing.JFrame {
         loadGuestData();
     }
 
+    // Khởi tạo các component
     private void initComponents() {
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("Quản lý khách hàng");
@@ -79,6 +82,7 @@ public class Guest extends javax.swing.JFrame {
         setLocationRelativeTo(null);
     }
 
+    // Tạo nút icon
     private JButton createIconButton(String iconPath) {
         JButton button = new JButton();
         button.setPreferredSize(new Dimension(35, 35));
@@ -94,6 +98,7 @@ public class Guest extends javax.swing.JFrame {
         return button;
     }
 
+    // Tải dữ liệu khách hàng
     private void loadGuestData() {
         try {
             guestData = guestBUS.getAllGuests();
@@ -104,6 +109,7 @@ public class Guest extends javax.swing.JFrame {
         }
     }
 
+    // Tìm kiếm khách hàng
     private void performSearch() {
         String query = searchField.getText().trim().toLowerCase();
         if (query.isEmpty()) {
@@ -126,10 +132,12 @@ public class Guest extends javax.swing.JFrame {
         }
     }
 
+    // Cập nhật bảng
     private void updateTableView() {
         updateTableViewWithData(guestData);
     }
 
+    // Cập nhật bảng với dữ liệu
     private void updateTableViewWithData(List<GuestDTO> data) {
         String[] columnNames = {"Mã khách", "Mã phòng đặt", "Họ tên", "Giới tính", "Ngày sinh", "Số CMND", "Quốc tịch"};
         DefaultTableModel model = new DefaultTableModel(columnNames, 0);
@@ -175,7 +183,9 @@ public class Guest extends javax.swing.JFrame {
         });
 
         JPopupMenu popupMenu = new JPopupMenu();
+        JMenuItem editItem = new JMenuItem("Sửa");
         JMenuItem deleteItem = new JMenuItem("Xóa");
+        popupMenu.add(editItem);
         popupMenu.add(deleteItem);
 
         table.addMouseListener(new MouseAdapter() {
@@ -183,9 +193,14 @@ public class Guest extends javax.swing.JFrame {
             public void mouseReleased(MouseEvent e) {
                 if (e.isPopupTrigger() && table.getSelectedRow() != -1) {
                     int rowIndex = table.getSelectedRow();
-                    GuestDTO guest = data.get(rowIndex);
+                    if (data == null || data.size() <= rowIndex || rowIndex < 0) {
+                        JOptionPane.showMessageDialog(Guest.this, "Dữ liệu không hợp lệ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    final GuestDTO selectedGuest = data.get(rowIndex);
 
-                    deleteItem.addActionListener(e1 -> deleteGuest(guest));
+                    editItem.addActionListener(e1 -> editGuest(selectedGuest));
+                    deleteItem.addActionListener(e1 -> deleteGuest(selectedGuest));
 
                     popupMenu.show(e.getComponent(), e.getX(), e.getY());
                 }
@@ -195,6 +210,7 @@ public class Guest extends javax.swing.JFrame {
         scrollPane.setViewportView(table);
     }
 
+    // Xóa khách hàng (soft delete)
     private void deleteGuest(GuestDTO guest) {
         int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn xóa khách: " + guest.getFullName() + "?",
                 "Xác nhận xóa", JOptionPane.YES_NO_OPTION);
@@ -209,5 +225,114 @@ public class Guest extends javax.swing.JFrame {
                         "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         }
+    }
+
+    // Dialog sửa khách hàng
+    private void editGuest(GuestDTO guest) {
+        if (guest == null) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn khách hàng để sửa!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        JDialog editDialog = new JDialog(this, "Sửa khách hàng", true);
+        editDialog.setLayout(new BorderLayout());
+        editDialog.setSize(450, 380);
+
+        JPanel contentPanel = new JPanel(new GridLayout(6, 2, 15, 15));
+        contentPanel.setBackground(PANEL_BG);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel nameLabel = new JLabel("Họ tên:");
+        nameLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JTextField nameField = new JTextField(guest.getFullName() != null ? guest.getFullName() : "");
+        nameField.setFont(new Font("Arial", Font.PLAIN, 13));
+        contentPanel.add(nameLabel);
+        contentPanel.add(nameField);
+
+        JLabel genderLabel = new JLabel("Giới tính:");
+        genderLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JComboBox<String> genderCombo = new JComboBox<>(new String[]{"Nam", "Nữ", "Khác"});
+        if (guest.getGender() != null) {
+            genderCombo.setSelectedItem(guest.getGender());
+        }
+        genderCombo.setFont(new Font("Arial", Font.PLAIN, 13));
+        contentPanel.add(genderLabel);
+        contentPanel.add(genderCombo);
+
+        JLabel dobLabel = new JLabel("Ngày sinh:");
+        dobLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        String dobString = guest.getDob() != null ? guest.getDob().toString() : "";
+        JTextField dobField = new JTextField(dobString);
+        dobField.setFont(new Font("Arial", Font.PLAIN, 13));
+        contentPanel.add(dobLabel);
+        contentPanel.add(dobField);
+
+        JLabel idCardLabel = new JLabel("Số CMND:");
+        idCardLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JTextField idCardField = new JTextField(guest.getIdCard() != null ? guest.getIdCard() : "");
+        idCardField.setFont(new Font("Arial", Font.PLAIN, 13));
+        contentPanel.add(idCardLabel);
+        contentPanel.add(idCardField);
+
+        JLabel nationalityLabel = new JLabel("Quốc tịch:");
+        nationalityLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JTextField nationalityField = new JTextField(guest.getNationality() != null ? guest.getNationality() : "");
+        nationalityField.setFont(new Font("Arial", Font.PLAIN, 13));
+        contentPanel.add(nationalityLabel);
+        contentPanel.add(nationalityField);
+
+        JButton saveButton = new JButton("Lưu");
+        saveButton.setBackground(PRIMARY_COLOR);
+        saveButton.setForeground(Color.WHITE);
+        saveButton.setFocusPainted(false);
+        saveButton.setBorderPainted(false);
+        saveButton.setFont(new Font("Arial", Font.BOLD, 13));
+        saveButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        saveButton.addActionListener(e -> {
+            try {
+                guest.setFullName(nameField.getText().trim());
+                guest.setGender((String) genderCombo.getSelectedItem());
+                try {
+                    String dobText = dobField.getText().trim();
+                    if (!dobText.isEmpty()) {
+                        guest.setDob(java.time.LocalDate.parse(dobText));
+                    }
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(editDialog, "Ngày sinh không hợp lệ! Dùng định dạng: yyyy-MM-dd",
+                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                guest.setIdCard(idCardField.getText().trim());
+                guest.setNationality(nationalityField.getText().trim());
+                if (guestBUS.updateGuest(guest)) {
+                    JOptionPane.showMessageDialog(editDialog, "Cập nhật thành công!");
+                    editDialog.dispose();
+                    loadGuestData();
+                } else {
+                    JOptionPane.showMessageDialog(editDialog, "Cập nhật thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(editDialog, "Lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        JButton cancelButton = new JButton("Hủy");
+        cancelButton.setBackground(Color.LIGHT_GRAY);
+        cancelButton.setForeground(Color.BLACK);
+        cancelButton.setFocusPainted(false);
+        cancelButton.setBorderPainted(false);
+        cancelButton.setFont(new Font("Arial", Font.BOLD, 13));
+        cancelButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        cancelButton.addActionListener(e -> editDialog.dispose());
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        buttonPanel.setBackground(PANEL_BG);
+        buttonPanel.add(saveButton);
+        buttonPanel.add(cancelButton);
+
+        editDialog.add(contentPanel, BorderLayout.CENTER);
+        editDialog.add(buttonPanel, BorderLayout.SOUTH);
+        editDialog.setLocationRelativeTo(this);
+        editDialog.setVisible(true);
     }
 }

@@ -3,9 +3,7 @@ package DTO;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
-/**
- * Data Transfer Object for Booking entity
- */
+// DTO cho Booking
 public class BookingDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 

@@ -4,9 +4,7 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * Data Transfer Object for BookingRoom entity
- */
+// DTO cho BookingRoom
 public class BookingRoomDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 

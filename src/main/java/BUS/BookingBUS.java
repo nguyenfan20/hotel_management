@@ -6,10 +6,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Business Logic Layer for Booking entity
- * Handles business logic and validation for booking operations
- */
+// Lớp xử lý logic nghiệp vụ đặt phòng
 public class BookingBUS {
     private BookingDAO bookingDAO;
 
@@ -17,11 +14,9 @@ public class BookingBUS {
         this.bookingDAO = bookingDAO;
     }
 
-    /**
-     * Add new booking with validation and auto-generate code
-     */
+    // Thêm đặt phòng mới với kiểm tra
     public boolean addBooking(BookingDTO booking) {
-        // Validation
+        // Kiểm tra dữ liệu
         if (booking.getCustomerId() <= 0) {
             System.err.println("Lỗi: Mã khách hàng không hợp lệ");
             return false;
@@ -42,12 +37,12 @@ public class BookingBUS {
             return false;
         }
 
-        // Auto-generate booking code if not provided
+        // Tự động sinh mã đặt phòng
         if (booking.getCode() == null || booking.getCode().trim().isEmpty()) {
             booking.setCode(generateBookingCode());
         }
 
-        // Set default status if not provided
+        // Đặt trạng thái mặc định
         if (booking.getStatus() == null || booking.getStatus().trim().isEmpty()) {
             booking.setStatus("Đã đặt");
         }
@@ -55,9 +50,7 @@ public class BookingBUS {
         return bookingDAO.insert(booking);
     }
 
-    /**
-     * Update booking with validation
-     */
+    // Cập nhật đặt phòng với kiểm tra
     public boolean updateBooking(BookingDTO booking) {
         if (booking.getBookingId() <= 0) {
             System.err.println("Lỗi: Mã đặt phòng không hợp lệ");
@@ -72,9 +65,7 @@ public class BookingBUS {
         return bookingDAO.update(booking);
     }
 
-    /**
-     * Cancel booking
-     */
+    // Hủy đặt phòng
     public boolean cancelBooking(int bookingId) {
         BookingDTO booking = bookingDAO.getById(bookingId);
         if (booking == null) {
@@ -86,9 +77,7 @@ public class BookingBUS {
         return bookingDAO.update(booking);
     }
 
-    /**
-     * Delete booking
-     */
+    // Xóa đặt phòng
     public boolean deleteBooking(int bookingId) {
         if (bookingId <= 0) {
             System.err.println("Lỗi: Mã đặt phòng không hợp lệ");
@@ -98,9 +87,7 @@ public class BookingBUS {
         return bookingDAO.delete(bookingId);
     }
 
-    /**
-     * Get booking by ID
-     */
+    // Lấy đặt phòng theo mã
     public BookingDTO getBookingById(int bookingId) {
         if (bookingId <= 0) {
             System.err.println("Lỗi: Mã đặt phòng không hợp lệ");
@@ -110,9 +97,7 @@ public class BookingBUS {
         return bookingDAO.getById(bookingId);
     }
 
-    /**
-     * Get bookings by customer ID
-     */
+    // Lấy đặt phòng theo khách hàng
     public List<BookingDTO> getBookingsByCustomer(int customerId) {
         if (customerId <= 0) {
             System.err.println("Lỗi: Mã khách hàng không hợp lệ");
@@ -122,9 +107,7 @@ public class BookingBUS {
         return bookingDAO.getByCustomerId(customerId);
     }
 
-    /**
-     * Get bookings by status
-     */
+    // Lấy đặt phòng theo trạng thái
     public List<BookingDTO> getBookingsByStatus(String status) {
         if (status == null || status.trim().isEmpty()) {
             System.err.println("Lỗi: Trạng thái không được trống");
@@ -134,9 +117,7 @@ public class BookingBUS {
         return bookingDAO.getByStatus(status);
     }
 
-    /**
-     * Search booking by code
-     */
+    // Tìm đặt phòng theo mã
     public BookingDTO getBookingByCode(String code) {
         if (code == null || code.trim().isEmpty()) {
             System.err.println("Lỗi: Mã đặt phòng không được trống");
@@ -146,23 +127,17 @@ public class BookingBUS {
         return bookingDAO.getByCode(code.trim());
     }
 
-    /**
-     * Get all bookings
-     */
+    // Lấy tất cả đặt phòng
     public List<BookingDTO> getAllBookings() {
         return bookingDAO.getAll();
     }
 
-    /**
-     * Generate unique booking code
-     */
+    // Sinh mã đặt phòng duy nhất
     private String generateBookingCode() {
         return "BK" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
     }
 
-    /**
-     * Check if booking code already exists
-     */
+    // Kiểm tra mã đặt phòng đã tồn tại
     public boolean isBookingCodeExists(String code) {
         return bookingDAO.getByCode(code) != null;
     }

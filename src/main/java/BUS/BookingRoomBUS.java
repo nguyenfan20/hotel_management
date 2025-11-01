@@ -6,10 +6,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * Business Logic Layer for BookingRoom entity
- * Handles business logic and validation for booking room operations
- */
+// Lớp xử lý logic nghiệp vụ phòng đặt
 public class BookingRoomBUS {
     private BookingRoomDAO bookingRoomDAO;
 
@@ -17,11 +14,9 @@ public class BookingRoomBUS {
         this.bookingRoomDAO = bookingRoomDAO;
     }
 
-    /**
-     * Add new booking room with validation
-     */
+    // Thêm phòng đặt mới với kiểm tra
     public boolean addBookingRoom(BookingRoomDTO bookingRoom) {
-        // Validation
+        // Kiểm tra dữ liệu
         if (bookingRoom.getBookingId() <= 0) {
             System.err.println("Lỗi: Mã đặt phòng không hợp lệ");
             return false;
@@ -55,9 +50,7 @@ public class BookingRoomBUS {
         return bookingRoomDAO.insert(bookingRoom);
     }
 
-    /**
-     * Update booking room with validation
-     */
+    // Cập nhật phòng đặt với kiểm tra
     public boolean updateBookingRoom(BookingRoomDTO bookingRoom) {
         if (bookingRoom.getBookingRoomId() <= 0) {
             System.err.println("Lỗi: Mã phòng đặt không hợp lệ");
@@ -72,9 +65,7 @@ public class BookingRoomBUS {
         return bookingRoomDAO.update(bookingRoom);
     }
 
-    /**
-     * Update check-in information
-     */
+    // Cập nhật nhận phòng
     public boolean checkIn(int bookingRoomId, LocalDateTime checkInTime) {
         BookingRoomDTO bookingRoom = bookingRoomDAO.getById(bookingRoomId);
         if (bookingRoom == null) {
@@ -88,9 +79,7 @@ public class BookingRoomBUS {
         return bookingRoomDAO.update(bookingRoom);
     }
 
-    /**
-     * Update check-out information
-     */
+    // Cập nhật trả phòng
     public boolean checkOut(int bookingRoomId, LocalDateTime checkOutTime) {
         BookingRoomDTO bookingRoom = bookingRoomDAO.getById(bookingRoomId);
         if (bookingRoom == null) {
@@ -104,9 +93,7 @@ public class BookingRoomBUS {
         return bookingRoomDAO.update(bookingRoom);
     }
 
-    /**
-     * Delete booking room
-     */
+    // Xóa phòng đặt
     public boolean deleteBookingRoom(int bookingRoomId) {
         if (bookingRoomId <= 0) {
             System.err.println("Lỗi: Mã phòng đặt không hợp lệ");
@@ -116,9 +103,7 @@ public class BookingRoomBUS {
         return bookingRoomDAO.delete(bookingRoomId);
     }
 
-    /**
-     * Get booking room by ID
-     */
+    // Lấy phòng đặt theo mã
     public BookingRoomDTO getBookingRoomById(int bookingRoomId) {
         if (bookingRoomId <= 0) {
             System.err.println("Lỗi: Mã phòng đặt không hợp lệ");
@@ -128,9 +113,7 @@ public class BookingRoomBUS {
         return bookingRoomDAO.getById(bookingRoomId);
     }
 
-    /**
-     * Get all booking rooms for a booking
-     */
+    // Lấy phòng đặt theo đặt phòng
     public List<BookingRoomDTO> getBookingRoomsByBooking(int bookingId) {
         if (bookingId <= 0) {
             System.err.println("Lỗi: Mã đặt phòng không hợp lệ");
@@ -140,9 +123,7 @@ public class BookingRoomBUS {
         return bookingRoomDAO.getByBookingId(bookingId);
     }
 
-    /**
-     * Get booking rooms by status
-     */
+    // Lấy phòng đặt theo trạng thái
     public List<BookingRoomDTO> getBookingRoomsByStatus(String status) {
         if (status == null || status.trim().isEmpty()) {
             System.err.println("Lỗi: Trạng thái không được trống");
@@ -152,16 +133,12 @@ public class BookingRoomBUS {
         return bookingRoomDAO.getByStatus(status);
     }
 
-    /**
-     * Get all booking rooms
-     */
+    // Lấy tất cả phòng đặt
     public List<BookingRoomDTO> getAllBookingRooms() {
         return bookingRoomDAO.getAll();
     }
 
-    /**
-     * Calculate total price for a booking room
-     */
+    // Tính tổng giá phòng
     public BigDecimal calculateTotalPrice(BookingRoomDTO bookingRoom) {
         long nights = java.time.temporal.ChronoUnit.DAYS.between(
                 bookingRoom.getCheckInPlan(),
@@ -170,12 +147,12 @@ public class BookingRoomBUS {
 
         BigDecimal total = bookingRoom.getRatePerNight().multiply(BigDecimal.valueOf(nights));
 
-        // Apply discount if exists
+        // Áp dụng giảm giá nếu có
         if (bookingRoom.getDiscountAmount() != null && bookingRoom.getDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
             total = total.subtract(bookingRoom.getDiscountAmount());
         }
 
-        // Apply tax
+        // Áp dụng thuế
         if (bookingRoom.getTaxRate() != null && bookingRoom.getTaxRate().compareTo(BigDecimal.ZERO) > 0) {
             BigDecimal taxAmount = total.multiply(bookingRoom.getTaxRate().divide(BigDecimal.valueOf(100)));
             total = total.add(taxAmount);

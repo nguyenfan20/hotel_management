@@ -7,16 +7,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Data Access Object for Booking entity
- * Handles all database operations for Booking table
- * Updated to use DatabaseConnection instead of constructor-injected connection
- */
+// Lớp truy cập cơ sở dữ liệu cho Booking
 public class BookingDAO {
 
-    /**
-     * Insert a new booking record
-     */
+    // Thêm đặt phòng mới
     public boolean insert(BookingDTO booking) {
         String sql = "INSERT INTO Booking (code, customer_id, booking_date, source, status, created_by, note) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -42,9 +36,7 @@ public class BookingDAO {
         }
     }
 
-    /**
-     * Update an existing booking record
-     */
+    // Cập nhật đặt phòng
     public boolean update(BookingDTO booking) {
         String sql = "UPDATE Booking SET code = ?, customer_id = ?, booking_date = ?, source = ?, " +
                 "status = ?, created_by = ?, note = ? WHERE booking_id = ?";
@@ -71,9 +63,7 @@ public class BookingDAO {
         }
     }
 
-    /**
-     * Delete a booking record (soft delete)
-     */
+    // Xóa
     public boolean delete(int bookingId) {
         String sql = "UPDATE Booking SET is_hide = 1 WHERE booking_id = ?";
         Connection connection = null;
@@ -91,9 +81,7 @@ public class BookingDAO {
         }
     }
 
-    /**
-     * Get booking by ID
-     */
+    // Lấy đặt phòng theo mã
     public BookingDTO getById(int bookingId) {
         String sql = "SELECT * FROM Booking WHERE booking_id = ? AND is_hide = 0";
         Connection connection = null;
@@ -115,9 +103,7 @@ public class BookingDAO {
         return null;
     }
 
-    /**
-     * Get bookings by customer ID
-     */
+    // Lấy đặt phòng theo khách hàng
     public List<BookingDTO> getByCustomerId(int customerId) {
         List<BookingDTO> bookings = new ArrayList<>();
         String sql = "SELECT * FROM Booking WHERE customer_id = ? AND is_hide = 0";
@@ -140,9 +126,7 @@ public class BookingDAO {
         return bookings;
     }
 
-    /**
-     * Get bookings by status
-     */
+    // Lấy đặt phòng theo trạng thái
     public List<BookingDTO> getByStatus(String status) {
         List<BookingDTO> bookings = new ArrayList<>();
         String sql = "SELECT * FROM Booking WHERE status = ? AND is_hide = 0";
@@ -165,9 +149,7 @@ public class BookingDAO {
         return bookings;
     }
 
-    /**
-     * Search bookings by code
-     */
+    // Tìm đặt phòng theo mã
     public BookingDTO getByCode(String code) {
         String sql = "SELECT * FROM Booking WHERE code = ? AND is_hide = 0";
         Connection connection = null;
@@ -189,9 +171,7 @@ public class BookingDAO {
         return null;
     }
 
-    /**
-     * Get all bookings
-     */
+    // Lấy tất cả đặt phòng
     public List<BookingDTO> getAll() {
         List<BookingDTO> bookings = new ArrayList<>();
         String sql = "SELECT * FROM Booking WHERE is_hide = 0";
@@ -212,9 +192,6 @@ public class BookingDAO {
         return bookings;
     }
 
-    /**
-     * Map ResultSet to BookingDTO
-     */
     private BookingDTO mapResultSetToDTO(ResultSet rs) throws SQLException {
         return new BookingDTO(
                 rs.getInt("booking_id"),

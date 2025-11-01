@@ -7,16 +7,10 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Data Access Object for Guest entity
- * Handles all database operations for Guest table
- * Updated to use DatabaseConnection instead of constructor-injected connection
- */
+// Lớp truy cập cơ sở dữ liệu cho Guest
 public class GuestDAO {
 
-    /**
-     * Insert a new guest record
-     */
+    // Thêm khách hàng mới
     public boolean insert(GuestDTO guest) {
         String sql = "INSERT INTO Guest (booking_room_id, full_name, gender, dob, id_card, nationality) " +
                 "VALUES (?, ?, ?, ?, ?, ?)";
@@ -41,9 +35,7 @@ public class GuestDAO {
         }
     }
 
-    /**
-     * Update an existing guest record
-     */
+    // Cập nhật khách hàng
     public boolean update(GuestDTO guest) {
         String sql = "UPDATE Guest SET booking_room_id = ?, full_name = ?, gender = ?, dob = ?, " +
                 "id_card = ?, nationality = ? WHERE guest_id = ?";
@@ -69,9 +61,7 @@ public class GuestDAO {
         }
     }
 
-    /**
-     * Delete a guest record (soft delete)
-     */
+    // Xóa
     public boolean delete(int guestId) {
         String sql = "UPDATE Guest SET is_hide = 1 WHERE guest_id = ?";
         Connection connection = null;
@@ -89,9 +79,7 @@ public class GuestDAO {
         }
     }
 
-    /**
-     * Get guest by ID
-     */
+    // Lấy khách hàng theo mã
     public GuestDTO getById(int guestId) {
         String sql = "SELECT * FROM Guest WHERE guest_id = ? AND is_hide = 0";
         Connection connection = null;
@@ -113,9 +101,7 @@ public class GuestDAO {
         return null;
     }
 
-    /**
-     * Get all guests for a booking room
-     */
+    // Lấy khách hàng theo phòng đặt
     public List<GuestDTO> getByBookingRoomId(int bookingRoomId) {
         List<GuestDTO> guests = new ArrayList<>();
         String sql = "SELECT * FROM Guest WHERE booking_room_id = ? AND is_hide = 0";
@@ -138,9 +124,7 @@ public class GuestDAO {
         return guests;
     }
 
-    /**
-     * Search guests by name or ID card
-     */
+    // Tìm khách hàng theo tên hoặc số CMND
     public List<GuestDTO> search(String keyword) {
         List<GuestDTO> guests = new ArrayList<>();
         String sql = "SELECT * FROM Guest WHERE (full_name LIKE ? OR id_card LIKE ?) AND is_hide = 0";
@@ -165,9 +149,7 @@ public class GuestDAO {
         return guests;
     }
 
-    /**
-     * Get all guests
-     */
+    // Lấy tất cả khách hàng
     public List<GuestDTO> getAll() {
         List<GuestDTO> guests = new ArrayList<>();
         String sql = "SELECT * FROM Guest WHERE is_hide = 0";
@@ -188,9 +170,6 @@ public class GuestDAO {
         return guests;
     }
 
-    /**
-     * Map ResultSet to GuestDTO
-     */
     private GuestDTO mapResultSetToDTO(ResultSet rs) throws SQLException {
         return new GuestDTO(
                 rs.getInt("guest_id"),

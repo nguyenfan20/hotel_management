@@ -7,16 +7,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Data Access Object for BookingRoom entity
- * Handles all database operations for BookingRoom table
- * Updated to use DatabaseConnection instead of constructor-injected connection
- */
+// Lớp truy cập cơ sở dữ liệu cho BookingRoom
 public class BookingRoomDAO {
 
-    /**
-     * Insert a new booking room record
-     */
+    // Thêm phòng đặt mới
     public boolean insert(BookingRoomDTO bookingRoom) {
         String sql = "INSERT INTO BookingRoom (booking_id, room_id, check_in_plan, check_out_plan, " +
                 "adults, children, rate_per_night, discount_amount, tax_rate, status) " +
@@ -46,9 +40,7 @@ public class BookingRoomDAO {
         }
     }
 
-    /**
-     * Update an existing booking room record
-     */
+    // Cập nhật phòng đặt
     public boolean update(BookingRoomDTO bookingRoom) {
         String sql = "UPDATE BookingRoom SET booking_id = ?, room_id = ?, check_in_plan = ?, " +
                 "check_out_plan = ?, check_in_actual = ?, check_out_actual = ?, adults = ?, " +
@@ -84,9 +76,7 @@ public class BookingRoomDAO {
         }
     }
 
-    /**
-     * Delete a booking room record (soft delete)
-     */
+    // Xóa
     public boolean delete(int bookingRoomId) {
         String sql = "UPDATE BookingRoom SET is_hide = 1 WHERE booking_room_id = ?";
         Connection connection = null;
@@ -104,9 +94,7 @@ public class BookingRoomDAO {
         }
     }
 
-    /**
-     * Get booking room by ID
-     */
+    // Lấy phòng đặt theo mã
     public BookingRoomDTO getById(int bookingRoomId) {
         String sql = "SELECT * FROM BookingRoom WHERE booking_room_id = ? AND is_hide = 0";
         Connection connection = null;
@@ -128,9 +116,7 @@ public class BookingRoomDAO {
         return null;
     }
 
-    /**
-     * Get all booking rooms for a booking
-     */
+    // Lấy phòng đặt theo đặt phòng
     public List<BookingRoomDTO> getByBookingId(int bookingId) {
         List<BookingRoomDTO> bookingRooms = new ArrayList<>();
         String sql = "SELECT * FROM BookingRoom WHERE booking_id = ? AND is_hide = 0";
@@ -153,9 +139,7 @@ public class BookingRoomDAO {
         return bookingRooms;
     }
 
-    /**
-     * Get booking rooms by status
-     */
+    // Lấy phòng đặt theo trạng thái
     public List<BookingRoomDTO> getByStatus(String status) {
         List<BookingRoomDTO> bookingRooms = new ArrayList<>();
         String sql = "SELECT * FROM BookingRoom WHERE status = ? AND is_hide = 0";
@@ -178,9 +162,7 @@ public class BookingRoomDAO {
         return bookingRooms;
     }
 
-    /**
-     * Get all booking rooms
-     */
+    // Lấy tất cả phòng đặt
     public List<BookingRoomDTO> getAll() {
         List<BookingRoomDTO> bookingRooms = new ArrayList<>();
         String sql = "SELECT * FROM BookingRoom WHERE is_hide = 0";
@@ -201,9 +183,6 @@ public class BookingRoomDAO {
         return bookingRooms;
     }
 
-    /**
-     * Map ResultSet to BookingRoomDTO
-     */
     private BookingRoomDTO mapResultSetToDTO(ResultSet rs) throws SQLException {
         Timestamp checkInActual = rs.getTimestamp("check_in_actual");
         Timestamp checkOutActual = rs.getTimestamp("check_out_actual");

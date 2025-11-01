@@ -15,9 +15,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
-/**
- * BookingRoom GUI with integrated BUS layer for database operations
- */
+
 public class BookingRoom extends javax.swing.JFrame {
 
     private static final Color PRIMARY_COLOR = new Color(41, 98, 255);

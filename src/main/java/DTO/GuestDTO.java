@@ -3,9 +3,7 @@ package DTO;
 import java.io.Serializable;
 import java.time.LocalDate;
 
-/**
- * Data Transfer Object for Guest entity
- */
+// DTO cho Guest
 public class GuestDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
