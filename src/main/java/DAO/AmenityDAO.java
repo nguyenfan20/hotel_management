@@ -2,172 +2,68 @@ package DAO;
 
 import DTO.AmenityDTO;
 import util.DatabaseConnection;
-import java.sql.*;
-import java.util.ArrayList;
+import util.ResultSetMapper;
+import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 
 public class AmenityDAO {
 
-    // Lấy tất cả tiện nghi
+    private static final String SELECT_ALL = "SELECT * FROM Amenity WHERE is_hide = 0 ORDER BY amenity_id";
+    private static final String SELECT_BY_ID = "SELECT * FROM Amenity WHERE amenity_id = ?";
+    private static final String INSERT_SQL = "INSERT INTO Amenity (name, charge_type, price, description) VALUES (?, ?, ?, ?)";
+    private static final String UPDATE_SQL = "UPDATE Amenity SET name = ?, charge_type = ?, price = ?, description = ? WHERE amenity_id = ?";
+    private static final String DELETE_SQL = "UPDATE Amenity SET is_hide = 1 WHERE amenity_id = ?";
+    private static final String SEARCH_BY_NAME = "SELECT * FROM Amenity WHERE name LIKE ? AND is_hide = 0 ORDER BY amenity_id";
+    private static final String FILTER_BY_CHARGE_TYPE = "SELECT * FROM Amenity WHERE charge_type = ? AND is_hide = 0 ORDER BY amenity_id";
+
     public List<AmenityDTO> getAllAmenities() {
-        List<AmenityDTO> amenities = new ArrayList<>();
-        String sql = "SELECT * FROM Amenity WHERE is_hide = 0 ORDER BY amenity_id";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            while (rs.next()) {
-                AmenityDTO amenity = new AmenityDTO(
-                        rs.getInt("amenity_id"),
-                        rs.getString("name"),
-                        rs.getString("charge_type"),
-                        rs.getBigDecimal("price"),
-                        rs.getString("description")
-                );
-                amenities.add(amenity);
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi lấy danh sách tiện nghi: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return amenities;
+        return DatabaseConnection.executeQueryList(SELECT_ALL, this::mapToDTO);
     }
 
-    // Lấy tiện nghi theo ID
     public AmenityDTO getAmenityById(int amenityId) {
-        String sql = "SELECT * FROM Amenity WHERE amenity_id = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, amenityId);
-            ResultSet rs = pstmt.executeQuery();
-
-            if (rs.next()) {
-                return new AmenityDTO(
-                        rs.getInt("amenity_id"),
-                        rs.getString("name"),
-                        rs.getString("charge_type"),
-                        rs.getBigDecimal("price"),
-                        rs.getString("description")
-                );
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi lấy tiện nghi: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return null;
+        return DatabaseConnection.executeQuerySingle(SELECT_BY_ID, this::mapToDTO, amenityId);
     }
 
-    // Thêm tiện nghi mới
     public boolean addAmenity(AmenityDTO amenity) {
-        String sql = "INSERT INTO Amenity (name, charge_type, price, description) VALUES (?, ?, ?, ?)";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, amenity.getName());
-            pstmt.setString(2, amenity.getChargeType());
-            pstmt.setBigDecimal(3, amenity.getPrice());
-            pstmt.setString(4, amenity.getDescription());
-
-            return pstmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi thêm tiện nghi: " + e.getMessage());
-            e.printStackTrace();
-            return false;
-        }
+        return DatabaseConnection.executeUpdate(INSERT_SQL,
+                amenity.getName(),
+                amenity.getChargeType(),
+                amenity.getPrice(),
+                amenity.getDescription()
+        );
     }
 
-    // Cập nhật tiện nghi
     public boolean updateAmenity(AmenityDTO amenity) {
-        String sql = "UPDATE Amenity SET name = ?, charge_type = ?, price = ?, description = ? WHERE amenity_id = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, amenity.getName());
-            pstmt.setString(2, amenity.getChargeType());
-            pstmt.setBigDecimal(3, amenity.getPrice());
-            pstmt.setString(4, amenity.getDescription());
-            pstmt.setInt(5, amenity.getAmenityId());
-
-            return pstmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi cập nhật tiện nghi: " + e.getMessage());
-            e.printStackTrace();
-            return false;
-        }
+        return DatabaseConnection.executeUpdate(UPDATE_SQL,
+                amenity.getName(),
+                amenity.getChargeType(),
+                amenity.getPrice(),
+                amenity.getDescription(),
+                amenity.getAmenityId()
+        );
     }
 
-    // Xóa tiện nghi
     public boolean deleteAmenity(int amenityId) {
-        String sql = "UPDATE Amenity SET is_hide = 1 WHERE amenity_id = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, amenityId);
-            return pstmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi xóa tiện nghi: " + e.getMessage());
-            e.printStackTrace();
-            return false;
-        }
+        return DatabaseConnection.executeUpdate(DELETE_SQL, amenityId);
     }
 
-    // Tìm kiếm tiện nghi theo tên
     public List<AmenityDTO> searchAmenitiesByName(String keyword) {
-        List<AmenityDTO> amenities = new ArrayList<>();
-        String sql = "SELECT * FROM Amenity WHERE name LIKE ? AND is_hide = 0 ORDER BY amenity_id";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, "%" + keyword + "%");
-            ResultSet rs = pstmt.executeQuery();
-
-            while (rs.next()) {
-                AmenityDTO amenity = new AmenityDTO(
-                        rs.getInt("amenity_id"),
-                        rs.getString("name"),
-                        rs.getString("charge_type"),
-                        rs.getBigDecimal("price"),
-                        rs.getString("description")
-                );
-                amenities.add(amenity);
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi tìm kiếm tiện nghi: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return amenities;
+        return DatabaseConnection.executeQueryList(SEARCH_BY_NAME, this::mapToDTO, "%" + keyword + "%");
     }
 
-    // Lọc tiện nghi theo loại phí
     public List<AmenityDTO> filterAmenitiesByChargeType(String chargeType) {
-        List<AmenityDTO> amenities = new ArrayList<>();
-        String sql = "SELECT * FROM Amenity WHERE charge_type = ? AND is_hide = 0 ORDER BY amenity_id";
+        return DatabaseConnection.executeQueryList(FILTER_BY_CHARGE_TYPE, this::mapToDTO, chargeType);
+    }
 
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, chargeType);
-            ResultSet rs = pstmt.executeQuery();
-
-            while (rs.next()) {
-                AmenityDTO amenity = new AmenityDTO(
-                        rs.getInt("amenity_id"),
-                        rs.getString("name"),
-                        rs.getString("charge_type"),
-                        rs.getBigDecimal("price"),
-                        rs.getString("description")
-                );
-                amenities.add(amenity);
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi lọc tiện nghi: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return amenities;
+    private AmenityDTO mapToDTO(ResultSet rs) throws SQLException {
+        return new AmenityDTO(
+                rs.getInt("amenity_id"),
+                rs.getString("name"),
+                rs.getString("charge_type"),
+                rs.getBigDecimal("price"),
+                rs.getString("description")
+        );
     }
 }

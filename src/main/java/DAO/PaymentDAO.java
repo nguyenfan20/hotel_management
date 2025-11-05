@@ -2,154 +2,59 @@ package DAO;
 
 import DTO.PaymentDTO;
 import util.DatabaseConnection;
-import java.sql.*;
-import java.util.ArrayList;
+import util.ResultSetMapper;
 import java.util.List;
 
 public class PaymentDAO {
 
+    private static final String SELECT_ALL = "SELECT * FROM Payment ORDER BY paid_at DESC";
+    private static final String FILTER_STATUS = "SELECT * FROM Payment WHERE status = ? ORDER BY paid_at DESC";
+    private static final String SELECT_BY_BOOKING = "SELECT * FROM Payment WHERE booking_id = ? ORDER BY paid_at DESC";
+    private static final String SELECT_BY_ID = "SELECT * FROM Payment WHERE payment_id = ?";
+    private static final String INSERT_SQL = "INSERT INTO Payment (booking_id, amount, method, paid_at, reference_no, status, note) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    private static final String UPDATE_SQL = "UPDATE Payment SET amount = ?, method = ?, paid_at = ?, reference_no = ?, status = ?, note = ? WHERE payment_id = ?";
+    private static final String DELETE_SQL = "DELETE FROM Payment WHERE payment_id = ?";
+    private static final String SEARCH_SQL = "SELECT * FROM Payment WHERE reference_no LIKE ? OR note LIKE ? ORDER BY paid_at DESC";
+
     public List<PaymentDTO> getAllPayments() {
-        List<PaymentDTO> payments = new ArrayList<>();
-        String sql = "SELECT * FROM Payment ORDER BY paid_at DESC";
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                payments.add(mapResultSetToDTO(rs));
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi lấy danh sách thanh toán: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return payments;
+        return DatabaseConnection.executeQueryList(SELECT_ALL, this::mapToDTO);
     }
 
     public List<PaymentDTO> filterPaymentsByStatus(String status) {
-        List<PaymentDTO> payments = new ArrayList<>();
-        String sql = "SELECT * FROM Payment WHERE status = ? ORDER BY paid_at DESC";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, status);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    payments.add(mapResultSetToDTO(rs));
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi lấy thanh toán theo trạng thái: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return payments;
+        return DatabaseConnection.executeQueryList(FILTER_STATUS, this::mapToDTO, status);
     }
 
     public List<PaymentDTO> getPaymentsByBooking(int bookingId) {
-        List<PaymentDTO> payments = new ArrayList<>();
-        String sql = "SELECT * FROM Payment WHERE booking_id = ? ORDER BY paid_at DESC";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, bookingId);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    payments.add(mapResultSetToDTO(rs));
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi lấy thanh toán theo đặt phòng: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return payments;
+        return DatabaseConnection.executeQueryList(SELECT_BY_BOOKING, this::mapToDTO, bookingId);
     }
 
     public PaymentDTO getPaymentById(int paymentId) {
-        String sql = "SELECT * FROM Payment WHERE payment_id = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, paymentId);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapResultSetToDTO(rs);
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi lấy thanh toán: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return null;
+        return DatabaseConnection.executeQuerySingle(SELECT_BY_ID, this::mapToDTO, paymentId);
     }
 
     public boolean addPayment(PaymentDTO payment) {
-        String sql = "INSERT INTO Payment (booking_id, amount, method, paid_at, reference_no, status, note) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?)";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, payment.getBookingId());
-            pstmt.setDouble(2, payment.getAmount());
-            pstmt.setString(3, payment.getMethod());
-            pstmt.setTimestamp(4, payment.getPaidAt());
-            pstmt.setString(5, payment.getReferenceNo());
-            pstmt.setString(6, payment.getStatus());
-            pstmt.setString(7, payment.getNote());
-            return pstmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi thêm thanh toán: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return false;
+        return DatabaseConnection.executeUpdate(INSERT_SQL,
+                payment.getBookingId(), payment.getAmount(), payment.getMethod(),
+                payment.getPaidAt(), payment.getReferenceNo(), payment.getStatus(), payment.getNote()
+        );
     }
 
     public boolean updatePayment(PaymentDTO payment) {
-        String sql = "UPDATE Payment SET amount = ?, method = ?, paid_at = ?, reference_no = ?, status = ?, note = ? WHERE payment_id = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setDouble(1, payment.getAmount());
-            pstmt.setString(2, payment.getMethod());
-            pstmt.setTimestamp(3, payment.getPaidAt());
-            pstmt.setString(4, payment.getReferenceNo());
-            pstmt.setString(5, payment.getStatus());
-            pstmt.setString(6, payment.getNote());
-            pstmt.setInt(7, payment.getPaymentId());
-            return pstmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi cập nhật thanh toán: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return false;
+        return DatabaseConnection.executeUpdate(UPDATE_SQL,
+                payment.getAmount(), payment.getMethod(), payment.getPaidAt(),
+                payment.getReferenceNo(), payment.getStatus(), payment.getNote(), payment.getPaymentId()
+        );
     }
 
     public boolean deletePayment(int paymentId) {
-        String sql = "DELETE FROM Payment WHERE payment_id = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, paymentId);
-            return pstmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi xóa thanh toán: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return false;
+        return DatabaseConnection.executeUpdate(DELETE_SQL, paymentId);
     }
 
     public List<PaymentDTO> searchPayments(String keyword) {
-        List<PaymentDTO> payments = new ArrayList<>();
-        String sql = "SELECT * FROM Payment WHERE reference_no LIKE ? OR note LIKE ? ORDER BY paid_at DESC";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            String searchTerm = "%" + keyword + "%";
-            pstmt.setString(1, searchTerm);
-            pstmt.setString(2, searchTerm);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    payments.add(mapResultSetToDTO(rs));
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi tìm kiếm thanh toán: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return payments;
+        return DatabaseConnection.executeQueryList(SEARCH_SQL, this::mapToDTO, "%" + keyword + "%", "%" + keyword + "%");
     }
 
-    private PaymentDTO mapResultSetToDTO(ResultSet rs) throws SQLException {
+    private PaymentDTO mapToDTO(java.sql.ResultSet rs) throws java.sql.SQLException {
         return new PaymentDTO(
                 rs.getInt("payment_id"),
                 rs.getInt("booking_id"),

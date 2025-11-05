@@ -15,12 +15,7 @@ public class RoleBUS {
     }
 
     public List<RoleDTO> getAllRoles() {
-        try {
-            return roleDAO.getAllRoles();
-        } catch (SQLException e) {
-            e.printStackTrace();
-            throw new RuntimeException("Lỗi khi lấy danh sách vai trò: " + e.getMessage());
-        }
+        return roleDAO.getAllRoles();
     }
 
     public boolean addRole(RoleDTO role) {

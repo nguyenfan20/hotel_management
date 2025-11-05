@@ -2,7 +2,10 @@ package DAO;
 
 import DTO.BookingDTO;
 import util.DatabaseConnection;
-import java.sql.*;
+import util.ResultSetMapper;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.List;
 
 public class BookingDAO {
@@ -45,25 +48,25 @@ public class BookingDAO {
         return DatabaseConnection.executeUpdate(DELETE_SQL, bookingId);
     }
 
-//    public BookingDTO getById(int bookingId) {
-//        return DatabaseConnection.executeQuerySingle(SELECT_BY_ID, this::mapToDTO, bookingId);
-//    }
-//
-//    public List<BookingDTO> getByCustomerId(int customerId) {
-//        return DatabaseConnection.executeQueryList(SELECT_BY_CUSTOMER, this::mapToDTO, customerId);
-//    }
-//
-//    public List<BookingDTO> getByStatus(String status) {
-//        return DatabaseConnection.executeQueryList(SELECT_BY_STATUS, this::mapToDTO, status);
-//    }
-//
-//    public List<BookingDTO> getByCode(String code) {
-//        return DatabaseConnection.executeQueryList(SELECT_BY_CODE, this::mapToDTO, "%" + code + "%");
-//    }
-//
-//    public List<BookingDTO> getAll() {
-//        return DatabaseConnection.executeQueryList(SELECT_ALL, this::mapToDTO);
-//    }
+    public BookingDTO getById(int bookingId) {
+        return DatabaseConnection.executeQuerySingle(SELECT_BY_ID, this::mapToDTO, bookingId);
+    }
+
+    public List<BookingDTO> getByCustomerId(int customerId) {
+        return DatabaseConnection.executeQueryList(SELECT_BY_CUSTOMER, this::mapToDTO, customerId);
+    }
+
+    public List<BookingDTO> getByStatus(String status) {
+        return DatabaseConnection.executeQueryList(SELECT_BY_STATUS, this::mapToDTO, status);
+    }
+
+    public List<BookingDTO> getByCode(String code) {
+        return DatabaseConnection.executeQueryList(SELECT_BY_CODE, this::mapToDTO, "%" + code + "%");
+    }
+
+    public List<BookingDTO> getAll() {
+        return DatabaseConnection.executeQueryList(SELECT_ALL, this::mapToDTO);
+    }
 
     private BookingDTO mapToDTO(ResultSet rs) throws SQLException {
         return new BookingDTO(
