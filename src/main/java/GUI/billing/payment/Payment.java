@@ -16,6 +16,8 @@ public class Payment extends JPanel {
     private PaymentBUS paymentBUS;
     private JTextField searchField;
     private JComboBox<String> statusFilterCombo;
+    private static final Color PRIMARY_COLOR = new Color(41, 98, 255);
+    private static final Color SUCCESS_COLOR = new Color(34, 197, 94);
 
     public Payment() {
         paymentBUS = new PaymentBUS();
@@ -32,7 +34,7 @@ public class Payment extends JPanel {
 
         searchField = new JTextField(20);
         JButton searchButton = new JButton("Tìm kiếm");
-        searchButton.setBackground(new Color(52, 152, 219));
+        searchButton.setBackground(PRIMARY_COLOR);
         searchButton.setForeground(Color.WHITE);
         searchButton.addActionListener(e -> searchPayments());
 
@@ -53,7 +55,7 @@ public class Payment extends JPanel {
 
         add(topPanel, BorderLayout.NORTH);
 
-        String[] columnNames = {"Số hợp đồng", "Phiếu thu", "Số tiền phân bổ", "Ghi chú", "Quản lý dễ liễu"};
+        String[] columnNames = {"ID", "Mã đặt phòng", "Phiếu thu", "Số tiền", "Phương thức", "Ngày thanh toán", "Ghi chú", "Trạng thái"};
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -95,10 +97,16 @@ public class Payment extends JPanel {
         bottomPanel.setBackground(Color.WHITE);
 
         JButton addButton = new JButton("Thêm thanh toán");
-        addButton.setBackground(new Color(52, 152, 219));
+        addButton.setBackground(PRIMARY_COLOR);
         addButton.setForeground(Color.WHITE);
         addButton.setPreferredSize(new Dimension(150, 35));
         addButton.addActionListener(e -> addPayment());
+
+        JButton qrPaymentButton = new JButton("Thanh toán QR");
+        qrPaymentButton.setBackground(SUCCESS_COLOR);
+        qrPaymentButton.setForeground(Color.WHITE);
+        qrPaymentButton.setPreferredSize(new Dimension(150, 35));
+        qrPaymentButton.addActionListener(e -> openQRPaymentDialog());
 
         JButton exportButton = new JButton("Xuất");
         exportButton.setBackground(new Color(149, 165, 166));
@@ -111,6 +119,7 @@ public class Payment extends JPanel {
         printButton.addActionListener(e -> printData());
 
         bottomPanel.add(addButton);
+        bottomPanel.add(qrPaymentButton);
         bottomPanel.add(exportButton);
         bottomPanel.add(printButton);
         add(bottomPanel, BorderLayout.SOUTH);
@@ -122,9 +131,12 @@ public class Payment extends JPanel {
 
         for (PaymentDTO payment : payments) {
             Object[] row = {
+                    payment.getPaymentId(),
                     payment.getBookingId(),
                     payment.getReferenceNo() != null ? payment.getReferenceNo() : "N/A",
                     String.format("%.2f", payment.getAmount()),
+//                    payment.getPaymentMethod() != null ? payment.getPaymentMethod() : "Tiền mặt", // Hiển thị phương thức thanh toán
+//                    payment.getPaymentDate() != null ? payment.getPaymentDate().toString() : "N/A",
                     payment.getNote() != null ? payment.getNote() : "",
                     payment.getStatus()
             };
@@ -144,9 +156,12 @@ public class Payment extends JPanel {
 
         for (PaymentDTO payment : payments) {
             Object[] row = {
+                    payment.getPaymentId(),
                     payment.getBookingId(),
                     payment.getReferenceNo() != null ? payment.getReferenceNo() : "N/A",
                     String.format("%.2f", payment.getAmount()),
+//                    payment.getPaymentMethod() != null ? payment.getPaymentMethod() : "Tiền mặt",
+//                    payment.getPaymentDate() != null ? payment.getPaymentDate().toString() : "N/A",
                     payment.getNote() != null ? payment.getNote() : "",
                     payment.getStatus()
             };
@@ -166,9 +181,12 @@ public class Payment extends JPanel {
 
         for (PaymentDTO payment : payments) {
             Object[] row = {
+                    payment.getPaymentId(),
                     payment.getBookingId(),
                     payment.getReferenceNo() != null ? payment.getReferenceNo() : "N/A",
                     String.format("%.2f", payment.getAmount()),
+//                    payment.getPaymentMethod() != null ? payment.getPaymentMethod() : "Tiền mặt",
+//                    payment.getPaymentDate() != null ? payment.getPaymentDate().toString() : "N/A",
                     payment.getNote() != null ? payment.getNote() : "",
                     payment.getStatus()
             };
@@ -186,6 +204,59 @@ public class Payment extends JPanel {
         loadPaymentData();
     }
 
+    private void openQRPaymentDialog() {
+        JDialog qrDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Thanh toán bằng QR", true);
+        qrDialog.setSize(500, 450);
+        qrDialog.setLayout(new BorderLayout(10, 10));
+
+        JPanel contentPanel = new JPanel(new BorderLayout(10, 10));
+        contentPanel.setBackground(Color.WHITE);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel titleLabel = new JLabel("Quét mã QR để thanh toán");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        contentPanel.add(titleLabel, BorderLayout.NORTH);
+
+        // QR Code placeholder
+        JPanel qrPanel = new JPanel();
+        qrPanel.setBackground(Color.WHITE);
+        qrPanel.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200), 2));
+        JLabel qrLabel = new JLabel("📱 QR Code");
+        qrLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        qrLabel.setFont(new Font("Arial", Font.PLAIN, 50));
+        qrPanel.add(qrLabel);
+        contentPanel.add(qrPanel, BorderLayout.CENTER);
+
+        JPanel statusPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
+        statusPanel.setBackground(Color.WHITE);
+        JLabel statusLabel = new JLabel("⏳ Chờ quét...");
+        statusLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        statusLabel.setForeground(new Color(241, 196, 15));
+
+        JButton confirmButton = new JButton("✓ Quét thành công");
+        confirmButton.setBackground(SUCCESS_COLOR);
+        confirmButton.setForeground(Color.WHITE);
+        confirmButton.setPreferredSize(new Dimension(150, 35));
+        confirmButton.setFocusPainted(false);
+        confirmButton.setBorderPainted(false);
+        confirmButton.setFont(new Font("Arial", Font.BOLD, 12));
+        confirmButton.addActionListener(e -> {
+            statusLabel.setText("✓ Thanh toán thành công!");
+            statusLabel.setForeground(SUCCESS_COLOR);
+            JOptionPane.showMessageDialog(qrDialog, "Thanh toán QR thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+            qrDialog.dispose();
+            loadPaymentData();
+        });
+
+        statusPanel.add(statusLabel);
+        statusPanel.add(confirmButton);
+
+        qrDialog.add(contentPanel, BorderLayout.CENTER);
+        qrDialog.add(statusPanel, BorderLayout.SOUTH);
+        qrDialog.setLocationRelativeTo(this);
+        qrDialog.setVisible(true);
+    }
+
     private void editPayment() {
         int selectedRow = paymentTable.getSelectedRow();
         if (selectedRow == -1) {
@@ -193,8 +264,8 @@ public class Payment extends JPanel {
             return;
         }
 
-        int bookingId = (int) tableModel.getValueAt(selectedRow, 0);
-        PaymentDTO payment = paymentBUS.getPaymentsByBooking(bookingId).stream().findFirst().orElse(null);
+        int paymentId = (int) tableModel.getValueAt(selectedRow, 0);
+        PaymentDTO payment = paymentBUS.getPaymentById(paymentId);
 
         if (payment != null) {
             PaymentDetail detailDialog = new PaymentDetail(
@@ -220,10 +291,8 @@ public class Payment extends JPanel {
                 JOptionPane.YES_NO_OPTION);
 
         if (confirm == JOptionPane.YES_OPTION) {
-            int bookingId = (int) tableModel.getValueAt(selectedRow, 0);
-            PaymentDTO payment = paymentBUS.getPaymentsByBooking(bookingId).stream().findFirst().orElse(null);
-
-            if (payment != null && paymentBUS.deletePayment(payment.getPaymentId())) {
+            int paymentId = (int) tableModel.getValueAt(selectedRow, 0);
+            if (paymentBUS.deletePayment(paymentId)) {
                 JOptionPane.showMessageDialog(this, "Xóa thanh toán thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
                 loadPaymentData();
             } else {

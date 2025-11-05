@@ -3,7 +3,7 @@ package GUI.booking;
 import BUS.BookingBUS;
 import DAO.BookingDAO;
 import DTO.BookingDTO;
-import com.toedter.calendar.JDateChooser;
+
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -15,7 +15,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
-public class BookingGUI extends javax.swing.JPanel {
+public class BookingManagement extends javax.swing.JPanel {
     private static final Color PRIMARY_COLOR = new Color(41, 98, 255);
     private static final Color BACKGROUND_COLOR = new Color(245, 245, 245);
     private static final Color PANEL_BG = Color.WHITE;
@@ -31,7 +31,7 @@ public class BookingGUI extends javax.swing.JPanel {
     private JTextField searchField;
     private List<BookingDTO> bookingData;
 
-    public BookingGUI() {
+    public BookingManagement() {
         bookingBUS = new BookingBUS(new BookingDAO());
         bookingData = new java.util.ArrayList<>();
         initComponents();

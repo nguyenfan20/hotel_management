@@ -4,8 +4,7 @@
  */
 package test;
 
-import GUI.booking.BookingGUI;
-import javax.swing.*;
+import GUI.booking.BookingManagement;
 
 /**
  *
@@ -21,8 +20,8 @@ public class test {
         frame.setLocationRelativeTo(null); // hiển thị ở giữa màn hình
 
         // Tạo panel BookingGUI và thêm vào JFrame
-        BookingGUI bookingGUI = new BookingGUI();
-        frame.add(bookingGUI);
+        BookingManagement bookingManagement = new BookingManagement();
+        frame.add(bookingManagement);
 
         // Tự động điều chỉnh kích thước theo panel
         frame.pack();

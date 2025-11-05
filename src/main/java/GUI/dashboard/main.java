@@ -8,7 +8,7 @@ import GUI.billing.payment.Payment;
 import GUI.operation.housekeeping.HousekeepingTask;
 import GUI.operation.maintenance.MaintenanceTicket;
 import GUI.service.ServiceForm;
-import GUI.booking.BookingGUI;
+import GUI.booking.BookingManagement;
 import GUI.custom.CustomGUI;
 import GUI.room.Amenity;
 import GUI.room.Room;
@@ -16,7 +16,7 @@ import GUI.room.RoomType;
 import GUI.service.ServiceOrdersform;
 import GUI.auth.LoginGUI;
 import event.EventMenuSelected;
-import java.awt.Color;
+
 import javax.swing.JComponent;
 import javax.swing.JOptionPane;
 
@@ -29,7 +29,7 @@ public class main extends javax.swing.JFrame {
     private UserAccount userAccount;
 
     private CustomGUI customGUI;
-    private BookingGUI bookingGUI;
+    private BookingManagement bookingManagement;
 
     private RoomType roomType;
     private Room room;
@@ -78,7 +78,7 @@ public class main extends javax.swing.JFrame {
         userAccount = new UserAccount();
 
         customGUI = new CustomGUI();
-        bookingGUI = new BookingGUI();
+        bookingManagement = new BookingManagement();
 
         roomType = new RoomType();
         room = new Room();
@@ -110,7 +110,7 @@ public class main extends javax.swing.JFrame {
                 } else if (index == 5) {
                     setForm(customGUI);
                 } else if (index == 6) {
-                    setForm(bookingGUI);
+                    setForm(bookingManagement);
                 } else if (index == 8) {
                     setForm(roomType);
                 } else if (index == 9) {

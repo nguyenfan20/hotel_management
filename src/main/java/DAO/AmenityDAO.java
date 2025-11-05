@@ -11,7 +11,7 @@ public class AmenityDAO {
     // Lấy tất cả tiện nghi
     public List<AmenityDTO> getAllAmenities() {
         List<AmenityDTO> amenities = new ArrayList<>();
-        String sql = "SELECT * FROM Amenity ORDER BY amenity_id";
+        String sql = "SELECT * FROM Amenity WHERE is_hide = 0 ORDER BY amenity_id";
 
         try (Connection conn = DatabaseConnection.getConnection();
              Statement stmt = conn.createStatement();
@@ -102,7 +102,7 @@ public class AmenityDAO {
 
     // Xóa tiện nghi
     public boolean deleteAmenity(int amenityId) {
-        String sql = "DELETE FROM Amenity WHERE amenity_id = ?";
+        String sql = "UPDATE Amenity SET is_hide = 1 WHERE amenity_id = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -118,7 +118,7 @@ public class AmenityDAO {
     // Tìm kiếm tiện nghi theo tên
     public List<AmenityDTO> searchAmenitiesByName(String keyword) {
         List<AmenityDTO> amenities = new ArrayList<>();
-        String sql = "SELECT * FROM Amenity WHERE name LIKE ? ORDER BY amenity_id";
+        String sql = "SELECT * FROM Amenity WHERE name LIKE ? AND is_hide = 0 ORDER BY amenity_id";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -146,7 +146,7 @@ public class AmenityDAO {
     // Lọc tiện nghi theo loại phí
     public List<AmenityDTO> filterAmenitiesByChargeType(String chargeType) {
         List<AmenityDTO> amenities = new ArrayList<>();
-        String sql = "SELECT * FROM Amenity WHERE charge_type = ? ORDER BY amenity_id";
+        String sql = "SELECT * FROM Amenity WHERE charge_type = ? AND is_hide = 0 ORDER BY amenity_id";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
