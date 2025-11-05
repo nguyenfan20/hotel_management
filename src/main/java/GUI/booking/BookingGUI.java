@@ -121,9 +121,8 @@ public class BookingGUI extends javax.swing.JPanel {
         }
 
         try {
-            BookingDTO booking = bookingBUS.getBookingByCode(query);
-            if (booking != null) {
-                List<BookingDTO> results = List.of(booking);
+            List<BookingDTO> results = bookingBUS.getBookingByCode(query);
+            if (results != null) {
                 updateTableViewWithData(results);
             } else {
                 JOptionPane.showMessageDialog(this, "Không tìm thấy đặt phòng: " + query,

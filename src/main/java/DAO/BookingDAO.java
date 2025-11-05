@@ -150,16 +150,17 @@ public class BookingDAO {
     }
 
     // Tìm đặt phòng theo mã
-    public BookingDTO getByCode(String code) {
-        String sql = "SELECT * FROM Booking WHERE code = ? AND is_hide = 0";
+    public List<BookingDTO> getByCode(String code) {
+        String sql = "SELECT * FROM Booking WHERE code LIKE ? AND is_hide = 0";
         Connection connection = null;
+        List<BookingDTO> Bookings = new ArrayList<>();
         try {
             connection = DatabaseConnection.getConnection();
             try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-                pstmt.setString(1, code);
+                pstmt.setString(1, "%" + code + "%");
                 try (ResultSet rs = pstmt.executeQuery()) {
                     if (rs.next()) {
-                        return mapResultSetToDTO(rs);
+                        Bookings.add(mapResultSetToDTO(rs));
                     }
                 }
             }
@@ -168,7 +169,7 @@ public class BookingDAO {
         } finally {
             DatabaseConnection.closeConnection(connection);
         }
-        return null;
+        return Bookings;
     }
 
     // Lấy tất cả đặt phòng

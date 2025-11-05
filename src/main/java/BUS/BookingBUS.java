@@ -118,7 +118,7 @@ public class BookingBUS {
     }
 
     // Tìm đặt phòng theo mã
-    public BookingDTO getBookingByCode(String code) {
+    public List<BookingDTO> getBookingByCode(String code) {
         if (code == null || code.trim().isEmpty()) {
             System.err.println("Lỗi: Mã đặt phòng không được trống");
             return null;
