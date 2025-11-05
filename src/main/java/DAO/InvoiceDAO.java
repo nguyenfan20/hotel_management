@@ -2,176 +2,73 @@ package DAO;
 
 import DTO.InvoiceDTO;
 import util.DatabaseConnection;
-import java.sql.*;
-import java.util.ArrayList;
+import util.ResultSetMapper;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 
 public class InvoiceDAO {
 
+    private static final String SELECT_ALL = "SELECT i.*, ua.full_name as created_by_name, b.booking_id FROM Invoice i JOIN UserAccount ua ON i.created_by = ua.user_id JOIN Booking b ON i.booking_id = b.booking_id ORDER BY i.created_at DESC";
+    private static final String FILTER_BY_STATUS = "SELECT i.*, ua.full_name as created_by_name, b.booking_id FROM Invoice i JOIN UserAccount ua ON i.created_by = ua.user_id JOIN Booking b ON i.booking_id = b.booking_id WHERE i.status = ? ORDER BY i.created_at DESC";
+    private static final String SELECT_BY_ID = "SELECT i.*, ua.full_name as created_by_name, b.booking_id FROM Invoice i JOIN UserAccount ua ON i.created_by = ua.user_id JOIN Booking b ON i.booking_id = b.booking_id WHERE i.invoice_id = ?";
+    private static final String INSERT_SQL = "INSERT INTO Invoice (booking_id, invoice_no, subtotal, discount_total, tax_total, grand_total, created_at, created_by, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    private static final String UPDATE_SQL = "UPDATE Invoice SET subtotal = ?, discount_total = ?, tax_total = ?, grand_total = ?, status = ? WHERE invoice_id = ?";
+    private static final String DELETE_SQL = "DELETE FROM Invoice WHERE invoice_id = ?";
+    private static final String SEARCH_SQL = "SELECT i.*, ua.full_name as created_by_name, b.booking_id FROM Invoice i JOIN UserAccount ua ON i.created_by = ua.user_id JOIN Booking b ON i.booking_id = b.booking_id WHERE i.invoice_no LIKE ? OR i.status LIKE ? ORDER BY i.created_at DESC";
+    private static final String SELECT_BY_BOOKING = "SELECT i.*, ua.full_name as created_by_name, b.booking_id FROM Invoice i JOIN UserAccount ua ON i.created_by = ua.user_id JOIN Booking b ON i.booking_id = b.booking_id WHERE i.booking_id = ? ORDER BY i.created_at DESC";
+
     public List<InvoiceDTO> getAllInvoices() {
-        List<InvoiceDTO> invoices = new ArrayList<>();
-        String sql = "SELECT i.*, ua.full_name as created_by_name, b.booking_id " +
-                "FROM Invoice i " +
-                "JOIN UserAccount ua ON i.created_by = ua.user_id " +
-                "JOIN Booking b ON i.booking_id = b.booking_id " +
-                "ORDER BY i.created_at DESC";
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                invoices.add(mapResultSetToDTO(rs));
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi lấy danh sách hóa đơn: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return invoices;
+        return DatabaseConnection.executeQueryList(SELECT_ALL, this::mapToDTO);
     }
 
     public List<InvoiceDTO> filterInvoicesByStatus(String status) {
-        List<InvoiceDTO> invoices = new ArrayList<>();
-        String sql = "SELECT i.*, ua.full_name as created_by_name, b.booking_id " +
-                "FROM Invoice i " +
-                "JOIN UserAccount ua ON i.created_by = ua.user_id " +
-                "JOIN Booking b ON i.booking_id = b.booking_id " +
-                "WHERE i.status = ? ORDER BY i.created_at DESC";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, status);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    invoices.add(mapResultSetToDTO(rs));
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi tìm kiếm hóa đơn theo trạng thái: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return invoices;
+        return DatabaseConnection.executeQueryList(FILTER_BY_STATUS, this::mapToDTO, status);
     }
 
     public InvoiceDTO getInvoiceById(int invoiceId) {
-        String sql = "SELECT i.*, ua.full_name as created_by_name, b.booking_id " +
-                "FROM Invoice i " +
-                "JOIN UserAccount ua ON i.created_by = ua.user_id " +
-                "JOIN Booking b ON i.booking_id = b.booking_id " +
-                "WHERE i.invoice_id = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, invoiceId);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapResultSetToDTO(rs);
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi lấy hóa đơn: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return null;
+        return DatabaseConnection.executeQuerySingle(SELECT_BY_ID, this::mapToDTO, invoiceId);
     }
 
     public boolean addInvoice(InvoiceDTO invoice) {
-        String sql = "INSERT INTO Invoice (booking_id, invoice_no, subtotal, discount_total, tax_total, grand_total, created_at, created_by, status) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, invoice.getBookingId());
-            pstmt.setString(2, invoice.getInvoiceNo());
-            pstmt.setDouble(3, invoice.getSubtotal());
-            pstmt.setDouble(4, invoice.getDiscountTotal());
-            pstmt.setDouble(5, invoice.getTaxTotal());
-            pstmt.setDouble(6, invoice.getGrandTotal());
-            pstmt.setTimestamp(7, invoice.getCreatedAt());
-            pstmt.setInt(8, invoice.getCreatedBy());
-            pstmt.setString(9, invoice.getStatus());
-            return pstmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi thêm hóa đơn: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return false;
+        return DatabaseConnection.executeUpdate(INSERT_SQL,
+                invoice.getBookingId(),
+                invoice.getInvoiceNo(),
+                invoice.getSubtotal(),
+                invoice.getDiscountTotal(),
+                invoice.getTaxTotal(),
+                invoice.getGrandTotal(),
+                invoice.getCreatedAt(),
+                invoice.getCreatedBy(),
+                invoice.getStatus()
+        );
     }
 
     public boolean updateInvoice(InvoiceDTO invoice) {
-        String sql = "UPDATE Invoice SET subtotal = ?, discount_total = ?, tax_total = ?, grand_total = ?, status = ? WHERE invoice_id = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setDouble(1, invoice.getSubtotal());
-            pstmt.setDouble(2, invoice.getDiscountTotal());
-            pstmt.setDouble(3, invoice.getTaxTotal());
-            pstmt.setDouble(4, invoice.getGrandTotal());
-            pstmt.setString(5, invoice.getStatus());
-            pstmt.setInt(6, invoice.getInvoiceId());
-            return pstmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi cập nhật hóa đơn: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return false;
+        return DatabaseConnection.executeUpdate(UPDATE_SQL,
+                invoice.getSubtotal(),
+                invoice.getDiscountTotal(),
+                invoice.getTaxTotal(),
+                invoice.getGrandTotal(),
+                invoice.getStatus(),
+                invoice.getInvoiceId()
+        );
     }
 
     public boolean deleteInvoice(int invoiceId) {
-        String sql = "DELETE FROM Invoice WHERE invoice_id = ?";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, invoiceId);
-            return pstmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi xóa hóa đơn: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return false;
+        return DatabaseConnection.executeUpdate(DELETE_SQL, invoiceId);
     }
 
     public List<InvoiceDTO> searchInvoices(String keyword) {
-        List<InvoiceDTO> invoices = new ArrayList<>();
-        String sql = "SELECT i.*, ua.full_name as created_by_name, b.booking_id " +
-                "FROM Invoice i " +
-                "JOIN UserAccount ua ON i.created_by = ua.user_id " +
-                "JOIN Booking b ON i.booking_id = b.booking_id " +
-                "WHERE i.invoice_no LIKE ? OR i.status LIKE ? " +
-                "ORDER BY i.created_at DESC";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, "%" + keyword + "%");
-            pstmt.setString(2, "%" + keyword + "%");
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    invoices.add(mapResultSetToDTO(rs));
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi tìm kiếm hóa đơn: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return invoices;
+        String pattern = "%" + keyword + "%";
+        return DatabaseConnection.executeQueryList(SEARCH_SQL, this::mapToDTO, pattern, pattern);
     }
 
     public List<InvoiceDTO> getInvoicesByBooking(int bookingId) {
-        List<InvoiceDTO> invoices = new ArrayList<>();
-        String sql = "SELECT i.*, ua.full_name as created_by_name, b.booking_id " +
-                "FROM Invoice i " +
-                "JOIN UserAccount ua ON i.created_by = ua.user_id " +
-                "JOIN Booking b ON i.booking_id = b.booking_id " +
-                "WHERE i.booking_id = ? " +
-                "ORDER BY i.created_at DESC";
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, bookingId);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    invoices.add(mapResultSetToDTO(rs));
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi lấy hóa đơn theo đặt phòng: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return invoices;
+        return DatabaseConnection.executeQueryList(SELECT_BY_BOOKING, this::mapToDTO, bookingId);
     }
 
-    private InvoiceDTO mapResultSetToDTO(ResultSet rs) throws SQLException {
+    private InvoiceDTO mapToDTO(ResultSet rs) throws SQLException {
         InvoiceDTO dto = new InvoiceDTO(
                 rs.getInt("invoice_id"),
                 rs.getInt("booking_id"),

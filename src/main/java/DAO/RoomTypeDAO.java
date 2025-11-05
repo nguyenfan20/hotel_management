@@ -2,172 +2,62 @@ package DAO;
 
 import DTO.RoomTypeDTO;
 import util.DatabaseConnection;
-import java.sql.*;
-import java.util.ArrayList;
+import util.ResultSetMapper;
 import java.util.List;
 
 public class RoomTypeDAO {
 
-    private RoomTypeAmenityDAO roomTypeAmenityDAO;
+    private final RoomTypeAmenityDAO amenityDAO = new RoomTypeAmenityDAO();
 
-    public RoomTypeDAO() {
-        this.roomTypeAmenityDAO = new RoomTypeAmenityDAO();
-    }
+    private static final String SELECT_ALL = "SELECT * FROM RoomType ORDER BY room_type_id";
+    private static final String SELECT_BY_ID = "SELECT * FROM RoomType WHERE room_type_id = ?";
+    private static final String INSERT_SQL = "INSERT INTO RoomType (name, base_price, capacity_adults, capacity_children, bed_count, area, description) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    private static final String UPDATE_SQL = "UPDATE RoomType SET name = ?, base_price = ?, capacity_adults = ?, capacity_children = ?, bed_count = ?, area = ?, description = ? WHERE room_type_id = ?";
+    private static final String DELETE_SQL = "DELETE FROM RoomType WHERE room_type_id = ?";
+    private static final String SEARCH_NAME = "SELECT * FROM RoomType WHERE name LIKE ? ORDER BY room_type_id";
 
-    // Lấy tất cả loại phòng
     public List<RoomTypeDTO> getAllRoomTypes() {
-        List<RoomTypeDTO> roomTypes = new ArrayList<>();
-        String sql = "SELECT * FROM RoomType ORDER BY room_type_id";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            while (rs.next()) {
-                RoomTypeDTO roomType = new RoomTypeDTO(
-                        rs.getInt("room_type_id"),
-                        rs.getString("name"),
-                        rs.getBigDecimal("base_price"),
-                        rs.getByte("capacity_adults"),
-                        rs.getByte("capacity_children"),
-                        rs.getByte("bed_count"),
-                        rs.getBigDecimal("area"),
-                        rs.getString("description")
-                );
-                roomType.setAmenities(roomTypeAmenityDAO.getAmenitiesByRoomType(roomType.getRoomTypeId()));
-                roomTypes.add(roomType);
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi lấy danh sách loại phòng: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return roomTypes;
+        return DatabaseConnection.executeQueryList(SELECT_ALL, rs -> mapToDTO(rs, true));
     }
 
-    // Lấy loại phòng theo ID
-    public RoomTypeDTO getRoomTypeById(int roomTypeId) {
-        String sql = "SELECT * FROM RoomType WHERE room_type_id = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, roomTypeId);
-            ResultSet rs = pstmt.executeQuery();
-
-            if (rs.next()) {
-                RoomTypeDTO roomType = new RoomTypeDTO(
-                        rs.getInt("room_type_id"),
-                        rs.getString("name"),
-                        rs.getBigDecimal("base_price"),
-                        rs.getByte("capacity_adults"),
-                        rs.getByte("capacity_children"),
-                        rs.getByte("bed_count"),
-                        rs.getBigDecimal("area"),
-                        rs.getString("description")
-                );
-                roomType.setAmenities(roomTypeAmenityDAO.getAmenitiesByRoomType(roomType.getRoomTypeId()));
-                return roomType;
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi lấy loại phòng: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return null;
+    public RoomTypeDTO getRoomTypeById(int id) {
+        return DatabaseConnection.executeQuerySingle(SELECT_BY_ID, rs -> mapToDTO(rs, true), id);
     }
 
-    // Thêm loại phòng mới
-    public boolean addRoomType(RoomTypeDTO roomType) {
-        String sql = "INSERT INTO RoomType (name, base_price, capacity_adults, capacity_children, bed_count, area, description) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?)";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, roomType.getName());
-            pstmt.setBigDecimal(2, roomType.getBasePrice());
-            pstmt.setByte(3, roomType.getCapacityAdults());
-            pstmt.setByte(4, roomType.getCapacityChildren());
-            pstmt.setByte(5, roomType.getBedCount());
-            pstmt.setBigDecimal(6, roomType.getArea());
-            pstmt.setString(7, roomType.getDescription());
-
-            return pstmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi thêm loại phòng: " + e.getMessage());
-            e.printStackTrace();
-            return false;
-        }
+    public boolean addRoomType(RoomTypeDTO rt) {
+        return DatabaseConnection.executeUpdate(INSERT_SQL,
+                rt.getName(), rt.getBasePrice(), rt.getCapacityAdults(), rt.getCapacityChildren(),
+                rt.getBedCount(), rt.getArea(), rt.getDescription()
+        );
     }
 
-    // Cập nhật loại phòng
-    public boolean updateRoomType(RoomTypeDTO roomType) {
-        String sql = "UPDATE RoomType SET name = ?, base_price = ?, capacity_adults = ?, " +
-                "capacity_children = ?, bed_count = ?, area = ?, description = ? " +
-                "WHERE room_type_id = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, roomType.getName());
-            pstmt.setBigDecimal(2, roomType.getBasePrice());
-            pstmt.setByte(3, roomType.getCapacityAdults());
-            pstmt.setByte(4, roomType.getCapacityChildren());
-            pstmt.setByte(5, roomType.getBedCount());
-            pstmt.setBigDecimal(6, roomType.getArea());
-            pstmt.setString(7, roomType.getDescription());
-            pstmt.setInt(8, roomType.getRoomTypeId());
-
-            return pstmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi cập nhật loại phòng: " + e.getMessage());
-            e.printStackTrace();
-            return false;
-        }
+    public boolean updateRoomType(RoomTypeDTO rt) {
+        return DatabaseConnection.executeUpdate(UPDATE_SQL,
+                rt.getName(), rt.getBasePrice(), rt.getCapacityAdults(), rt.getCapacityChildren(),
+                rt.getBedCount(), rt.getArea(), rt.getDescription(), rt.getRoomTypeId()
+        );
     }
 
-    // Xóa loại phòng
-    public boolean deleteRoomType(int roomTypeId) {
-        String sql = "DELETE FROM RoomType WHERE room_type_id = ?";
+    public boolean deleteRoomType(int id) { return DatabaseConnection.executeUpdate(DELETE_SQL, id); }
 
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, roomTypeId);
-            return pstmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi xóa loại phòng: " + e.getMessage());
-            e.printStackTrace();
-            return false;
-        }
+    public List<RoomTypeDTO> searchRoomTypesByName(String kw) {
+        return DatabaseConnection.executeQueryList(SEARCH_NAME, rs -> mapToDTO(rs, true), "%"+kw+"%");
     }
 
-    // Tìm kiếm loại phòng theo tên
-    public List<RoomTypeDTO> searchRoomTypesByName(String keyword) {
-        List<RoomTypeDTO> roomTypes = new ArrayList<>();
-        String sql = "SELECT * FROM RoomType WHERE name LIKE ? ORDER BY room_type_id";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, "%" + keyword + "%");
-            ResultSet rs = pstmt.executeQuery();
-
-            while (rs.next()) {
-                RoomTypeDTO roomType = new RoomTypeDTO(
-                        rs.getInt("room_type_id"),
-                        rs.getString("name"),
-                        rs.getBigDecimal("base_price"),
-                        rs.getByte("capacity_adults"),
-                        rs.getByte("capacity_children"),
-                        rs.getByte("bed_count"),
-                        rs.getBigDecimal("area"),
-                        rs.getString("description")
-                );
-                roomType.setAmenities(roomTypeAmenityDAO.getAmenitiesByRoomType(roomType.getRoomTypeId()));
-                roomTypes.add(roomType);
-            }
-        } catch (SQLException e) {
-            System.err.println("Lỗi khi tìm kiếm loại phòng: " + e.getMessage());
-            e.printStackTrace();
+    private RoomTypeDTO mapToDTO(java.sql.ResultSet rs, boolean loadAmenities) throws java.sql.SQLException {
+        RoomTypeDTO rt = new RoomTypeDTO(
+                rs.getInt("room_type_id"),
+                rs.getString("name"),
+                rs.getBigDecimal("base_price"),
+                rs.getByte("capacity_adults"),
+                rs.getByte("capacity_children"),
+                rs.getByte("bed_count"),
+                rs.getBigDecimal("area"),
+                rs.getString("description")
+        );
+        if (loadAmenities) {
+            rt.setAmenities(amenityDAO.getAmenitiesByRoomType(rt.getRoomTypeId()));
         }
-
-        return roomTypes;
+        return rt;
     }
 }
