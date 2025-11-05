@@ -135,8 +135,8 @@ public class Payment extends JPanel {
                     payment.getBookingId(),
                     payment.getReferenceNo() != null ? payment.getReferenceNo() : "N/A",
                     String.format("%.2f", payment.getAmount()),
-                    payment.getPaymentMethod() != null ? payment.getPaymentMethod() : "Tiền mặt", // Hiển thị phương thức thanh toán
-                    payment.getPaymentDate() != null ? payment.getPaymentDate().toString() : "N/A",
+//                    payment.getPaymentMethod() != null ? payment.getPaymentMethod() : "Tiền mặt", // Hiển thị phương thức thanh toán
+//                    payment.getPaymentDate() != null ? payment.getPaymentDate().toString() : "N/A",
                     payment.getNote() != null ? payment.getNote() : "",
                     payment.getStatus()
             };
@@ -160,8 +160,8 @@ public class Payment extends JPanel {
                     payment.getBookingId(),
                     payment.getReferenceNo() != null ? payment.getReferenceNo() : "N/A",
                     String.format("%.2f", payment.getAmount()),
-                    payment.getPaymentMethod() != null ? payment.getPaymentMethod() : "Tiền mặt",
-                    payment.getPaymentDate() != null ? payment.getPaymentDate().toString() : "N/A",
+//                    payment.getPaymentMethod() != null ? payment.getPaymentMethod() : "Tiền mặt",
+//                    payment.getPaymentDate() != null ? payment.getPaymentDate().toString() : "N/A",
                     payment.getNote() != null ? payment.getNote() : "",
                     payment.getStatus()
             };
@@ -185,8 +185,8 @@ public class Payment extends JPanel {
                     payment.getBookingId(),
                     payment.getReferenceNo() != null ? payment.getReferenceNo() : "N/A",
                     String.format("%.2f", payment.getAmount()),
-                    payment.getPaymentMethod() != null ? payment.getPaymentMethod() : "Tiền mặt",
-                    payment.getPaymentDate() != null ? payment.getPaymentDate().toString() : "N/A",
+//                    payment.getPaymentMethod() != null ? payment.getPaymentMethod() : "Tiền mặt",
+//                    payment.getPaymentDate() != null ? payment.getPaymentDate().toString() : "N/A",
                     payment.getNote() != null ? payment.getNote() : "",
                     payment.getStatus()
             };

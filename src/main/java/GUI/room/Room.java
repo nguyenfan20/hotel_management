@@ -623,15 +623,15 @@ public class Room extends javax.swing.JPanel {
                 CustomerDTO customer = new CustomerDTO();
                 customer.setFull_name(name);
                 customer.setPhone(Integer.parseInt(phone));
-                int customerId = customerBUS.addCustomerReturnId(customer);
-                if (customerId <= 0) throw new Exception("Không tạo được khách hàng");
+//                int customerId = customerBUS.addCustomerReturnId(customer);
+//                if (customerId <= 0) throw new Exception("Không tạo được khách hàng");
 
                 // Tạo booking
                 String code = "BOOK-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "-" +
                         String.format("%03d", bookingBUS.getAllBookings().size() + 1);
                 BookingDTO booking = new BookingDTO();
                 booking.setCode(code);
-                booking.setCustomerId(customerId);
+//                booking.setCustomerId(customerId);
                 booking.setBookingDate(LocalDateTime.now());
                 booking.setStatus("CHECKED_IN");
                 booking.setSource("QUICK_CHECKIN");
@@ -640,7 +640,7 @@ public class Room extends javax.swing.JPanel {
 
                 // Tạo booking room
                 BookingRoomDTO br = new BookingRoomDTO();
-                br.setBookingId(bookingId);
+//                br.setBookingId(bookingId);
                 br.setRoomId(room.getRoomId());
                 br.setCheckInPlan(LocalDateTime.parse(LocalDate.now().toString()));
                 br.setCheckOutPlan(null);
