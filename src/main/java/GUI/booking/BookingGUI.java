@@ -121,13 +121,18 @@ public class BookingGUI extends javax.swing.JPanel {
         }
 
         try {
-            List<BookingDTO> results = bookingBUS.getBookingByCode(query);
-            if (results != null) {
-                updateTableViewWithData(results);
-            } else {
-                JOptionPane.showMessageDialog(this, "Không tìm thấy đặt phòng: " + query,
+            List<BookingDTO> results = bookingBUS.getAllBookings();
+            List<BookingDTO> filtered = results.stream()
+                    .filter(b -> String.valueOf(b.getBookingId()).contains(query) ||
+                            b.getCode().toLowerCase().contains(query)) // Giả sử có trường getCode(), điều chỉnh nếu cần
+                    .toList();
+
+            if (filtered.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy kết quả",
                         "Thông báo", JOptionPane.INFORMATION_MESSAGE);
                 updateTableView();
+            } else {
+                updateTableViewWithData(filtered);
             }
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Lỗi tìm kiếm: " + e.getMessage(),
