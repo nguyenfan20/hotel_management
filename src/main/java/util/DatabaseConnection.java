@@ -3,18 +3,23 @@ package util;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import config.SqlServerConfig;
 
 public class DatabaseConnection {
 
-    private static final String URL = "jdbc:mysql://localhost:3306/hotel_db";
-    private static final String USER = "root";
-    private static final String PASS = "your_password";
-
+    /**
+     * Lấy kết nối từ cấu hình SQL Server
+     */
     public static Connection getConnection() {
         try {
-            return DriverManager.getConnection(URL, USER, PASS);
+            String url = SqlServerConfig.getConnectionString();
+            String username = SqlServerConfig.getUsername();
+            String password = SqlServerConfig.getPassword();
+
+            return DriverManager.getConnection(url, username, password);
         } catch (SQLException e) {
             System.err.println("Không thể kết nối database: " + e.getMessage());
+            e.printStackTrace();
             return null;
         }
     }
@@ -73,7 +78,7 @@ public class DatabaseConnection {
             setParameters(pst, params);
             try (ResultSet rs = pst.executeQuery()) {
                 while (rs.next()) {
-                    list.add(mapper.map(rs)); // SQLException được phép
+                    list.add(mapper.map(rs));
                 }
             }
 

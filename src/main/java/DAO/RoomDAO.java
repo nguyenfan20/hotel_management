@@ -16,6 +16,12 @@ public class RoomDAO {
     private static final String FILTER_FLOOR = "SELECT r.*, rt.name as room_type_name, rt.description as room_type_description FROM Room r LEFT JOIN RoomType rt ON r.room_type_id = rt.room_type_id WHERE r.floor_no = ? ORDER BY r.floor_no, r.room_no";
     private static final String FILTER_STATUS = "SELECT r.*, rt.name as room_type_name, rt.description as room_type_description FROM Room r LEFT JOIN RoomType rt ON r.room_type_id = rt.room_type_id WHERE r.status = ? ORDER BY r.floor_no, r.room_no";
     private static final String FILTER_ROOM_TYPE = "SELECT r.*, rt.name as room_type_name, rt.description as room_type_description FROM Room r LEFT JOIN RoomType rt ON r.room_type_id = rt.room_type_id WHERE r.room_type_id = ? ORDER BY r.floor_no, r.room_no";
+    private static final String SEARCH_BY_ROOM_NO =
+            "SELECT r.*, rt.name as room_type_name, rt.description as room_type_description " +
+                    "FROM Room r " +
+                    "LEFT JOIN RoomType rt ON r.room_type_id = rt.room_type_id " +
+                    "WHERE r.room_no LIKE ? " +
+                    "ORDER BY r.floor_no, r.room_no";
 
     public List<RoomDTO> getAllRooms() { return DatabaseConnection.executeQueryList(SELECT_ALL, this::mapToDTO); }
     public RoomDTO getRoomById(int id) { return DatabaseConnection.executeQuerySingle(SELECT_BY_ID, this::mapToDTO, id); }
@@ -34,6 +40,11 @@ public class RoomDAO {
     public List<RoomDTO> filterRoomsByFloor(int floor) { return DatabaseConnection.executeQueryList(FILTER_FLOOR, this::mapToDTO, floor); }
     public List<RoomDTO> filterRoomsByStatus(String status) { return DatabaseConnection.executeQueryList(FILTER_STATUS, this::mapToDTO, status); }
     public List<RoomDTO> filterRoomsByRoomType(int typeId) { return DatabaseConnection.executeQueryList(FILTER_ROOM_TYPE, this::mapToDTO, typeId); }
+
+    public List<RoomDTO> searchRoomsByRoomNo(String roomNo) {
+        String pattern = "%" + roomNo + "%";
+        return DatabaseConnection.executeQueryList(SEARCH_BY_ROOM_NO, this::mapToDTO, pattern);
+    }
 
     private RoomDTO mapToDTO(java.sql.ResultSet rs) throws java.sql.SQLException {
         RoomDTO r = new RoomDTO(
