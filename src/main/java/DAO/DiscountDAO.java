@@ -17,6 +17,7 @@ public class DiscountDAO {
     private static final String UPDATE_SQL = "UPDATE Discount SET code = ?, discount_type = ?, discount_value = ?, min_spend = ?, max_discount_amount = ?, start_date = ?, expiry_date = ?, usage_limit = ?, per_user_limit = ?, status = ? WHERE discount_id = ?";
     private static final String DELETE_SQL = "DELETE FROM Discount WHERE discount_id = ?";
     private static final String SEARCH_SQL = "SELECT * FROM Discount WHERE code LIKE ? OR discount_type LIKE ? ORDER BY code";
+    private static final String SELECT_BY_CODE = "SELECT * FROM Discount WHERE code = ?";
 
     public List<DiscountDTO> getAllDiscounts() {
         return DatabaseConnection.executeQueryList(SELECT_ALL, this::mapToDTO);
@@ -72,6 +73,10 @@ public class DiscountDAO {
     public List<DiscountDTO> searchDiscounts(String keyword) {
         String pattern = "%" + keyword + "%";
         return DatabaseConnection.executeQueryList(SEARCH_SQL, this::mapToDTO, pattern, pattern);
+    }
+
+    public DiscountDTO getDiscountByCode(String code) {
+        return DatabaseConnection.executeQuerySingle(SELECT_BY_CODE, this::mapToDTO, code);
     }
 
     private DiscountDTO mapToDTO(ResultSet rs) throws SQLException {
