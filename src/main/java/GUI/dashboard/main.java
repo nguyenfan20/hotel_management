@@ -15,6 +15,7 @@ import GUI.room.Room;
 import GUI.room.RoomType;
 import GUI.service.ServiceOrdersform;
 import GUI.auth.LoginGUI;
+import GUI.statistics.Statistics;
 import event.EventMenuSelected;
 
 import javax.swing.JComponent;
@@ -44,6 +45,8 @@ public class main extends javax.swing.JFrame {
 
     private HousekeepingTask housekeepingTask;
     private MaintenanceTicket maintenanceTicket;
+
+    private Statistics statistics;
 
     private String currentUsername;
     private String currentFullName;
@@ -94,6 +97,8 @@ public class main extends javax.swing.JFrame {
         housekeepingTask = new HousekeepingTask();
         maintenanceTicket = new MaintenanceTicket();
 
+        statistics = new Statistics();
+
         Menu menu = new Menu();
         add(menu);
         menu.initMoving(main.this);
@@ -132,11 +137,7 @@ public class main extends javax.swing.JFrame {
                 } else if (index == 20) {
                     setForm(maintenanceTicket);
                 } else if (index == 22) {
-
-                } else if (index == 23) {
-
-                } else if (index == 24) {
-
+                    setForm(statistics);
                 }
             }
         });
