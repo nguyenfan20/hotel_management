@@ -13,11 +13,11 @@ public class BookingRoomDAO {
 
     private static final String INSERT_SQL = "INSERT INTO BookingRoom (booking_id, room_id, check_in_plan, check_out_plan, adults, children, rate_per_night, discount_amount, tax_rate, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     private static final String UPDATE_SQL = "UPDATE BookingRoom SET booking_id = ?, room_id = ?, check_in_plan = ?, check_out_plan = ?, check_in_actual = ?, check_out_actual = ?, adults = ?, children = ?, rate_per_night = ?, discount_amount = ?, tax_rate = ?, status = ? WHERE booking_room_id = ?";
-    private static final String DELETE_SQL = "UPDATE BookingRoom SET is_hide = 1 WHERE booking_room_id = ?";
-    private static final String SELECT_BY_ID = "SELECT * FROM BookingRoom WHERE booking_room_id = ? AND is_hide = 0";
-    private static final String SELECT_BY_BOOKING_ID = "SELECT * FROM BookingRoom WHERE booking_id = ? AND is_hide = 0";
-    private static final String SELECT_BY_STATUS = "SELECT * FROM BookingRoom WHERE status = ? AND is_hide = 0";
-    private static final String SELECT_ALL = "SELECT * FROM BookingRoom WHERE is_hide = 0";
+    private static final String DELETE_SQL = "DELETE FROM BookingRoom WHERE booking_room_id = ?";
+    private static final String SELECT_BY_ID = "SELECT * FROM BookingRoom WHERE booking_room_id = ?";
+    private static final String SELECT_BY_BOOKING_ID = "SELECT * FROM BookingRoom WHERE booking_id = ?";
+    private static final String SELECT_BY_STATUS = "SELECT * FROM BookingRoom WHERE status = ?";
+    private static final String SELECT_ALL = "SELECT * FROM BookingRoom";
 
     public boolean insert(BookingRoomDTO bookingRoom) {
         return DatabaseConnection.executeUpdate(INSERT_SQL,

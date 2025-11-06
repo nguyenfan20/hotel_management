@@ -62,14 +62,7 @@ public class Guest extends javax.swing.JFrame {
         addButton.addActionListener(e -> addNewGuest());
         controlPanel.add(addButton);
 
-        JButton reloadButton = new JButton("⟳ Reload");
-        reloadButton.setPreferredSize(new Dimension(100, 35));
-        reloadButton.setBackground(SUCCESS_COLOR);
-        reloadButton.setForeground(Color.WHITE);
-        reloadButton.setFocusPainted(false);
-        reloadButton.setBorderPainted(false);
-        reloadButton.setFont(new Font("Arial", Font.BOLD, 13));
-        reloadButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        JButton reloadButton = createIconButton("/images/icon/reload.png");
         reloadButton.addActionListener(e -> loadGuestData());
         controlPanel.add(reloadButton);
 
@@ -162,13 +155,16 @@ public class Guest extends javax.swing.JFrame {
 
     // Cập nhật bảng với dữ liệu
     private void updateTableViewWithData(List<GuestDTO> data) {
-        String[] columnNames = {"Mã khách", "Mã phòng đặt", "Họ tên", "Giới tính", "Ngày sinh", "Số CMND", "Quốc tịch"};
-        DefaultTableModel model = new DefaultTableModel(columnNames, 0);
+        String[] columnNames = {"Họ tên", "Giới tính", "Ngày sinh", "Số CMND", "Quốc tịch"};
+        DefaultTableModel model = new DefaultTableModel(columnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
 
         for (GuestDTO guest : data) {
             Object[] row = {
-                    guest.getGuestId(),
-                    guest.getBookingRoomId(),
                     guest.getFullName(),
                     guest.getGender(),
                     guest.getDob(),
@@ -365,16 +361,9 @@ public class Guest extends javax.swing.JFrame {
         addDialog.setLayout(new BorderLayout());
         addDialog.setSize(450, 380);
 
-        JPanel contentPanel = new JPanel(new GridLayout(6, 2, 15, 15));
+        JPanel contentPanel = new JPanel(new GridLayout(5, 2, 15, 15));
         contentPanel.setBackground(PANEL_BG);
         contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        JLabel bookingRoomLabel = new JLabel("Mã phòng đặt (*):");
-        bookingRoomLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField bookingRoomField = new JTextField();
-        bookingRoomField.setFont(new Font("Arial", Font.PLAIN, 13));
-        contentPanel.add(bookingRoomLabel);
-        contentPanel.add(bookingRoomField);
 
         JLabel nameLabel = new JLabel("Họ tên (*):");
         nameLabel.setFont(new Font("Arial", Font.BOLD, 13));
@@ -426,23 +415,21 @@ public class Guest extends javax.swing.JFrame {
         confirmButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         confirmButton.addActionListener(e -> {
             try {
-                String bookingRoomStr = bookingRoomField.getText().trim();
                 String name = nameField.getText().trim();
                 String gender = (String) genderCombo.getSelectedItem();
                 String dobStr = dobField.getText().trim();
                 String idCard = idCardField.getText().trim();
                 String nationality = nationalityField.getText().trim();
 
-                if (bookingRoomStr.isEmpty() || name.isEmpty() || dobStr.isEmpty() || idCard.isEmpty()) {
+                if (name.isEmpty() || dobStr.isEmpty() || idCard.isEmpty()) {
                     JOptionPane.showMessageDialog(addDialog, "Vui lòng nhập đầy đủ thông tin (*)!",
                             "Lỗi", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
-                int bookingRoomId = Integer.parseInt(bookingRoomStr);
                 java.time.LocalDate dob = java.time.LocalDate.parse(dobStr);
 
-                GuestDTO newGuest = new GuestDTO(0, bookingRoomId, name, gender, dob, idCard,
+                GuestDTO newGuest = new GuestDTO(name, gender, dob, idCard,
                         nationality.isEmpty() ? "Việt Nam" : nationality);
 
                 if (guestBUS.addGuest(newGuest)) {
@@ -455,9 +442,6 @@ public class Guest extends javax.swing.JFrame {
                 }
             } catch (java.time.format.DateTimeParseException ex) {
                 JOptionPane.showMessageDialog(addDialog, "Ngày sinh không hợp lệ! Dùng định dạng: yyyy-MM-dd",
-                        "Lỗi", JOptionPane.ERROR_MESSAGE);
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(addDialog, "Mã phòng đặt phải là số!",
                         "Lỗi", JOptionPane.ERROR_MESSAGE);
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(addDialog, "Lỗi: " + ex.getMessage(),

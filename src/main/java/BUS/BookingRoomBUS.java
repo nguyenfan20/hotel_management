@@ -2,6 +2,8 @@ package BUS;
 
 import DAO.BookingRoomDAO;
 import DTO.BookingRoomDTO;
+import DTO.RoomDTO;
+import DTO.RoomTypeDTO;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -9,9 +11,11 @@ import java.util.List;
 // Lớp xử lý logic nghiệp vụ phòng đặt
 public class BookingRoomBUS {
     private BookingRoomDAO bookingRoomDAO;
+    private RoomTypeBUS roomTypeBUS;
 
     public BookingRoomBUS(BookingRoomDAO bookingRoomDAO) {
         this.bookingRoomDAO = bookingRoomDAO;
+        this.roomTypeBUS = new RoomTypeBUS();
     }
 
     // Thêm phòng đặt mới với kiểm tra
@@ -42,10 +46,49 @@ public class BookingRoomBUS {
             return false;
         }
 
-        if (bookingRoom.getRatePerNight() == null || bookingRoom.getRatePerNight().compareTo(BigDecimal.ZERO) <= 0) {
-            System.err.println("Lỗi: Giá phòng phải lớn hơn 0");
+        return bookingRoomDAO.insert(bookingRoom);
+    }
+
+    public boolean addBookingRoomFromRoom(int bookingId, RoomDTO room) {
+        if (bookingId <= 0) {
+            System.err.println("Lỗi: Mã đặt phòng không hợp lệ");
             return false;
         }
+
+        if (room == null || room.getRoomId() <= 0) {
+            System.err.println("Lỗi: Mã phòng không hợp lệ");
+            return false;
+        }
+
+        BigDecimal price = BigDecimal.ZERO;
+        try {
+            RoomTypeDTO roomType = roomTypeBUS.getRoomTypeById(room.getRoomTypeId());
+            if (roomType != null && roomType.getBasePrice() != null) {
+                price = roomType.getBasePrice();
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi lấy giá từ loại phòng: " + e.getMessage());
+        }
+
+        // Auto-fill thông tin từ phòng
+        LocalDateTime checkIn = LocalDateTime.now();
+        LocalDateTime checkOut = checkIn.plusDays(1);
+
+        BookingRoomDTO bookingRoom = new BookingRoomDTO(
+                0,
+                bookingId,
+                room.getRoomId(),
+                checkIn,
+                checkOut,
+                null,
+                null,
+                1,  // 1 người lớn mặc định
+                0,  // 0 trẻ em mặc định
+                price,  // Giá từ loại phòng
+                BigDecimal.ZERO,  // Không giảm giá mặc định
+                BigDecimal.ZERO,  // Không thuế mặc định
+                "Đã đặt"
+        );
 
         return bookingRoomDAO.insert(bookingRoom);
     }
