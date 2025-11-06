@@ -195,6 +195,20 @@ public List<String> getAllNationalities() {
         return false;
     }
 
+    public CustomerDTO getCustomerByPhone(long phone) {
+        if (phone <= 0) {
+            System.err.println("Số điện thoại không hợp lệ");
+            return null;
+        }
+        List<CustomerDTO> all = getAllCustomers();
+        for (CustomerDTO c : all) {
+            if (c.getPhone() == phone) {
+                return c;
+            }
+        }
+        return null;
+    }
+
     // === Validate dữ liệu đầu vào ===
 
     private boolean validateCustomer(CustomerDTO customer, boolean isAdd) {

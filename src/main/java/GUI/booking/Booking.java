@@ -1,53 +1,27 @@
-/*
- * Click nbfs://SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://SystemFileSystem/Templates/GUIForms/JPanel.java to edit this template
- */
 package GUI.booking;
 
-import BUS.BookingBUS;
-import BUS.BookingRoomBUS;
-import BUS.CustomerBUS;
-import BUS.RoomBUS;
-import BUS.RoomTypeBUS;
-import DTO.BookingDTO;
-import DTO.BookingRoomDTO;
-import DTO.CustomerDTO;
-import DTO.RoomDTO;
-import DTO.RoomTypeDTO;
+import BUS.*;
+import DTO.*;
+import util.SimpleDocumentListener;
+
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-/**
- *
- * @author Hotel Management System
- */
 public class Booking extends javax.swing.JPanel {
     private static final Color PRIMARY_COLOR = new Color(41, 98, 255);
     private static final Color AVAILABLE_COLOR = new Color(232, 245, 233);
     private static final Color SELECTED_COLOR = new Color(200, 220, 255);
-    private static final Color BACKGROUND_COLOR = new Color(245,
-            245, 245);
+    private static final Color BACKGROUND_COLOR = new Color(245, 245, 245);
     private static final Color PANEL_BG = Color.WHITE;
     private static final Color BORDER_COLOR = new Color(224, 224, 224);
     private static final Color TEXT_COLOR = new Color(33, 33, 33);
-
-    private JScrollPane scrollPane;
-    private JTable bookingTable;
-    private JTextField searchField;
 
     private BookingBUS bookingBUS;
     private BookingRoomBUS bookingRoomBUS;
@@ -55,14 +29,26 @@ public class Booking extends javax.swing.JPanel {
     private RoomBUS roomBUS;
     private RoomTypeBUS roomTypeBUS;
 
-    private List<BookingDTO> bookingData = new ArrayList<>();
-    private List<BookingDTO> filteredBookingData = new ArrayList<>();
     private Map<Integer, String> roomTypes = new HashMap<>();
-    private int currentUserId = 1; // TODO: Get from login session
+    private List<Integer> selectedRoomIds = new ArrayList<>();
+    private Map<Integer, JButton> roomButtonMap = new HashMap<>();
 
-    /**
-     * Creates new form Booking
-     */
+    private CustomerDTO currentCustomer;
+    private JPanel customerInfoPanel;
+    private JComboBox<String> customerCombo;
+    private JTextField phoneField;
+    private JTextField nameField;
+    private JTextField emailField;
+    private JTextField idCardField;
+    private JTextField nationalityField;
+    private JTextField genderField;
+
+    private JTextField dateCheckinField;
+    private JTextField dateCheckoutField;
+    private JSpinner guestAdultsSpinner;
+    private JSpinner guestChildrenSpinner;
+    private JTextField noteField;
+
     public Booking() {
         bookingBUS = new BookingBUS(new DAO.BookingDAO());
         bookingRoomBUS = new BookingRoomBUS(new DAO.BookingRoomDAO());
@@ -71,7 +57,6 @@ public class Booking extends javax.swing.JPanel {
         roomTypeBUS = new RoomTypeBUS();
         initComponents();
         loadRoomTypes();
-        loadData();
     }
 
     @SuppressWarnings("unchecked")
@@ -79,70 +64,483 @@ public class Booking extends javax.swing.JPanel {
         setLayout(new BorderLayout());
         setBackground(BACKGROUND_COLOR);
 
-        JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
-        controlPanel.setBackground(PANEL_BG);
-        controlPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_COLOR),
-                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        JScrollPane mainScroll = new JScrollPane();
+        mainScroll.setBorder(null);
+        mainScroll.getViewport().setBackground(BACKGROUND_COLOR);
+
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+        mainPanel.setBackground(BACKGROUND_COLOR);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        // === PHẦN THÔNG TIN KHÁCH HÀNG ===
+        customerInfoPanel = createCustomerSection();
+        mainPanel.add(customerInfoPanel);
+        mainPanel.add(Box.createVerticalStrut(20));
+
+        // === PHẦN NGÀY ===
+        JPanel dateSection = createDateSection();
+        mainPanel.add(dateSection);
+        mainPanel.add(Box.createVerticalStrut(20));
+
+        // === PHẦN SỐ NGƯỜI ===
+        JPanel guestSection = createGuestSection();
+        mainPanel.add(guestSection);
+        mainPanel.add(Box.createVerticalStrut(20));
+
+        // === PHẦN CHỌN PHÒNG ===
+        JPanel roomSelectionSection = createRoomSelectionSection();
+        mainPanel.add(roomSelectionSection);
+        mainPanel.add(Box.createVerticalStrut(20));
+
+        // === PHẦN GHI CHÚ ===
+        JPanel noteSection = createNoteSection();
+        mainPanel.add(noteSection);
+        mainPanel.add(Box.createVerticalGlue());
+
+        mainScroll.setViewportView(mainPanel);
+        add(mainScroll, BorderLayout.CENTER);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        buttonPanel.setBackground(PANEL_BG);
+        buttonPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, BORDER_COLOR));
+
+        JButton submitButton = new JButton("Tạo đơn đặt");
+        submitButton.setPreferredSize(new Dimension(130, 35));
+        submitButton.setBackground(PRIMARY_COLOR);
+        submitButton.setForeground(Color.WHITE);
+        submitButton.setFocusPainted(false);
+        submitButton.setBorderPainted(false);
+        submitButton.setFont(new Font("Arial", Font.BOLD, 13));
+        submitButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        submitButton.addActionListener(e -> submitBooking());
+        buttonPanel.add(submitButton);
+
+        JButton resetButton = new JButton("Xóa trắng");
+        resetButton.setPreferredSize(new Dimension(100, 35));
+        resetButton.setBackground(BORDER_COLOR);
+        resetButton.setForeground(TEXT_COLOR);
+        resetButton.setFocusPainted(false);
+        resetButton.setBorderPainted(false);
+        resetButton.setFont(new Font("Arial", Font.BOLD, 13));
+        resetButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        resetButton.addActionListener(e -> resetForm());
+        buttonPanel.add(resetButton);
+
+        add(buttonPanel, BorderLayout.SOUTH);
+    }
+
+    private JPanel createCustomerSection() {
+        JPanel section = new JPanel(new BorderLayout());
+        section.setBackground(PANEL_BG);
+        section.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(15, 15, 15, 15)
         ));
 
-        JButton addBookingButton = new JButton("Đặt phòng");
-        addBookingButton.setPreferredSize(new Dimension(140, 35));
-        addBookingButton.setBackground(PRIMARY_COLOR);
-        addBookingButton.setForeground(Color.WHITE);
-        addBookingButton.setFocusPainted(false);
-        addBookingButton.setBorderPainted(false);
-        addBookingButton.setFont(new Font("Arial", Font.BOLD, 13));
-        addBookingButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        addBookingButton.addActionListener(e -> showNewBookingDialog());
-        controlPanel.add(addBookingButton);
+        JLabel titleLabel = new JLabel("Thông tin khách hàng");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        titleLabel.setForeground(PRIMARY_COLOR);
 
-        controlPanel.add(Box.createHorizontalStrut(20));
+        JPanel contentPanel = new JPanel(new BorderLayout());
+        contentPanel.setBackground(PANEL_BG);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
 
-        searchField = new JTextField(15);
-        searchField.setPreferredSize(new Dimension(200, 35));
-        searchField.setFont(new Font("Arial", Font.PLAIN, 13));
-        searchField.setBorder(BorderFactory.createCompoundBorder(
+        // Search panel
+        JPanel searchPanel = new JPanel(new GridLayout(1, 2, 15, 15));
+        searchPanel.setBackground(PANEL_BG);
+
+        JLabel phoneLabel = new JLabel("Số điện thoại:");
+        phoneLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        phoneField = new JTextField();
+        phoneField.setPreferredSize(new Dimension(200, 35));
+        phoneField.setFont(new Font("Arial", Font.PLAIN, 12));
+        phoneField.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER_COLOR, 1),
                 BorderFactory.createEmptyBorder(5, 10, 5, 10)
         ));
-        searchField.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                    performSearch();
+
+        JButton searchCustomerButton = new JButton("Tìm kiếm");
+        searchCustomerButton.setPreferredSize(new Dimension(100, 35));
+        searchCustomerButton.setBackground(PRIMARY_COLOR);
+        searchCustomerButton.setForeground(Color.WHITE);
+        searchCustomerButton.setFocusPainted(false);
+        searchCustomerButton.setBorderPainted(false);
+        searchCustomerButton.setFont(new Font("Arial", Font.BOLD, 12));
+        searchCustomerButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        JPanel phonePanel = new JPanel(new BorderLayout(5, 0));
+        phonePanel.setBackground(PANEL_BG);
+        phonePanel.add(phoneField, BorderLayout.CENTER);
+        phonePanel.add(searchCustomerButton, BorderLayout.EAST);
+
+        searchPanel.add(phoneLabel);
+        searchPanel.add(phonePanel);
+
+        contentPanel.add(searchPanel, BorderLayout.NORTH);
+
+        // Customer info panel (initially hidden)
+        JPanel customerDetailsPanel = new JPanel(new GridLayout(6, 2, 15, 15));
+        customerDetailsPanel.setBackground(PANEL_BG);
+        customerDetailsPanel.setBorder(BorderFactory.createEmptyBorder(15, 0, 0, 0));
+        customerDetailsPanel.setVisible(false);
+
+        nameField = createReadOnlyTextField("");
+        emailField = createReadOnlyTextField("");
+        idCardField = createReadOnlyTextField("");
+        nationalityField = createReadOnlyTextField("");
+        genderField = createReadOnlyTextField("");
+        JTextField noteField = createReadOnlyTextField("");
+
+        customerDetailsPanel.add(new JLabel("Họ tên:")).setFont(new Font("Arial", Font.BOLD, 12));
+        customerDetailsPanel.add(nameField);
+        customerDetailsPanel.add(new JLabel("Email:")).setFont(new Font("Arial", Font.BOLD, 12));
+        customerDetailsPanel.add(emailField);
+        customerDetailsPanel.add(new JLabel("CMND/CCCD:")).setFont(new Font("Arial", Font.BOLD, 12));
+        customerDetailsPanel.add(idCardField);
+        customerDetailsPanel.add(new JLabel("Quốc tịch:")).setFont(new Font("Arial", Font.BOLD, 12));
+        customerDetailsPanel.add(nationalityField);
+        customerDetailsPanel.add(new JLabel("Giới tính:")).setFont(new Font("Arial", Font.BOLD, 12));
+        customerDetailsPanel.add(genderField);
+        customerDetailsPanel.add(new JLabel("Ghi chú:")).setFont(new Font("Arial", Font.BOLD, 12));
+        customerDetailsPanel.add(noteField);
+
+        contentPanel.add(customerDetailsPanel, BorderLayout.CENTER);
+
+        searchCustomerButton.addActionListener(e -> {
+            String phone = phoneField.getText().trim();
+            if (phone.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Vui lòng nhập số điện thoại!");
+                return;
+            }
+
+            try {
+                // Parse phone to int
+                int phoneInt;
+                try {
+                    phoneInt = Integer.parseInt(phone);
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(this, "Số điện thoại không hợp lệ!");
+                    return;
                 }
+
+                CustomerDTO foundCustomer = customerBUS.getCustomerByPhone(phoneInt);
+
+                if (foundCustomer != null) {
+                    currentCustomer = foundCustomer;
+                    nameField.setText(foundCustomer.getFull_name());
+                    emailField.setText(foundCustomer.getEmail() != null ? foundCustomer.getEmail() : "");
+                    idCardField.setText(foundCustomer.getId_card());
+                    nationalityField.setText(foundCustomer.getNationality());
+                    genderField.setText(foundCustomer.getGender());
+                    customerDetailsPanel.setVisible(true);
+                    JOptionPane.showMessageDialog(this, "Tìm thấy khách hàng: " + foundCustomer.getFull_name());
+                } else {
+                    currentCustomer = null;
+                    nameField.setText("");
+                    emailField.setText("");
+                    idCardField.setText("");
+                    nationalityField.setText("");
+                    genderField.setText("");
+                    customerDetailsPanel.setVisible(false);
+                    JOptionPane.showMessageDialog(this, "Không tìm thấy khách hàng. Vui lòng nhập thông tin khách hàng mới bên dưới.");
+                }
+                customerInfoPanel.revalidate();
+                customerInfoPanel.repaint();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Lỗi: " + ex.getMessage());
             }
         });
-        controlPanel.add(searchField);
 
-        JButton searchButton = createIconButton("/images/search.png");
-        searchButton.addActionListener(e -> performSearch());
-        controlPanel.add(searchButton);
-
-        add(controlPanel, BorderLayout.NORTH);
-
-        scrollPane = new JScrollPane();
-        scrollPane.setBorder(null);
-        scrollPane.getViewport().setBackground(BACKGROUND_COLOR);
-        add(scrollPane, BorderLayout.CENTER);
+        section.add(titleLabel, BorderLayout.NORTH);
+        section.add(contentPanel, BorderLayout.CENTER);
+        return section;
     }
 
-    private JButton createIconButton(String iconPath) {
-        JButton button = new JButton();
-        button.setPreferredSize(new Dimension(35, 35));
+    private JTextField createReadOnlyTextField(String text) {
+        JTextField field = new JTextField(text);
+        field.setEditable(false);
+        field.setFont(new Font("Arial", Font.PLAIN, 12));
+        field.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+        field.setBackground(new Color(240, 240, 240));
+        field.setForeground(TEXT_COLOR);
+        return field;
+    }
+
+    private JPanel createDateSection() {
+        JPanel section = new JPanel(new BorderLayout());
+        section.setBackground(PANEL_BG);
+        section.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(15, 15, 15, 15)
+        ));
+
+        JLabel titleLabel = new JLabel("Ngày nhận và trả phòng");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        titleLabel.setForeground(PRIMARY_COLOR);
+
+        JPanel contentPanel = new JPanel(new GridLayout(1, 2, 15, 15));
+        contentPanel.setBackground(PANEL_BG);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
+
+        JLabel checkinLabel = new JLabel("Ngày nhận phòng (yyyy-MM-dd):");
+        checkinLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        dateCheckinField = new JTextField();
+        dateCheckinField.setText(LocalDate.now().toString());
+        dateCheckinField.setFont(new Font("Arial", Font.PLAIN, 12));
+        dateCheckinField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+
+        JPanel checkinPanel = new JPanel(new BorderLayout(0, 5));
+        checkinPanel.setBackground(PANEL_BG);
+        checkinPanel.add(checkinLabel, BorderLayout.NORTH);
+        checkinPanel.add(dateCheckinField, BorderLayout.CENTER);
+
+        JLabel checkoutLabel = new JLabel("Ngày trả phòng (yyyy-MM-dd):");
+        checkoutLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        dateCheckoutField = new JTextField();
+        dateCheckoutField.setText(LocalDate.now().plusDays(1).toString());
+        dateCheckoutField.setFont(new Font("Arial", Font.PLAIN, 12));
+        dateCheckoutField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+
+        JPanel checkoutPanel = new JPanel(new BorderLayout(0, 5));
+        checkoutPanel.setBackground(PANEL_BG);
+        checkoutPanel.add(checkoutLabel, BorderLayout.NORTH);
+        checkoutPanel.add(dateCheckoutField, BorderLayout.CENTER);
+
+        contentPanel.add(checkinPanel);
+        contentPanel.add(checkoutPanel);
+
+        section.add(titleLabel, BorderLayout.NORTH);
+        section.add(contentPanel, BorderLayout.CENTER);
+        return section;
+    }
+
+    private JPanel createGuestSection() {
+        JPanel section = new JPanel(new BorderLayout());
+        section.setBackground(PANEL_BG);
+        section.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(15, 15, 15, 15)
+        ));
+
+        JLabel titleLabel = new JLabel("Số lượng khách");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        titleLabel.setForeground(PRIMARY_COLOR);
+
+        JPanel contentPanel = new JPanel(new GridLayout(1, 2, 15, 15));
+        contentPanel.setBackground(PANEL_BG);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
+
+        JLabel adultsLabel = new JLabel("Số người lớn:");
+        adultsLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        guestAdultsSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 10, 1));
+        guestAdultsSpinner.setFont(new Font("Arial", Font.PLAIN, 12));
+
+        JPanel adultsPanel = new JPanel(new BorderLayout(0, 5));
+        adultsPanel.setBackground(PANEL_BG);
+        adultsPanel.add(adultsLabel, BorderLayout.NORTH);
+        adultsPanel.add(guestAdultsSpinner, BorderLayout.CENTER);
+
+        JLabel childrenLabel = new JLabel("Số trẻ em:");
+        childrenLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        guestChildrenSpinner = new JSpinner(new SpinnerNumberModel(0, 0, 10, 1));
+        guestChildrenSpinner.setFont(new Font("Arial", Font.PLAIN, 12));
+
+        JPanel childrenPanel = new JPanel(new BorderLayout(0, 5));
+        childrenPanel.setBackground(PANEL_BG);
+        childrenPanel.add(childrenLabel, BorderLayout.NORTH);
+        childrenPanel.add(guestChildrenSpinner, BorderLayout.CENTER);
+
+        contentPanel.add(adultsPanel);
+        contentPanel.add(childrenPanel);
+
+        section.add(titleLabel, BorderLayout.NORTH);
+        section.add(contentPanel, BorderLayout.CENTER);
+        return section;
+    }
+
+    private JPanel createRoomSelectionSection() {
+        JPanel section = new JPanel(new BorderLayout(0, 10));
+        section.setBackground(BACKGROUND_COLOR);
+
+        JLabel titleLabel = new JLabel("Chọn phòng trống");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 15));
+        titleLabel.setForeground(PRIMARY_COLOR);
+
+        JPanel roomsPanel = new JPanel();
+        roomsPanel.setLayout(new BoxLayout(roomsPanel, BoxLayout.Y_AXIS));
+        roomsPanel.setBackground(BACKGROUND_COLOR);
+
+        JScrollPane roomsScroll = new JScrollPane(roomsPanel);
+        roomsScroll.setBorder(null);
+        roomsScroll.getViewport().setBackground(BACKGROUND_COLOR);
+        roomsScroll.setPreferredSize(new Dimension(0, 420));
+
+        // Load phòng trống theo ngày đã chọn
+        loadAvailableRoomsByDateRange(roomsPanel);
+
+        // Lắng nghe thay đổi ngày để tự động refresh phòng
+        dateCheckinField.getDocument().addDocumentListener((SimpleDocumentListener) e -> loadAvailableRoomsByDateRange(roomsPanel));
+        dateCheckoutField.getDocument().addDocumentListener((SimpleDocumentListener) e -> loadAvailableRoomsByDateRange(roomsPanel));
+
+        section.add(titleLabel, BorderLayout.NORTH);
+        section.add(roomsScroll, BorderLayout.CENTER);
+        return section;
+    }
+
+    private void reloadAvailableRoomsOnly(JPanel roomsPanel) {
+        roomsPanel.removeAll();
+        roomButtonMap.clear();
+        selectedRoomIds.clear();
+
         try {
-            button.setIcon(new ImageIcon(getClass().getResource(iconPath)));
+            List<RoomDTO> allRooms = roomBUS.getAllRooms();
+            List<BookingRoomDTO> allBookingRooms = bookingRoomBUS.getAllBookingRooms();
+            LocalDateTime now = LocalDateTime.now();
+
+            // Lấy danh sách phòng đang bận (RESERVED hoặc OCCUPIED)
+            java.util.Set<Integer> busyRoomIds = new java.util.HashSet<>();
+            for (BookingRoomDTO br : allBookingRooms) {
+                if (br.getCheckOutPlan() != null && now.isBefore(br.getCheckOutPlan())) {
+                    BookingDTO booking = bookingBUS.getBookingById(br.getBookingId());
+                    if (booking != null && !"Đã hủy".equals(booking.getStatus())) {
+                        busyRoomIds.add(br.getRoomId());
+                    }
+                }
+            }
+
+            int currentFloor = -1;
+            JPanel rowPanel = null;
+
+            for (RoomDTO room : allRooms) {
+                // === CHỈ HIỆN PHÒNG TRỐNG ===
+                if (busyRoomIds.contains(room.getRoomId())) {
+                    continue;
+                }
+
+                int floorNo = room.getFloorNo();
+
+                // Tạo tiêu đề tầng
+                if (floorNo != currentFloor) {
+                    currentFloor = floorNo;
+
+                    JPanel floorHeader = new JPanel(new FlowLayout(FlowLayout.CENTER));
+                    floorHeader.setBackground(BACKGROUND_COLOR);
+                    JLabel floorLabel = new JLabel("Tầng " + floorNo, SwingConstants.CENTER);
+                    floorLabel.setFont(new Font("Arial", Font.BOLD, 18));
+                    floorLabel.setForeground(TEXT_COLOR);
+                    floorLabel.setOpaque(true);
+                    floorLabel.setBackground(PANEL_BG);
+                    floorLabel.setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                            BorderFactory.createEmptyBorder(12, 60, 12, 60)
+                    ));
+                    floorHeader.add(floorLabel);
+                    roomsPanel.add(floorHeader);
+
+                    rowPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 22, 18));
+                    rowPanel.setBackground(BACKGROUND_COLOR);
+                    roomsPanel.add(rowPanel);
+                }
+
+                // Tạo nút phòng
+                JButton roomBtn = new JButton();
+                roomBtn.setLayout(new BorderLayout(0, 6));
+                roomBtn.setPreferredSize(new Dimension(140, 150));
+                roomBtn.setBackground(AVAILABLE_COLOR);
+                roomBtn.setOpaque(true);
+                roomBtn.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(BORDER_COLOR, 2),
+                        BorderFactory.createEmptyBorder(14, 14, 14, 14)
+                ));
+                roomBtn.setFocusPainted(false);
+                roomBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+                // Icon nhà
+                ImageIcon icon = new ImageIcon(getClass().getResource("/images/house.png"));
+                JLabel iconLabel = new JLabel(icon, SwingConstants.CENTER);
+                roomBtn.add(iconLabel, BorderLayout.CENTER);
+
+                // Tên + loại phòng
+                JPanel textPanel = new JPanel(new BorderLayout());
+                textPanel.setOpaque(false);
+                JLabel nameLbl = new JLabel("Phòng " + room.getRoomNo(), SwingConstants.CENTER);
+                nameLbl.setFont(new Font("Arial", Font.BOLD, 14));
+                JLabel typeLbl = new JLabel(roomTypes.getOrDefault(room.getRoomTypeId(), ""), SwingConstants.CENTER);
+                typeLbl.setFont(new Font("Arial", Font.ITALIC, 11));
+                typeLbl.setForeground(new Color(80, 80, 80));
+                textPanel.add(nameLbl, BorderLayout.NORTH);
+                textPanel.add(typeLbl, BorderLayout.SOUTH);
+                roomBtn.add(textPanel, BorderLayout.SOUTH);
+
+                // Xử lý chọn phòng
+                int roomId = room.getRoomId();
+                roomBtn.addActionListener(e -> {
+                    if (selectedRoomIds.contains(roomId)) {
+                        selectedRoomIds.remove(Integer.valueOf(roomId));
+                        roomBtn.setBackground(AVAILABLE_COLOR);
+                    } else {
+                        selectedRoomIds.add(roomId);
+                        roomBtn.setBackground(SELECTED_COLOR);
+                    }
+                });
+
+                roomButtonMap.put(roomId, roomBtn);
+                rowPanel.add(roomBtn);
+
+                // Xuống dòng sau 4 phòng
+                if (rowPanel.getComponentCount() == 4) {
+                    rowPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 22, 18));
+                    rowPanel.setBackground(BACKGROUND_COLOR);
+                    roomsPanel.add(rowPanel);
+                }
+            }
+
+            roomsPanel.revalidate();
+            roomsPanel.repaint();
+
         } catch (Exception e) {
-            // Icon not found, use text
-            button.setText("🔍");
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi tải phòng: " + e.getMessage());
         }
-        button.setBackground(PANEL_BG);
-        button.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
-        button.setFocusPainted(false);
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        return button;
     }
+
+    private JPanel createNoteSection() {
+        JPanel section = new JPanel(new BorderLayout());
+        section.setBackground(PANEL_BG);
+        section.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(15, 15, 15, 15)
+        ));
+
+        JLabel titleLabel = new JLabel("Ghi chú");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        titleLabel.setForeground(PRIMARY_COLOR);
+
+        noteField = new JTextField();
+        noteField.setFont(new Font("Arial", Font.PLAIN, 12));
+        noteField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+        noteField.setPreferredSize(new Dimension(0, 60));
+
+        section.add(titleLabel, BorderLayout.NORTH);
+        section.add(noteField, BorderLayout.CENTER);
+        return section;
+    }
+
+
 
     private void loadRoomTypes() {
         try {
@@ -156,394 +554,263 @@ public class Booking extends javax.swing.JPanel {
         }
     }
 
-    private void loadData() {
+    private void submitBooking() {
         try {
-            bookingData = bookingBUS.getAllBookings();
-            filteredBookingData = bookingData.stream().collect(Collectors.toList());
-            updateTable();
+            if (currentCustomer == null) {
+                JOptionPane.showMessageDialog(this, "Vui lòng tìm kiếm khách hàng trước!");
+                return;
+            }
+
+            if (selectedRoomIds.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Vui lòng chọn ít nhất một phòng!");
+                return;
+            }
+
+            // Validate and parse dates
+            LocalDate checkInDate;
+            LocalDate checkOutDate;
+            try {
+                checkInDate = LocalDate.parse(dateCheckinField.getText().trim());
+                checkOutDate = LocalDate.parse(dateCheckoutField.getText().trim());
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Ngày không hợp lệ! Định dạng: yyyy-MM-dd");
+                return;
+            }
+
+            if (checkInDate.isAfter(checkOutDate) || checkInDate.isEqual(checkOutDate)) {
+                JOptionPane.showMessageDialog(this, "Ngày trả phòng phải sau ngày nhận phòng!");
+                return;
+            }
+
+            int adultsCount = (Integer) guestAdultsSpinner.getValue();
+            int childrenCount = (Integer) guestChildrenSpinner.getValue();
+            String notes = noteField.getText().trim();
+
+            // Create booking
+            BookingDTO booking = new BookingDTO();
+            booking.setCustomerId(currentCustomer.getCustomer_id());
+            booking.setBookingDate(LocalDateTime.now());
+            booking.setStatus("Đã đặt");
+            booking.setSource("MANUAL");
+            booking.setNote(notes.isEmpty() ? null : notes);
+            booking.setCreatedBy(1); // Default user ID, should be from session
+
+            // Add booking to database
+            boolean bookingAdded = bookingBUS.addBooking(booking);
+            if (!bookingAdded) {
+                JOptionPane.showMessageDialog(this, "Lỗi khi tạo đơn đặt!");
+                return;
+            }
+
+            // Get the created booking to get its ID (get last booking for this customer)
+            List<BookingDTO> bookings = bookingBUS.getBookingsByCustomer(currentCustomer.getCustomer_id());
+            BookingDTO createdBooking = bookings.get(bookings.size() - 1);
+
+            // Add booking rooms for each selected room
+            for (int roomId : selectedRoomIds) {
+                RoomDTO room = roomBUS.getRoomById(roomId);
+                RoomTypeDTO roomType = roomTypeBUS.getRoomTypeById(room.getRoomTypeId());
+                BigDecimal ratePerNight = roomType.getBasePrice() != null ? roomType.getBasePrice() : BigDecimal.ZERO;
+
+                BookingRoomDTO bookingRoom = new BookingRoomDTO();
+                bookingRoom.setBookingId(createdBooking.getBookingId());
+                bookingRoom.setRoomId(roomId);
+                bookingRoom.setCheckInPlan(checkInDate.atStartOfDay());
+                bookingRoom.setCheckOutPlan(checkOutDate.atStartOfDay());
+                bookingRoom.setAdults(adultsCount);
+                bookingRoom.setChildren(childrenCount);
+                bookingRoom.setRatePerNight(ratePerNight);
+                bookingRoom.setStatus("Chờ nhận");
+
+                boolean roomAdded = bookingRoomBUS.addBookingRoom(bookingRoom);
+                if (!roomAdded) {
+                    JOptionPane.showMessageDialog(this, "Lỗi khi thêm phòng vào đơn đặt!");
+                    return;
+                }
+            }
+
+            JOptionPane.showMessageDialog(this, "Tạo đơn đặt thành công!\nMã đơn: " + createdBooking.getCode());
+            SwingUtilities.windowForComponent(this).dispose();
+
         } catch (Exception e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi khi tải dữ liệu đặt phòng: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Lỗi: " + e.getMessage());
         }
     }
 
-    private void performSearch() {
-        String query = searchField.getText().trim().toLowerCase();
-        if (query.isEmpty()) {
-            filteredBookingData = bookingData.stream().collect(Collectors.toList());
-        } else {
-            filteredBookingData = bookingData.stream()
-                    .filter(booking -> {
-                        String code = booking.getCode().toLowerCase();
-                        String status = booking.getStatus().toLowerCase();
-                        return code.contains(query) || status.contains(query);
-                    })
-                    .collect(Collectors.toList());
+    private void resetForm() {
+        currentCustomer = null;
+        phoneField.setText("");
+        nameField.setText("");
+        emailField.setText("");
+        idCardField.setText("");
+        nationalityField.setText("");
+        genderField.setText("");
+        dateCheckinField.setText(LocalDate.now().toString());
+        dateCheckoutField.setText(LocalDate.now().plusDays(1).toString());
+        guestAdultsSpinner.setValue(1);
+        guestChildrenSpinner.setValue(0);
+        noteField.setText("");
+        selectedRoomIds.clear();
+
+        // Refresh lại danh sách phòng trống
+        Container parent = this;
+        while (parent != null && !(parent instanceof JScrollPane)) {
+            parent = parent.getParent();
         }
-        updateTable();
-    }
-
-    private void updateTable() {
-        String[] columnNames = {"ID", "Mã đặt", "Khách hàng", "Ngày đặt", "Trạng thái", "Ghi chú"};
-        DefaultTableModel model = new DefaultTableModel(columnNames, 0);
-
-        for (BookingDTO booking : filteredBookingData) {
-            Object[] row = {
-                    booking.getBookingId(),
-                    booking.getCode(),
-                    booking.getCustomerId(),
-                    booking.getBookingDate() != null ? booking.getBookingDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : "",
-                    booking.getStatus(),
-                    booking.getNote() != null ? booking.getNote() : ""
-            };
-            model.addRow(row);
-        }
-
-        bookingTable = new JTable(model);
-        bookingTable.setRowHeight(40);
-        bookingTable.setFont(new Font("Arial", Font.PLAIN, 13));
-        bookingTable.setGridColor(BORDER_COLOR);
-        bookingTable.setSelectionBackground(new Color(232, 240, 254));
-        bookingTable.setSelectionForeground(TEXT_COLOR);
-
-        bookingTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 14));
-        bookingTable.getTableHeader().setBackground(PANEL_BG);
-        bookingTable.getTableHeader().setForeground(TEXT_COLOR);
-        bookingTable.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, PRIMARY_COLOR));
-        bookingTable.getTableHeader().setPreferredSize(new Dimension(0, 45));
-
-        bookingTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                if (!isSelected) {
-                    c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(250, 250, 250));
-                }
-                setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-                return c;
+        if (parent instanceof JScrollPane) {
+            Component view = ((JScrollPane) parent).getViewport().getView();
+            if (view instanceof JPanel) {
+                reloadAvailableRoomsOnly((JPanel) view);
             }
-        });
-
-        bookingTable.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 2 && bookingTable.getSelectedRow() != -1) {
-                    int row = bookingTable.getSelectedRow();
-                    int bookingId = (Integer) bookingTable.getValueAt(row, 0);
-                    BookingDTO booking = bookingBUS.getBookingById(bookingId);
-                    if (booking != null) {
-                        showBookingDetailDialog(booking);
-                    }
-                }
-            }
-        });
-
-        scrollPane.setViewportView(bookingTable);
+        }
     }
 
-    private void showNewBookingDialog() {
-        JDialog bookingDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Tạo đơn đặt phòng", true);
-        bookingDialog.setLayout(new BorderLayout());
-        bookingDialog.setSize(700, 600);
-
-        JTabbedPane tabbedPane = new JTabbedPane();
-
-        // Tab 1: Customer Information
-        JPanel customerPanel = createCustomerPanel(bookingDialog);
-        tabbedPane.addTab("Thông tin khách hàng", customerPanel);
-
-        // Tab 2: Room Selection
-        JPanel roomPanel = createRoomSelectionPanel(bookingDialog);
-        tabbedPane.addTab("Chọn phòng", roomPanel);
-
-        bookingDialog.add(tabbedPane, BorderLayout.CENTER);
-
-        // Store reference to access from inner class
-        final JDialog dialog = bookingDialog;
-
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
-        buttonPanel.setBackground(PANEL_BG);
-
-        JButton completeButton = new JButton("Hoàn tất");
-        completeButton.setPreferredSize(new Dimension(100, 35));
-        completeButton.setBackground(PRIMARY_COLOR);
-        completeButton.setForeground(Color.WHITE);
-        completeButton.setFocusPainted(false);
-        completeButton.setBorderPainted(false);
-        completeButton.setFont(new Font("Arial", Font.BOLD, 13));
-        completeButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        JButton cancelButton = new JButton("Hủy");
-        cancelButton.setPreferredSize(new Dimension(100, 35));
-        cancelButton.setBackground(BORDER_COLOR);
-        cancelButton.setForeground(TEXT_COLOR);
-        cancelButton.setFocusPainted(false);
-        cancelButton.setBorderPainted(false);
-        cancelButton.setFont(new Font("Arial", Font.BOLD, 13));
-        cancelButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        cancelButton.addActionListener(e -> dialog.dispose());
-
-        buttonPanel.add(completeButton);
-        buttonPanel.add(cancelButton);
-
-        bookingDialog.add(buttonPanel, BorderLayout.SOUTH);
-        bookingDialog.setLocationRelativeTo(this);
-        bookingDialog.setVisible(true);
-    }
-
-    private JPanel createCustomerPanel(JDialog parentDialog) {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(PANEL_BG);
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        JPanel formPanel = new JPanel(new GridLayout(6, 2, 15, 15));
-        formPanel.setBackground(PANEL_BG);
-
-        JLabel customerLabel = new JLabel("Khách hàng:");
-        customerLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JComboBox<String> customerCombo = new JComboBox<>();
-        JButton addCustomerButton = new JButton("Thêm mới");
-        addCustomerButton.setPreferredSize(new Dimension(100, 30));
-        addCustomerButton.setBackground(PRIMARY_COLOR);
-        addCustomerButton.setForeground(Color.WHITE);
-        addCustomerButton.setFont(new Font("Arial", Font.BOLD, 11));
-        addCustomerButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        // Load customers
+    private boolean isRoomAvailableInDateRange(int roomId, LocalDateTime checkIn, LocalDateTime checkOut) {
         try {
-            List<CustomerDTO> customers = customerBUS.getAllCustomers();
-            for (CustomerDTO c : customers) {
-                customerCombo.addItem(c.getFull_name() + " - " + c.getPhone());
+            List<BookingRoomDTO> allBookings = bookingRoomBUS.getAllBookingRooms();
+            for (BookingRoomDTO br : allBookings) {
+                if (br.getRoomId() != roomId) continue;
+
+                // Bỏ qua các booking đã hủy hoặc đã trả phòng
+                BookingDTO booking = bookingBUS.getBookingById(br.getBookingId());
+                if (booking == null || "Đã hủy".equals(booking.getStatus())) continue;
+                if (br.getCheckOutActual() != null) continue; // đã trả phòng
+
+                LocalDateTime inPlan = br.getCheckInPlan();
+                LocalDateTime outPlan = br.getCheckOutPlan();
+
+                // Kiểm tra trùng lịch: [checkIn - checkOut] vs [inPlan - outPlan]
+                boolean overlap = !checkOut.isBefore(inPlan) && !outPlan.isBefore(checkIn);
+                if (overlap) {
+                    return false; // có khách đặt rồi
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        JPanel customerSelectPanel = new JPanel(new BorderLayout(5, 0));
-        customerSelectPanel.setBackground(PANEL_BG);
-        customerSelectPanel.add(customerCombo, BorderLayout.CENTER);
-        customerSelectPanel.add(addCustomerButton, BorderLayout.EAST);
-
-        formPanel.add(customerLabel);
-        formPanel.add(customerSelectPanel);
-
-        // Check-in date
-        JLabel checkinLabel = new JLabel("Ngày nhận phòng:");
-        checkinLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField checkinField = new JTextField();
-        checkinField.setText("2024-01-01");
-        formPanel.add(checkinLabel);
-        formPanel.add(checkinField);
-
-        // Check-out date
-        JLabel checkoutLabel = new JLabel("Ngày trả phòng:");
-        checkoutLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField checkoutField = new JTextField();
-        checkoutField.setText("2024-01-02");
-        formPanel.add(checkoutLabel);
-        formPanel.add(checkoutField);
-
-        // Adults
-        JLabel adultsLabel = new JLabel("Số người lớn:");
-        adultsLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JSpinner adultsSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 10, 1));
-        formPanel.add(adultsLabel);
-        formPanel.add(adultsSpinner);
-
-        // Children
-        JLabel childrenLabel = new JLabel("Số trẻ em:");
-        childrenLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JSpinner childrenSpinner = new JSpinner(new SpinnerNumberModel(0, 0, 10, 1));
-        formPanel.add(childrenLabel);
-        formPanel.add(childrenSpinner);
-
-        // Note
-        JLabel noteLabel = new JLabel("Ghi chú:");
-        noteLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField noteField = new JTextField();
-        formPanel.add(noteLabel);
-        formPanel.add(noteField);
-
-        panel.add(formPanel, BorderLayout.NORTH);
-
-        // Store fields in panel for later access
-        panel.putClientProperty("customerCombo", customerCombo);
-        panel.putClientProperty("checkinField", checkinField);
-        panel.putClientProperty("checkoutField", checkoutField);
-        panel.putClientProperty("adultsSpinner", adultsSpinner);
-        panel.putClientProperty("childrenSpinner", childrenSpinner);
-        panel.putClientProperty("noteField", noteField);
-
-        return panel;
+        return true; // trống
     }
 
-    private JPanel createRoomSelectionPanel(JDialog parentDialog) {
-        JPanel panel = new JPanel(new BorderLayout(0, 15));
-        panel.setBackground(BACKGROUND_COLOR);
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+    private void loadAvailableRoomsByDateRange(JPanel roomsPanel) {
+        roomsPanel.removeAll();
+        roomButtonMap.clear();
+        selectedRoomIds.clear();
 
-        // Available rooms display
-        JPanel roomsPanel = new JPanel();
-        roomsPanel.setLayout(new BoxLayout(roomsPanel, BoxLayout.Y_AXIS));
-        roomsPanel.setBackground(BACKGROUND_COLOR);
+        LocalDateTime checkIn = null;
+        LocalDateTime checkOut = null;
 
-        JScrollPane roomsScrollPane = new JScrollPane(roomsPanel);
-        roomsScrollPane.setBorder(null);
-        roomsScrollPane.getViewport().setBackground(BACKGROUND_COLOR);
-
-        // Load and display available rooms
         try {
-            List<RoomDTO> availableRooms = roomBUS.filterRoomsByStatus("AVAILABLE");
+            checkIn = LocalDate.parse(dateCheckinField.getText().trim()).atStartOfDay();
+            checkOut = LocalDate.parse(dateCheckoutField.getText().trim()).atStartOfDay();
+        } catch (Exception ex) {
+            // Nếu ngày sai định dạng → không load gì cả
+            roomsPanel.revalidate();
+            roomsPanel.repaint();
+            return;
+        }
+
+        if (checkIn.isAfter(checkOut) || checkIn.isEqual(checkOut)) {
+            roomsPanel.revalidate();
+            roomsPanel.repaint();
+            return;
+        }
+
+        try {
+            List<RoomDTO> allRooms = roomBUS.getAllRooms();
 
             int currentFloor = -1;
-            JPanel floorPanel = null;
             JPanel rowPanel = null;
-            List<JButton> selectedRoomButtons = new ArrayList<>();
 
-            for (RoomDTO room : availableRooms) {
-                int roomId = room.getRoomId();
-                String roomName = room.getRoomNo();
+            for (RoomDTO room : allRooms) {
+                // KIỂM TRA XEM PHÒNG CÓ TRỐNG TRONG KHOẢNG THỜI GIAN KHÔNG
+                if (!isRoomAvailableInDateRange(room.getRoomId(), checkIn, checkOut)) {
+                    continue; // bỏ qua nếu đã có người đặt
+                }
+
                 int floorNo = room.getFloorNo();
-                String roomType = roomTypes.getOrDefault(room.getRoomTypeId(), "Unknown");
 
-                // Create floor separator
                 if (floorNo != currentFloor) {
                     currentFloor = floorNo;
-                    JPanel separator = new JPanel(new FlowLayout(FlowLayout.CENTER));
-                    separator.setBackground(BACKGROUND_COLOR);
-                    JLabel floorLabel = new JLabel("Tầng " + floorNo);
-                    floorLabel.setFont(new Font("Arial", Font.BOLD, 16));
-                    floorLabel.setForeground(TEXT_COLOR);
-                    separator.add(floorLabel);
-                    roomsPanel.add(separator);
 
-                    rowPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
+                    JPanel floorHeader = new JPanel(new FlowLayout(FlowLayout.CENTER));
+                    floorHeader.setBackground(BACKGROUND_COLOR);
+                    JLabel floorLabel = new JLabel("Tầng " + floorNo, SwingConstants.CENTER);
+                    floorLabel.setFont(new Font("Arial", Font.BOLD, 18));
+                    floorLabel.setForeground(TEXT_COLOR);
+                    floorLabel.setOpaque(true);
+                    floorLabel.setBackground(PANEL_BG);
+                    floorLabel.setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                            BorderFactory.createEmptyBorder(12, 60, 12, 60)
+                    ));
+                    floorHeader.add(floorLabel);
+                    roomsPanel.add(floorHeader);
+
+                    rowPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 22, 18));
                     rowPanel.setBackground(BACKGROUND_COLOR);
                     roomsPanel.add(rowPanel);
                 }
 
-                // Create room button
-                JButton roomBtn = new JButton();
-                roomBtn.setLayout(new BorderLayout(0, 5));
-                roomBtn.setPreferredSize(new Dimension(120, 120));
-                roomBtn.setBackground(AVAILABLE_COLOR);
-                roomBtn.setOpaque(true);
-                roomBtn.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(BORDER_COLOR, 2),
-                        BorderFactory.createEmptyBorder(8, 8, 8, 8)
-                ));
-                roomBtn.setFocusPainted(false);
-                roomBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-                roomBtn.setFont(new Font("Arial", Font.BOLD, 12));
-
-                JLabel roomLabel = new JLabel("Phòng " + roomName + "\n" + roomType);
-                roomLabel.setHorizontalAlignment(SwingConstants.CENTER);
-                roomLabel.setFont(new Font("Arial", Font.BOLD, 12));
-                roomBtn.add(roomLabel, BorderLayout.CENTER);
-
-                final List<JButton> selectedRooms = selectedRoomButtons;
-                final JButton btn = roomBtn;
+                JButton roomBtn = createRoomButton(room);
+                int roomId = room.getRoomId();
                 roomBtn.addActionListener(e -> {
-                    if (selectedRooms.contains(btn)) {
-                        selectedRooms.remove(btn);
-                        btn.setBackground(AVAILABLE_COLOR);
+                    if (selectedRoomIds.contains(roomId)) {
+                        selectedRoomIds.remove(Integer.valueOf(roomId));
+                        roomBtn.setBackground(AVAILABLE_COLOR);
                     } else {
-                        selectedRooms.add(btn);
-                        btn.setBackground(SELECTED_COLOR);
+                        selectedRoomIds.add(roomId);
+                        roomBtn.setBackground(SELECTED_COLOR);
                     }
                 });
 
+                roomButtonMap.put(roomId, roomBtn);
                 rowPanel.add(roomBtn);
+
+                if (rowPanel.getComponentCount() == 4) {
+                    rowPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 22, 18));
+                    rowPanel.setBackground(BACKGROUND_COLOR);
+                    roomsPanel.add(rowPanel);
+                }
             }
 
-            panel.putClientProperty("selectedRoomButtons", selectedRoomButtons);
+            roomsPanel.revalidate();
+            roomsPanel.repaint();
 
         } catch (Exception e) {
             e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi tải phòng: " + e.getMessage());
         }
-
-        panel.add(roomsScrollPane, BorderLayout.CENTER);
-        return panel;
     }
 
-    private void showBookingDetailDialog(BookingDTO booking) {
-        JDialog detailDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Chi tiết đơn đặt", true);
-        detailDialog.setLayout(new BorderLayout());
-        detailDialog.setSize(600, 500);
+    private JButton createRoomButton(RoomDTO room) {
+        JButton btn = new JButton();
+        btn.setLayout(new BorderLayout(0, 6));
+        btn.setPreferredSize(new Dimension(140, 150));
+        btn.setBackground(AVAILABLE_COLOR);
+        btn.setOpaque(true);
+        btn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 2),
+                BorderFactory.createEmptyBorder(14, 14, 14, 14)
+        ));
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBackground(PANEL_BG);
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        ImageIcon icon = new ImageIcon(getClass().getResource("/images/house.png"));
+        JLabel iconLabel = new JLabel(icon, SwingConstants.CENTER);
+        btn.add(iconLabel, BorderLayout.CENTER);
 
-        // Booking info
-        addDetailRow(contentPanel, "Mã đặt:", booking.getCode());
-        addDetailRow(contentPanel, "ID:", String.valueOf(booking.getBookingId()));
-        addDetailRow(contentPanel, "Khách hàng ID:", String.valueOf(booking.getCustomerId()));
-        addDetailRow(contentPanel, "Ngày đặt:", booking.getBookingDate() != null ?
-                booking.getBookingDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : "N/A");
-        addDetailRow(contentPanel, "Trạng thái:", booking.getStatus());
-        addDetailRow(contentPanel, "Nguồn đặt:", booking.getSource());
-        addDetailRow(contentPanel, "Ghi chú:", booking.getNote() != null ? booking.getNote() : "Không có");
+        JPanel textPanel = new JPanel(new BorderLayout());
+        textPanel.setOpaque(false);
+        JLabel nameLbl = new JLabel("Phòng " + room.getRoomNo(), SwingConstants.CENTER);
+        nameLbl.setFont(new Font("Arial", Font.BOLD, 14));
+        JLabel typeLbl = new JLabel(roomTypes.getOrDefault(room.getRoomTypeId(), ""), SwingConstants.CENTER);
+        typeLbl.setFont(new Font("Arial", Font.ITALIC, 11));
+        typeLbl.setForeground(new Color(80, 80, 80));
+        textPanel.add(nameLbl, BorderLayout.NORTH);
+        textPanel.add(typeLbl, BorderLayout.SOUTH);
+        btn.add(textPanel, BorderLayout.SOUTH);
 
-        contentPanel.add(Box.createVerticalStrut(15));
-        JLabel roomsLabel = new JLabel("Phòng đặt:");
-        roomsLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        roomsLabel.setForeground(PRIMARY_COLOR);
-        contentPanel.add(roomsLabel);
-
-        // Booking rooms
-        try {
-            List<BookingRoomDTO> bookingRooms = bookingRoomBUS.getBookingRoomsByBooking(booking.getBookingId());
-            for (BookingRoomDTO br : bookingRooms) {
-                RoomDTO room = roomBUS.getRoomById(br.getRoomId());
-                String roomInfo = "Phòng " + (room != null ? room.getRoomNo() : "ID: " + br.getRoomId()) +
-                        " - " + br.getCheckInPlan() + " đến " + br.getCheckOutPlan();
-                addDetailRow(contentPanel, "", roomInfo);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        JScrollPane scrollPane = new JScrollPane(contentPanel);
-        scrollPane.setBorder(null);
-        detailDialog.add(scrollPane, BorderLayout.CENTER);
-
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
-        buttonPanel.setBackground(PANEL_BG);
-        JButton closeButton = new JButton("Đóng");
-        closeButton.setPreferredSize(new Dimension(100, 35));
-        closeButton.setBackground(PRIMARY_COLOR);
-        closeButton.setForeground(Color.WHITE);
-        closeButton.setFocusPainted(false);
-        closeButton.setBorderPainted(false);
-        closeButton.setFont(new Font("Arial", Font.BOLD, 13));
-        closeButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        closeButton.addActionListener(e -> detailDialog.dispose());
-        buttonPanel.add(closeButton);
-
-        detailDialog.add(buttonPanel, BorderLayout.SOUTH);
-        detailDialog.setLocationRelativeTo(this);
-        detailDialog.setVisible(true);
-    }
-
-    private void addDetailRow(JPanel panel, String label, String value) {
-        JPanel rowPanel = new JPanel(new BorderLayout());
-        rowPanel.setBackground(PANEL_BG);
-        rowPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
-
-        JLabel labelComponent = new JLabel(label);
-        labelComponent.setFont(new Font("Arial", Font.BOLD, 12));
-        labelComponent.setPreferredSize(new Dimension(120, 30));
-
-        JLabel valueComponent = new JLabel(value);
-        valueComponent.setFont(new Font("Arial", Font.PLAIN, 12));
-        valueComponent.setForeground(TEXT_COLOR);
-
-        rowPanel.add(labelComponent, BorderLayout.WEST);
-        rowPanel.add(valueComponent, BorderLayout.CENTER);
-
-        panel.add(rowPanel);
-        panel.add(Box.createVerticalStrut(5));
+        return btn;
     }
 }

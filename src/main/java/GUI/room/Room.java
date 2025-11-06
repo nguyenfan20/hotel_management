@@ -1,7 +1,3 @@
-/*
- * Click nbfs://SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://SystemFileSystem/Templates/GUIForms/JPanel.java to edit this template
- */
 package GUI.room;
 
 import BUS.*;
@@ -24,9 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * @author Acer
- */
 public class Room extends javax.swing.JPanel {
     private static final Color PRIMARY_COLOR = new Color(41, 98, 255);
     private static final Color AVAILABLE_COLOR = new Color(232, 245, 233);
@@ -487,7 +480,6 @@ public class Room extends javax.swing.JPanel {
         contentPanel.setBackground(PANEL_BG);
         contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        // Room basic info
         addDetailRow(contentPanel, "Số phòng:", room.getRoomNo());
         addDetailRow(contentPanel, "ID phòng:", String.valueOf(room.getRoomId()));
         addDetailRow(contentPanel, "Loại phòng:", roomTypes.getOrDefault(room.getRoomTypeId(), "Unknown"));
@@ -495,7 +487,6 @@ public class Room extends javax.swing.JPanel {
         addDetailRow(contentPanel, "Trạng thái:", room.getStatus());
         addDetailRow(contentPanel, "Ghi chú:", room.getNote() != null ? room.getNote() : "Không có");
 
-        // Try to get room type details
         try {
             RoomTypeDTO roomType = roomTypeBUS.getRoomTypeById(room.getRoomTypeId());
             if (roomType != null) {
@@ -525,7 +516,6 @@ public class Room extends javax.swing.JPanel {
         scrollPane.getViewport().setBackground(PANEL_BG);
         detailDialog.add(scrollPane, BorderLayout.CENTER);
 
-        // Close button
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
         buttonPanel.setBackground(PANEL_BG);
         JButton closeButton = new JButton("Đóng");
@@ -548,10 +538,16 @@ public class Room extends javax.swing.JPanel {
         JPanel row = new JPanel(new BorderLayout());
         row.setBackground(PANEL_BG);
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
-        JLabel l = new JLabel(label); l.setFont(new Font("Arial", Font.BOLD, 12)); l.setPreferredSize(new Dimension(150, 30));
-        JLabel v = new JLabel(value); v.setFont(new Font("Arial", Font.PLAIN, 12)); v.setForeground(TEXT_COLOR);
-        row.add(l, BorderLayout.WEST); row.add(v, BorderLayout.CENTER);
-        panel.add(row); panel.add(Box.createVerticalStrut(8));
+        JLabel l = new JLabel(label);
+        l.setFont(new Font("Arial", Font.BOLD, 12));
+        l.setPreferredSize(new Dimension(150, 30));
+        JLabel v = new JLabel(value);
+        v.setFont(new Font("Arial", Font.PLAIN, 12));
+        v.setForeground(TEXT_COLOR);
+        row.add(l, BorderLayout.WEST);
+        row.add(v, BorderLayout.CENTER);
+        panel.add(row);
+        panel.add(Box.createVerticalStrut(8));
     }
 
     private void updateView() {
@@ -581,7 +577,6 @@ public class Room extends javax.swing.JPanel {
         dialog.setVisible(true);
     }
 
-    // ===== CHECK-IN NHANH =====
     private void quickCheckin(RoomDTO room) {
         if (!room.getStatus().equals("AVAILABLE")) {
             JOptionPane.showMessageDialog(this, "Phòng không trống!");
@@ -619,47 +614,15 @@ public class Room extends javax.swing.JPanel {
             }
 
             try {
-                // Tạo khách hàng
-                CustomerDTO customer = new CustomerDTO();
-                customer.setFull_name(name);
-                customer.setPhone(Integer.parseInt(phone));
-//                int customerId = customerBUS.addCustomerReturnId(customer);
-//                if (customerId <= 0) throw new Exception("Không tạo được khách hàng");
-
-                // Tạo booking
-                String code = "BOOK-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "-" +
-                        String.format("%03d", bookingBUS.getAllBookings().size() + 1);
-                BookingDTO booking = new BookingDTO();
-                booking.setCode(code);
-//                booking.setCustomerId(customerId);
-                booking.setBookingDate(LocalDateTime.now());
-                booking.setStatus("CHECKED_IN");
-                booking.setSource("QUICK_CHECKIN");
-                boolean bookingId = bookingBUS.addBooking(booking);
-                if (bookingId) throw new Exception("Không tạo được booking");
-
-                // Tạo booking room
-                BookingRoomDTO br = new BookingRoomDTO();
-//                br.setBookingId(bookingId);
-                br.setRoomId(room.getRoomId());
-                br.setCheckInPlan(LocalDateTime.parse(LocalDate.now().toString()));
-                br.setCheckOutPlan(null);
-                if (!bookingRoomBUS.addBookingRoom(br)) throw new Exception("Không thêm phòng vào booking");
-
-                // Cập nhật trạng thái phòng
-                room.setStatus("OCCUPIED");
-                if (!roomBUS.updateRoom(room)) throw new Exception("Không cập nhật trạng thái phòng");
-
-                JOptionPane.showMessageDialog(dialog, "Check-in thành công!\nMã: " + code);
-                loadData();
-                dialog.dispose();
+                // ... existing code ...
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(dialog, "Lỗi: " + ex.getMessage());
             }
         });
         JButton cancel = new JButton("Hủy");
         cancel.addActionListener(e -> dialog.dispose());
-        btnPanel.add(ok); btnPanel.add(cancel);
+        btnPanel.add(ok);
+        btnPanel.add(cancel);
         btnPanel.setBackground(PANEL_BG);
 
         dialog.add(form, BorderLayout.CENTER);
@@ -668,7 +631,6 @@ public class Room extends javax.swing.JPanel {
         dialog.setVisible(true);
     }
 
-    // ===== GRID VIEW + MENU CHUỘT PHẢI =====
     private void showGridView() {
         mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
@@ -732,10 +694,8 @@ public class Room extends javax.swing.JPanel {
             }
             btn.setOpaque(true);
 
-            // Click trái: xem chi tiết
             btn.addActionListener(e -> showRoomDetailDialog(room));
 
-            // Click phải: menu
             JPopupMenu popup = new JPopupMenu();
             JMenuItem detail = new JMenuItem("Xem chi tiết");
             JMenuItem book = new JMenuItem("Đặt phòng");
