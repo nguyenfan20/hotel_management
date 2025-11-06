@@ -2,40 +2,151 @@ package GUI.service;
 
 import BUS.ServiceBUS;
 import DTO.ServiceDTO;
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
+
+import java.awt.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
 
 public class ServiceForm extends javax.swing.JPanel {
+    private static final Color PRIMARY_COLOR = new Color(41, 98, 255);
+    private static final Color BACKGROUND_COLOR = new Color(245, 245, 245);
+    private static final Color PANEL_BG = Color.WHITE;
+    private static final Color BORDER_COLOR = new Color(224, 224, 224);
+    private static final Color TEXT_COLOR = new Color(33, 33, 33);
+    private static final Color SUCCESS_COLOR = new Color(34, 197, 94);
+    private static final Color DANGER_COLOR = new Color(239, 68, 68);
+
     private final ServiceBUS serviceBus = new ServiceBUS();
+    private JScrollPane scrollPane;
+    private JTextField tfSearch;
+    private JComboBox<String> cbSearch;
 
     public ServiceForm() {
         initComponents();
         loadTableData();
     }
 
+    private void initComponents() {
+        setLayout(new BorderLayout());
+        setBackground(BACKGROUND_COLOR);
+
+        // Control Panel
+        JPanel controlPanel = new JPanel(new BorderLayout());
+        controlPanel.setBackground(PANEL_BG);
+        controlPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_COLOR),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+
+        // Left panel with search controls
+        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        leftPanel.setBackground(PANEL_BG);
+
+        // Title
+        JLabel lblTitle = new JLabel("QUẢN LÝ DỊCH VỤ");
+        lblTitle.setFont(new Font("Arial", Font.BOLD, 20));
+        lblTitle.setForeground(TEXT_COLOR);
+
+        // Search field
+        tfSearch = new JTextField(20);
+        tfSearch.setPreferredSize(new Dimension(250, 35));
+        tfSearch.setFont(new Font("Arial", Font.PLAIN, 13));
+        tfSearch.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+        tfSearch.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    searchService();
+                }
+            }
+        });
+
+        // Search button
+        JButton btnSearch = createIconButton("Tìm");
+        btnSearch.setPreferredSize(new Dimension(35, 35));
+        btnSearch.addActionListener(e -> searchService());
+
+        // Filter button
+        JButton btnFilter = createIconButton("Lọc");
+        btnFilter.setPreferredSize(new Dimension(35, 35));
+        btnFilter.addActionListener(e -> showFilterDialog());
+
+        // Refresh button
+        JButton btnRefresh = createIconButton("⟳");
+        btnRefresh.setPreferredSize(new Dimension(35, 35));
+        btnRefresh.addActionListener(e -> loadTableData());
+
+        leftPanel.add(lblTitle);
+        leftPanel.add(new JSeparator(JSeparator.VERTICAL));
+        leftPanel.add(tfSearch);
+        leftPanel.add(btnSearch);
+        leftPanel.add(btnFilter);
+        leftPanel.add(btnRefresh);
+
+        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        rightPanel.setBackground(PANEL_BG);
+
+        JButton btnAdd = createActionButton("+ Thêm", SUCCESS_COLOR);
+        btnAdd.setPreferredSize(new Dimension(100, 35));
+        btnAdd.addActionListener(e -> addService());
+        rightPanel.add(btnAdd);
+
+        controlPanel.add(leftPanel, BorderLayout.WEST);
+        controlPanel.add(rightPanel, BorderLayout.EAST);
+
+        add(controlPanel, BorderLayout.NORTH);
+
+        // Table
+        scrollPane = new JScrollPane();
+        scrollPane.setBorder(null);
+        scrollPane.getViewport().setBackground(BACKGROUND_COLOR);
+        add(scrollPane, BorderLayout.CENTER);
+
+        updateTableView(new ArrayList<>());
+    }
+
+    private JButton createIconButton(String text) {
+        JButton button = new JButton(text);
+        button.setPreferredSize(new Dimension(90, 35));
+        button.setBackground(PANEL_BG);
+        button.setForeground(TEXT_COLOR);
+        button.setFont(new Font("Arial", Font.PLAIN, 12));
+        button.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
+        button.setFocusPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        return button;
+    }
+
+    private JButton createActionButton(String text, Color bgColor) {
+        JButton button = new JButton(text);
+        button.setPreferredSize(new Dimension(80, 35));
+        button.setBackground(bgColor);
+        button.setForeground(Color.WHITE);
+        button.setFont(new Font("Arial", Font.BOLD, 13));
+        button.setBorder(null);
+        button.setFocusPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        return button;
+    }
+
     private void loadTableData() {
         List<ServiceDTO> services = serviceBus.getAll();
-        DefaultTableModel model = (DefaultTableModel) tblService.getModel();
-        model.setRowCount(0);
-        for (ServiceDTO s : services) {
-            model.addRow(new Object[]{
-                    s.getServiceId(),
-                    s.getName(),
-                    s.getUnit(),
-                    s.getUnitPrice(),
-                    s.getChargeType(),
-                    s.isActive() ? "Hoạt động" : "Ngừng"
-            });
-        }
+        updateTableView(services);
     }
 
     private void searchService() {
         String keyword = tfSearch.getText().trim().toLowerCase();
-        String searchType = (String) CbserviceSearch.getSelectedItem();
-        DefaultTableModel model = (DefaultTableModel) tblService.getModel();
-        model.setRowCount(0);
+        String searchType = (String) cbSearch.getSelectedItem();
 
         if (keyword.isEmpty()) {
             loadTableData();
@@ -77,20 +188,89 @@ public class ServiceForm extends javax.swing.JPanel {
 
         if (results.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Không tìm thấy kết quả phù hợp!");
-            loadTableData(); // Hiển thị lại dữ liệu gốc nếu không có kết quả
+            loadTableData();
             return;
         }
 
-        for (ServiceDTO s : results) {
+        updateTableView(results);
+    }
+
+    private void updateTableView(List<ServiceDTO> services) {
+        String[] columnNames = {"ID", "Tên dịch vụ", "Đơn vị", "Giá", "Loại tính phí", "Trạng thái"};
+        DefaultTableModel model = new DefaultTableModel(columnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        for (ServiceDTO s : services) {
             model.addRow(new Object[]{
                     s.getServiceId(),
                     s.getName(),
                     s.getUnit(),
-                    s.getUnitPrice(),
+                    String.format("%.0f", s.getUnitPrice()),
                     s.getChargeType(),
                     s.isActive() ? "Hoạt động" : "Ngừng"
             });
         }
+
+        JTable table = new JTable(model);
+        table.setRowHeight(40);
+        table.setFont(new Font("Arial", Font.PLAIN, 13));
+        table.setGridColor(BORDER_COLOR);
+        table.setSelectionBackground(new Color(232, 240, 254));
+        table.setSelectionForeground(TEXT_COLOR);
+        table.setShowVerticalLines(true);
+        table.setIntercellSpacing(new Dimension(1, 1));
+
+        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 14));
+        table.getTableHeader().setBackground(PANEL_BG);
+        table.getTableHeader().setForeground(TEXT_COLOR);
+        table.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, PRIMARY_COLOR));
+        table.getTableHeader().setPreferredSize(new Dimension(0, 45));
+
+        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (!isSelected) {
+                    c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(250, 250, 250));
+                }
+                setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+                return c;
+            }
+        });
+
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (e.isPopupTrigger() && table.getSelectedRow() != -1) {
+                    int rowIndex = table.getSelectedRow();
+                    int serviceId = (int) model.getValueAt(rowIndex, 0);
+                    ServiceDTO service = serviceBus.getById(serviceId);
+
+                    JPopupMenu contextMenu = new JPopupMenu();
+                    JMenuItem editMenuItem = new JMenuItem("Sửa");
+                    JMenuItem deleteMenuItem = new JMenuItem("Xóa");
+
+                    editMenuItem.addActionListener(e1 -> {
+                        table.setRowSelectionInterval(rowIndex, rowIndex);
+                        editService();
+                    });
+                    deleteMenuItem.addActionListener(e1 -> {
+                        table.setRowSelectionInterval(rowIndex, rowIndex);
+                        deleteService();
+                    });
+
+                    contextMenu.add(editMenuItem);
+                    contextMenu.add(deleteMenuItem);
+                    contextMenu.show(e.getComponent(), e.getX(), e.getY());
+                }
+            }
+        });
+
+        scrollPane.setViewportView(table);
     }
 
     private void addService() {
@@ -105,13 +285,15 @@ public class ServiceForm extends javax.swing.JPanel {
     }
 
     private void editService() {
-        int row = tblService.getSelectedRow();
+        JTable table = (JTable) scrollPane.getViewport().getView();
+        int row = table.getSelectedRow();
         if (row == -1) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn dịch vụ cần sửa!");
             return;
         }
 
-        int id = (int) tblService.getValueAt(row, 0);
+        DefaultTableModel model = (DefaultTableModel) table.getModel();
+        int id = (int) model.getValueAt(row, 0);
         ServiceDTO s = serviceBus.getById(id);
 
         ServiceDialog dialog = new ServiceDialog(SwingUtilities.getWindowAncestor(this), true);
@@ -125,12 +307,15 @@ public class ServiceForm extends javax.swing.JPanel {
     }
 
     private void deleteService() {
-        int row = tblService.getSelectedRow();
+        JTable table = (JTable) scrollPane.getViewport().getView();
+        int row = table.getSelectedRow();
         if (row == -1) {
             JOptionPane.showMessageDialog(this, "Chọn dịch vụ cần xóa!");
             return;
         }
-        int id = (int) tblService.getValueAt(row, 0);
+
+        DefaultTableModel model = (DefaultTableModel) table.getModel();
+        int id = (int) model.getValueAt(row, 0);
         int confirm = JOptionPane.showConfirmDialog(this, "Xóa dịch vụ này?", "Xác nhận", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             serviceBus.delete(id);
@@ -138,129 +323,60 @@ public class ServiceForm extends javax.swing.JPanel {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private void initComponents() {
+    private void showFilterDialog() {
+        JDialog filterDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Lọc dịch vụ", true);
+        filterDialog.setLayout(new BorderLayout());
+        filterDialog.setSize(350, 180);
 
-        jPanel1 = new javax.swing.JPanel();
-        lblTitle = new javax.swing.JLabel();
-        tfSearch = new javax.swing.JTextField();
-        btnSearch = new javax.swing.JButton();
-        btnRefresh = new javax.swing.JButton();
-        JScrollPane = new javax.swing.JScrollPane();
-        tblService = new javax.swing.JTable();
-        btnAdd = new javax.swing.JButton();
-        btnEdit = new javax.swing.JButton();
-        btnDelete = new javax.swing.JButton();
-        CbserviceSearch = new javax.swing.JComboBox<>();
+        JPanel contentPanel = new JPanel(new GridLayout(1, 2, 15, 15));
+        contentPanel.setBackground(PANEL_BG);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        lblTitle.setFont(new java.awt.Font("Arial", 1, 20));
-        lblTitle.setText("QUẢN LÝ DỊCH VỤ");
+        JLabel statusLabel = new JLabel("Trạng thái:");
+        statusLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JComboBox<String> statusCombo = new JComboBox<>(new String[]{"Tất cả", "Hoạt động", "Ngừng"});
+        statusCombo.setPreferredSize(new Dimension(150, 30));
+        contentPanel.add(statusLabel);
+        contentPanel.add(statusCombo);
 
-        tfSearch.setColumns(25);
-
-        btnSearch.setFont(new java.awt.Font("Arial", 0, 13));
-        btnSearch.setText("Tìm");
-        btnSearch.addActionListener(evt -> searchService());
-
-        btnRefresh.setText("Làm mới");
-        btnRefresh.addActionListener(evt -> loadTableData());
-
-        tblService.setModel(new javax.swing.table.DefaultTableModel(
-                new Object [][] {},
-                new String [] {
-                        "ID", "Tên dịch vụ", "Đơn vị", "Giá", "Loại tính phí", "Trạng thái"
-                }
-        ) {
-            boolean[] canEdit = new boolean[] { false, false, false, false, false, false };
-            public boolean isCellEditable(int rowIndex, int columnIndex) {
-                return canEdit[columnIndex];
-            }
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        buttonPanel.setBackground(PANEL_BG);
+        JButton confirmButton = new JButton("Xác nhận");
+        confirmButton.setPreferredSize(new Dimension(100, 35));
+        confirmButton.setBackground(PRIMARY_COLOR);
+        confirmButton.setForeground(Color.WHITE);
+        confirmButton.setFocusPainted(false);
+        confirmButton.setBorderPainted(false);
+        confirmButton.setFont(new Font("Arial", Font.BOLD, 13));
+        confirmButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        confirmButton.addActionListener(e -> {
+            String selectedStatus = (String) statusCombo.getSelectedItem();
+            filterServices(selectedStatus);
+            filterDialog.dispose();
         });
-        tblService.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
-        JScrollPane.setViewportView(tblService);
+        buttonPanel.add(confirmButton);
 
-        btnAdd.setText("Thêm");
-        btnAdd.addActionListener(evt -> addService());
-
-        btnEdit.setText("Sửa");
-        btnEdit.addActionListener(evt -> editService());
-
-        btnDelete.setText("Xoá");
-        btnDelete.addActionListener(evt -> deleteService());
-
-        CbserviceSearch.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Tên dịch vụ", "Đơn vị", "Giá" }));
-
-        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
-        jPanel1.setLayout(jPanel1Layout);
-        jPanel1Layout.setHorizontalGroup(
-                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addGap(6, 6, 6)
-                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                        .addComponent(JScrollPane)
-                                        .addGroup(jPanel1Layout.createSequentialGroup()
-                                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                                        .addComponent(lblTitle)
-                                                        .addComponent(tfSearch, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(btnSearch)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(CbserviceSearch, javax.swing.GroupLayout.PREFERRED_SIZE, 150, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                .addGap(18, 18, 18)
-                                                .addComponent(btnRefresh)
-                                                .addGap(0, 0, Short.MAX_VALUE))
-                                        .addGroup(jPanel1Layout.createSequentialGroup()
-                                                .addComponent(btnAdd)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(btnEdit)
-                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                                .addComponent(btnDelete)
-                                                .addGap(0, 0, Short.MAX_VALUE)))
-                                .addContainerGap())
-        );
-        jPanel1Layout.setVerticalGroup(
-                jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addContainerGap()
-                                .addComponent(lblTitle)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                        .addComponent(tfSearch, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addComponent(btnSearch)
-                                        .addComponent(btnRefresh)
-                                        .addComponent(CbserviceSearch, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(JScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE, 219, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(18, 18, 18)
-                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                        .addComponent(btnAdd)
-                                        .addComponent(btnEdit)
-                                        .addComponent(btnDelete))
-                                .addContainerGap(33, Short.MAX_VALUE))
-        );
-
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
-        this.setLayout(layout);
-        layout.setHorizontalGroup(
-                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-        );
-        layout.setVerticalGroup(
-                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-        );
+        filterDialog.add(contentPanel, BorderLayout.CENTER);
+        filterDialog.add(buttonPanel, BorderLayout.SOUTH);
+        filterDialog.setLocationRelativeTo(this);
+        filterDialog.setVisible(true);
     }
 
-    // Variables declaration
-    private javax.swing.JButton btnAdd;
-    private javax.swing.JButton btnDelete;
-    private javax.swing.JButton btnEdit;
-    private javax.swing.JButton btnRefresh;
-    private javax.swing.JButton btnSearch;
-    private javax.swing.JComboBox<String> CbserviceSearch;
-    private javax.swing.JScrollPane JScrollPane;
-    private javax.swing.JPanel jPanel1;
-    private javax.swing.JLabel lblTitle;
-    private javax.swing.JTable tblService;
-    private javax.swing.JTextField tfSearch;
+    private void filterServices(String status) {
+        List<ServiceDTO> allServices = serviceBus.getAll();
+        List<ServiceDTO> results = new ArrayList<>();
+
+        if ("Tất cả".equals(status)) {
+            results = allServices;
+        } else {
+            boolean isActive = "Hoạt động".equals(status);
+            for (ServiceDTO s : allServices) {
+                if (s.isActive() == isActive) {
+                    results.add(s);
+                }
+            }
+        }
+
+        updateTableView(results);
+    }
 }
