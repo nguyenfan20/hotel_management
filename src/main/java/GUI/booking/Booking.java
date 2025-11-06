@@ -413,7 +413,7 @@ public class Booking extends javax.swing.JPanel {
             for (BookingRoomDTO br : allBookingRooms) {
                 if (br.getCheckOutPlan() != null && now.isBefore(br.getCheckOutPlan())) {
                     BookingDTO booking = bookingBUS.getBookingById(br.getBookingId());
-                    if (booking != null && !"Đã hủy".equals(booking.getStatus())) {
+                    if (booking != null && !"CANCELED".equals(booking.getStatus())) {
                         busyRoomIds.add(br.getRoomId());
                     }
                 }
@@ -590,7 +590,7 @@ public class Booking extends javax.swing.JPanel {
             BookingDTO booking = new BookingDTO();
             booking.setCustomerId(currentCustomer.getCustomer_id());
             booking.setBookingDate(LocalDateTime.now());
-            booking.setStatus("Đã đặt");
+            booking.setStatus("PENDING");
             booking.setSource("MANUAL");
             booking.setNote(notes.isEmpty() ? null : notes);
             booking.setCreatedBy(1); // Default user ID, should be from session
@@ -674,7 +674,7 @@ public class Booking extends javax.swing.JPanel {
 
                 // Bỏ qua các booking đã hủy hoặc đã trả phòng
                 BookingDTO booking = bookingBUS.getBookingById(br.getBookingId());
-                if (booking == null || "Đã hủy".equals(booking.getStatus())) continue;
+                if (booking == null || "CANCELED".equals(booking.getStatus())) continue;
                 if (br.getCheckOutActual() != null) continue; // đã trả phòng
 
                 LocalDateTime inPlan = br.getCheckInPlan();
