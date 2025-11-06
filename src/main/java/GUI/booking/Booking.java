@@ -39,7 +39,8 @@ public class Booking extends javax.swing.JPanel {
     private static final Color PRIMARY_COLOR = new Color(41, 98, 255);
     private static final Color AVAILABLE_COLOR = new Color(232, 245, 233);
     private static final Color SELECTED_COLOR = new Color(200, 220, 255);
-    private static final Color BACKGROUND_COLOR = new Color(245, 245, 245);
+    private static final Color BACKGROUND_COLOR = new Color(245,
+            245, 245);
     private static final Color PANEL_BG = Color.WHITE;
     private static final Color BORDER_COLOR = new Color(224, 224, 224);
     private static final Color TEXT_COLOR = new Color(33, 33, 33);

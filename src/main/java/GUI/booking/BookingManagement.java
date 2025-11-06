@@ -50,6 +50,28 @@ public class BookingManagement extends javax.swing.JPanel {
                 BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
 
+        JButton addButton = new JButton("+ Thêm");
+        addButton.setPreferredSize(new Dimension(100, 35));
+        addButton.setBackground(PRIMARY_COLOR);
+        addButton.setForeground(Color.WHITE);
+        addButton.setFocusPainted(false);
+        addButton.setBorderPainted(false);
+        addButton.setFont(new Font("Arial", Font.BOLD, 13));
+        addButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        addButton.addActionListener(e -> addNewBooking());
+        controlPanel.add(addButton);
+
+        JButton reloadButton = new JButton("⟳ Reload");
+        reloadButton.setPreferredSize(new Dimension(100, 35));
+        reloadButton.setBackground(SUCCESS_COLOR);
+        reloadButton.setForeground(Color.WHITE);
+        reloadButton.setFocusPainted(false);
+        reloadButton.setBorderPainted(false);
+        reloadButton.setFont(new Font("Arial", Font.BOLD, 13));
+        reloadButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        reloadButton.addActionListener(e -> loadBookingData());
+        controlPanel.add(reloadButton);
+
         searchField = new JTextField(20);
         searchField.setPreferredSize(new Dimension(250, 35));
         searchField.setFont(new Font("Arial", Font.PLAIN, 13));
@@ -408,5 +430,95 @@ public class BookingManagement extends javax.swing.JPanel {
             JOptionPane.showMessageDialog(this, "Lỗi mở giao diện: " + e.getMessage(),
                     "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    private void addNewBooking() {
+        JDialog addDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Thêm đặt phòng mới", true);
+        addDialog.setLayout(new BorderLayout());
+        addDialog.setSize(450, 320);
+
+        JPanel contentPanel = new JPanel(new GridLayout(4, 2, 15, 15));
+        contentPanel.setBackground(PANEL_BG);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel customerIdLabel = new JLabel("Mã khách hàng (*):");
+        customerIdLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JTextField customerIdField = new JTextField();
+        customerIdField.setFont(new Font("Arial", Font.PLAIN, 13));
+        contentPanel.add(customerIdLabel);
+        contentPanel.add(customerIdField);
+
+        JLabel sourceLabel = new JLabel("Nguồn đặt (*):");
+        sourceLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JComboBox<String> sourceCombo = new JComboBox<>(new String[]{"Trực tuyến", "Điện thoại", "Trực tiếp", "Email"});
+        sourceCombo.setFont(new Font("Arial", Font.PLAIN, 13));
+        contentPanel.add(sourceLabel);
+        contentPanel.add(sourceCombo);
+
+        JLabel statusLabel = new JLabel("Trạng thái:");
+        statusLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JComboBox<String> statusCombo = new JComboBox<>(new String[]{"Đã đặt", "Đã nhận phòng", "Đã trả phòng", "Đã hủy"});
+        statusCombo.setSelectedItem("Đã đặt");
+        statusCombo.setFont(new Font("Arial", Font.PLAIN, 13));
+        contentPanel.add(statusLabel);
+        contentPanel.add(statusCombo);
+
+        JLabel noteLabel = new JLabel("Ghi chú:");
+        noteLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JTextField noteField = new JTextField();
+        noteField.setFont(new Font("Arial", Font.PLAIN, 13));
+        contentPanel.add(noteLabel);
+        contentPanel.add(noteField);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        buttonPanel.setBackground(PANEL_BG);
+
+        JButton confirmButton = new JButton("Xác nhận");
+        confirmButton.setPreferredSize(new Dimension(100, 35));
+        confirmButton.setBackground(PRIMARY_COLOR);
+        confirmButton.setForeground(Color.WHITE);
+        confirmButton.setFocusPainted(false);
+        confirmButton.setBorderPainted(false);
+        confirmButton.setFont(new Font("Arial", Font.BOLD, 13));
+        confirmButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        confirmButton.addActionListener(e -> {
+            try {
+                String customerIdStr = customerIdField.getText().trim();
+                String source = (String) sourceCombo.getSelectedItem();
+                String status = (String) statusCombo.getSelectedItem();
+                String note = noteField.getText().trim();
+
+                if (customerIdStr.isEmpty() || source.isEmpty()) {
+                    JOptionPane.showMessageDialog(addDialog, "Vui lòng nhập đầy đủ thông tin (*)!",
+                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                int customerId = Integer.parseInt(customerIdStr);
+                BookingDTO newBooking = new BookingDTO(0, "", customerId,
+                        java.time.LocalDateTime.now(), source, status, 2, note.isEmpty() ? null : note);
+
+                if (bookingBUS.addBooking(newBooking)) {
+                    JOptionPane.showMessageDialog(addDialog, "Thêm đặt phòng thành công!");
+                    addDialog.dispose();
+                    loadBookingData();
+                } else {
+                    JOptionPane.showMessageDialog(addDialog, "Thêm đặt phòng thất bại!",
+                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(addDialog, "Mã khách hàng phải là số!",
+                        "Lỗi", JOptionPane.ERROR_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(addDialog, "Lỗi: " + ex.getMessage(),
+                        "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        buttonPanel.add(confirmButton);
+
+        addDialog.add(contentPanel, BorderLayout.CENTER);
+        addDialog.add(buttonPanel, BorderLayout.SOUTH);
+        addDialog.setLocationRelativeTo(this);
+        addDialog.setVisible(true);
     }
 }

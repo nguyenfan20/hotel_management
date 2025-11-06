@@ -17,6 +17,7 @@ import javax.swing.table.DefaultTableModel;
 // Giao diện quản lý khách hàng
 public class Guest extends javax.swing.JFrame {
     private static final Color PRIMARY_COLOR = new Color(41, 98, 255);
+    private static final Color SUCCESS_COLOR = new Color(76, 175, 80);
     private static final Color BACKGROUND_COLOR = new Color(245, 245, 245);
     private static final Color PANEL_BG = Color.WHITE;
     private static final Color BORDER_COLOR = new Color(224, 224, 224);
@@ -49,6 +50,28 @@ public class Guest extends javax.swing.JFrame {
                 BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_COLOR),
                 BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
+
+        JButton addButton = new JButton("+ Thêm");
+        addButton.setPreferredSize(new Dimension(100, 35));
+        addButton.setBackground(PRIMARY_COLOR);
+        addButton.setForeground(Color.WHITE);
+        addButton.setFocusPainted(false);
+        addButton.setBorderPainted(false);
+        addButton.setFont(new Font("Arial", Font.BOLD, 13));
+        addButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        addButton.addActionListener(e -> addNewGuest());
+        controlPanel.add(addButton);
+
+        JButton reloadButton = new JButton("⟳ Reload");
+        reloadButton.setPreferredSize(new Dimension(100, 35));
+        reloadButton.setBackground(SUCCESS_COLOR);
+        reloadButton.setForeground(Color.WHITE);
+        reloadButton.setFocusPainted(false);
+        reloadButton.setBorderPainted(false);
+        reloadButton.setFont(new Font("Arial", Font.BOLD, 13));
+        reloadButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        reloadButton.addActionListener(e -> loadGuestData());
+        controlPanel.add(reloadButton);
 
         searchField = new JTextField(20);
         searchField.setPreferredSize(new Dimension(250, 35));
@@ -334,5 +357,118 @@ public class Guest extends javax.swing.JFrame {
         editDialog.add(buttonPanel, BorderLayout.SOUTH);
         editDialog.setLocationRelativeTo(this);
         editDialog.setVisible(true);
+    }
+
+    // Method to handle adding new guest
+    private void addNewGuest() {
+        JDialog addDialog = new JDialog(this, "Thêm khách hàng mới", true);
+        addDialog.setLayout(new BorderLayout());
+        addDialog.setSize(450, 380);
+
+        JPanel contentPanel = new JPanel(new GridLayout(6, 2, 15, 15));
+        contentPanel.setBackground(PANEL_BG);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel bookingRoomLabel = new JLabel("Mã phòng đặt (*):");
+        bookingRoomLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JTextField bookingRoomField = new JTextField();
+        bookingRoomField.setFont(new Font("Arial", Font.PLAIN, 13));
+        contentPanel.add(bookingRoomLabel);
+        contentPanel.add(bookingRoomField);
+
+        JLabel nameLabel = new JLabel("Họ tên (*):");
+        nameLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JTextField nameField = new JTextField();
+        nameField.setFont(new Font("Arial", Font.PLAIN, 13));
+        contentPanel.add(nameLabel);
+        contentPanel.add(nameField);
+
+        JLabel genderLabel = new JLabel("Giới tính:");
+        genderLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JComboBox<String> genderCombo = new JComboBox<>(new String[]{"Nam", "Nữ", "Khác"});
+        genderCombo.setSelectedItem("Nam");
+        genderCombo.setFont(new Font("Arial", Font.PLAIN, 13));
+        contentPanel.add(genderLabel);
+        contentPanel.add(genderCombo);
+
+        JLabel dobLabel = new JLabel("Ngày sinh (*):");
+        dobLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JTextField dobField = new JTextField();
+        dobField.setToolTipText("Định dạng: yyyy-MM-dd");
+        dobField.setFont(new Font("Arial", Font.PLAIN, 13));
+        contentPanel.add(dobLabel);
+        contentPanel.add(dobField);
+
+        JLabel idCardLabel = new JLabel("Số CMND (*):");
+        idCardLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JTextField idCardField = new JTextField();
+        idCardField.setFont(new Font("Arial", Font.PLAIN, 13));
+        contentPanel.add(idCardLabel);
+        contentPanel.add(idCardField);
+
+        JLabel nationalityLabel = new JLabel("Quốc tịch:");
+        nationalityLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JTextField nationalityField = new JTextField("Việt Nam");
+        nationalityField.setFont(new Font("Arial", Font.PLAIN, 13));
+        contentPanel.add(nationalityLabel);
+        contentPanel.add(nationalityField);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        buttonPanel.setBackground(PANEL_BG);
+
+        JButton confirmButton = new JButton("Xác nhận");
+        confirmButton.setPreferredSize(new Dimension(100, 35));
+        confirmButton.setBackground(PRIMARY_COLOR);
+        confirmButton.setForeground(Color.WHITE);
+        confirmButton.setFocusPainted(false);
+        confirmButton.setBorderPainted(false);
+        confirmButton.setFont(new Font("Arial", Font.BOLD, 13));
+        confirmButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        confirmButton.addActionListener(e -> {
+            try {
+                String bookingRoomStr = bookingRoomField.getText().trim();
+                String name = nameField.getText().trim();
+                String gender = (String) genderCombo.getSelectedItem();
+                String dobStr = dobField.getText().trim();
+                String idCard = idCardField.getText().trim();
+                String nationality = nationalityField.getText().trim();
+
+                if (bookingRoomStr.isEmpty() || name.isEmpty() || dobStr.isEmpty() || idCard.isEmpty()) {
+                    JOptionPane.showMessageDialog(addDialog, "Vui lòng nhập đầy đủ thông tin (*)!",
+                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                int bookingRoomId = Integer.parseInt(bookingRoomStr);
+                java.time.LocalDate dob = java.time.LocalDate.parse(dobStr);
+
+                GuestDTO newGuest = new GuestDTO(0, bookingRoomId, name, gender, dob, idCard,
+                        nationality.isEmpty() ? "Việt Nam" : nationality);
+
+                if (guestBUS.addGuest(newGuest)) {
+                    JOptionPane.showMessageDialog(addDialog, "Thêm khách hàng thành công!");
+                    addDialog.dispose();
+                    loadGuestData();
+                } else {
+                    JOptionPane.showMessageDialog(addDialog, "Thêm khách hàng thất bại!",
+                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (java.time.format.DateTimeParseException ex) {
+                JOptionPane.showMessageDialog(addDialog, "Ngày sinh không hợp lệ! Dùng định dạng: yyyy-MM-dd",
+                        "Lỗi", JOptionPane.ERROR_MESSAGE);
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(addDialog, "Mã phòng đặt phải là số!",
+                        "Lỗi", JOptionPane.ERROR_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(addDialog, "Lỗi: " + ex.getMessage(),
+                        "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        buttonPanel.add(confirmButton);
+
+        addDialog.add(contentPanel, BorderLayout.CENTER);
+        addDialog.add(buttonPanel, BorderLayout.SOUTH);
+        addDialog.setLocationRelativeTo(this);
+        addDialog.setVisible(true);
     }
 }
