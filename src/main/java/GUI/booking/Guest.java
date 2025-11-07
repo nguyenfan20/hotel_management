@@ -1,6 +1,8 @@
 package GUI.booking;
 
+import BUS.BookingRoomBUS;
 import BUS.GuestBUS;
+import DAO.BookingRoomDAO;
 import DAO.GuestDAO;
 import DTO.GuestDTO;
 import java.awt.*;
@@ -9,6 +11,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -28,13 +31,18 @@ public class Guest extends javax.swing.JFrame {
     private JScrollPane scrollPane;
     private JTextField searchField;
     private List<GuestDTO> guestData;
+    private int filterByBookingRoomId = -1;
 
     public Guest() {
+        this(-1);
+    }
+
+    public Guest(int bookingRoomId) {
         guestBUS = new GuestBUS(new GuestDAO());
+        this.filterByBookingRoomId = bookingRoomId;
         initComponents();
         loadGuestData();
     }
-
     // Khởi tạo các component
     private void initComponents() {
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -117,7 +125,14 @@ public class Guest extends javax.swing.JFrame {
     // Tải dữ liệu khách hàng
     private void loadGuestData() {
         try {
-            guestData = guestBUS.getAllGuests();
+            if (filterByBookingRoomId > 0) {
+                List<GuestDTO> allGuests = guestBUS.getAllGuests();
+                guestData = allGuests.stream()
+                        .filter(g -> g.getGuestId() == filterByBookingRoomId)
+                        .toList();
+            } else {
+                guestData = guestBUS.getAllGuests();
+            }
             updateTableView();
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Lỗi tải dữ liệu: " + e.getMessage(),
@@ -133,18 +148,31 @@ public class Guest extends javax.swing.JFrame {
             return;
         }
 
-        try {
-            List<GuestDTO> results = guestBUS.searchGuests(query);
-            if (results == null || results.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Không tìm thấy khách: " + query,
-                        "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-                updateTableView();
-            } else {
-                updateTableViewWithData(results);
+        List<GuestDTO> results = new ArrayList<>();
+        for (GuestDTO guest : guestData) {
+            boolean matches = false;
+            if (guest.getFullName() != null && guest.getFullName().toLowerCase().contains(query)) {
+                matches = true;
+            } else if (guest.getGender() != null && guest.getGender().toLowerCase().contains(query)) {
+                matches = true;
+            } else if (guest.getDob() != null && guest.getDob().toString().toLowerCase().contains(query)) {
+                matches = true;
+            } else if (guest.getIdCard() != null && guest.getIdCard().toLowerCase().contains(query)) {
+                matches = true;
+            } else if (guest.getNationality() != null && guest.getNationality().toLowerCase().contains(query)) {
+                matches = true;
             }
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Lỗi tìm kiếm: " + e.getMessage(),
-                    "Lỗi", JOptionPane.ERROR_MESSAGE);
+            if (matches) {
+                results.add(guest);
+            }
+        }
+
+        if (results.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Không tìm thấy khách: " + query,
+                    "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            updateTableView();
+        } else {
+            updateTableViewWithData(results);
         }
     }
 

@@ -296,7 +296,7 @@ public class BookingRoom extends javax.swing.JFrame {
 
                     editItem.addActionListener(e1 -> editBookingRoom(br));
                     deleteItem.addActionListener(e1 -> deleteBookingRoom(br));
-                    guestItem.addActionListener(e1 -> openGuestGUI());
+                    guestItem.addActionListener(e1 -> openGuestGUI(br));
 
                     popupMenu.add(editItem);
                     popupMenu.add(deleteItem);
@@ -406,13 +406,16 @@ public class BookingRoom extends javax.swing.JFrame {
         }
     }
 
-    private void openGuestGUI() {
+    private void openGuestGUI(BookingRoomDTO br) {
         try {
-            Guest guestWindow = new Guest();
+            Guest guestWindow = new Guest(br.getBookingRoomId());
+            guestWindow.setTitle("Danh sách khách lưu trú - Mã phòng đặt: " + br.getBookingRoomId());
             guestWindow.setVisible(true);
+            guestWindow.setLocationRelativeTo(this);
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Lỗi mở giao diện: " + e.getMessage(),
                     "Lỗi", JOptionPane.ERROR_MESSAGE);
+            System.out.println(e.getMessage());
         }
     }
 
