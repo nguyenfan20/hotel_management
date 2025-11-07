@@ -73,7 +73,7 @@ public class main extends javax.swing.JFrame {
         initComponents();
 //        setBackground(new Color(0, 0, 0, 0));
         setResizable(true);
-        setSize(1200, 1080);
+        setSize(1400, 1080);
 
         home = new Form_Home();
 

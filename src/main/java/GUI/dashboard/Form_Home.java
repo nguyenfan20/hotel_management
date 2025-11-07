@@ -55,13 +55,16 @@ public class Form_Home extends javax.swing.JPanel {
     private CustomerBUS customerBUS;
     private StatisticsBUS statisticsBUS;
     private BookingBUS bookingBUS;
+    private BookingRoomBUS bookingRoomBUS;
 
     public Form_Home() {
         roomBUS = new RoomBUS();
         customerBUS = new CustomerBUS();
         statisticsBUS = new StatisticsBUS();
         bookingBUS = new BookingBUS(new BookingDAO());
+        bookingRoomBUS = new BookingRoomBUS(new BookingRoomDAO());
         initCustomComponents();
+        updateDashboard();
     }
 
     private ImageIcon loadIcon(String iconName) {
@@ -93,16 +96,54 @@ public class Form_Home extends javax.swing.JPanel {
             int currentMonth = cal.get(java.util.Calendar.MONTH) + 1;
 
             Map<String, Double> revenueByMonth = statisticsBUS.getRevenueByMonth(currentYear);
-            String monthKey = "Tháng " + currentMonth;
 
-            if (revenueByMonth != null && revenueByMonth.containsKey(monthKey)) {
-                double revenue = revenueByMonth.get(monthKey);
-                // Format số tiền
-                return String.format("%.1f B VNĐ", revenue / 1_000_000_000);
+            if (revenueByMonth == null || revenueByMonth.isEmpty()) {
+                System.out.println("Không có dữ liệu doanh thu");
+                return "0 VNĐ";
             }
-            return "0 VNĐ";
+
+            // Thử nhiều format key khác nhau
+            String[] possibleKeys = {
+                    "Tháng " + currentMonth,
+                    "Thang " + currentMonth,
+                    String.valueOf(currentMonth),
+                    "T" + currentMonth
+            };
+
+            Double revenue = null;
+            for (String key : possibleKeys) {
+                if (revenueByMonth.containsKey(key)) {
+                    revenue = revenueByMonth.get(key);
+                    break;
+                }
+            }
+
+            // Nếu không tìm thấy key nào, log ra các key có sẵn
+            if (revenue == null) {
+                System.out.println("Các key có sẵn: " + revenueByMonth.keySet());
+                System.out.println("Đang tìm tháng: " + currentMonth);
+
+                // Tính tổng tất cả doanh thu trong năm làm fallback
+                revenue = statisticsBUS.calculateTotal(revenueByMonth);
+                if (revenue > 0) {
+                    return String.format("%.1f B VNĐ", revenue / 1_000_000_000);
+                }
+                return "0 VNĐ";
+            }
+
+            // Format số tiền
+            if (revenue >= 1_000_000_000) {
+                return String.format("%.1f B VNĐ", revenue / 1_000_000_000);
+            } else if (revenue >= 1_000_000) {
+                return String.format("%.1f M VNĐ", revenue / 1_000_000);
+            } else if (revenue >= 1_000) {
+                return String.format("%.1f K VNĐ", revenue / 1_000);
+            } else {
+                return String.format("%.0f VNĐ", revenue);
+            }
         } catch (Exception e) {
             System.err.println("Lỗi lấy doanh thu tháng: " + e.getMessage());
+            e.printStackTrace();
             return "0 VNĐ";
         }
     }
@@ -124,20 +165,93 @@ public class Form_Home extends javax.swing.JPanel {
                 return "0%";
             }
 
-            // Giả sử RoomDTO có getStatus() method
-            // Đếm phòng "Occupied"
-            int occupiedCount = 0;
-            for (Object room : allRooms) {
-                // Cần ép kiểu thành RoomDTO hoặc gọi getStatus()
-                // occupiedCount++;
+            int totalRooms = allRooms.size();
+
+            // Đếm số phòng đang được đặt (có booking room active)
+            List<BookingRoomDTO> allBookingRooms = bookingRoomBUS.getAllBookingRooms();
+
+            if (allBookingRooms == null || allBookingRooms.isEmpty()) {
+                return "0%";
             }
 
-            double occupancyRate = (double) occupiedCount / allRooms.size() * 100;
+            // Đếm số phòng unique đang được đặt (status không phải "Đã trả" hoặc "Đã hủy")
+            long occupiedCount = allBookingRooms.stream()
+                    .filter(br -> {
+                        String status = br.getStatus();
+                        // Chỉ đếm phòng đang active
+                        return status != null &&
+                                !status.equalsIgnoreCase("Đã trả") &&
+                                !status.equalsIgnoreCase("Đã hủy") &&
+                                !status.equalsIgnoreCase("CHECKED_OUT");
+                    })
+                    .map(BookingRoomDTO::getRoomId)  // Lấy room ID
+                    .distinct()  // Chỉ đếm mỗi phòng 1 lần
+                    .count();
+
+            double occupancyRate = (double) occupiedCount / totalRooms * 100;
+
+//            // Log để debug
+//            System.out.println("Tổng phòng: " + totalRooms);
+//            System.out.println("Phòng đang đặt: " + occupiedCount);
+//            System.out.println("Tỷ lệ: " + occupancyRate + "%");
+
             return String.format("%.0f%%", occupancyRate);
         } catch (Exception e) {
-            System.err.println("Lỗi tính tỷ lệ lấp đầy: " + e.getMessage());
+            System.err.println("Lỗi tính tỷ lệ đặt phòng: " + e.getMessage());
+            e.printStackTrace();
             return "0%";
         }
+    }
+
+    public void refreshStatCards() {
+        try {
+            // Cập nhật giá trị cho các card
+            if (cardRooms != null) {
+                updateStatCard(cardRooms, getTotalRooms());
+            }
+            if (cardRevenue != null) {
+                updateStatCard(cardRevenue, getMonthlyRevenue());
+            }
+            if (cardGuests != null) {
+                updateStatCard(cardGuests, getTotalCustomers());
+            }
+            if (cardOccupancy != null) {
+                updateStatCard(cardOccupancy, getOccupancyRate());
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi refresh stat cards: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    // HELPER METHOD ĐỂ CẬP NHẬT GIÁ TRỊ CARD
+    private void updateStatCard(StatCard card, String newValue) {
+        if (card != null && newValue != null) {
+            // Tìm JLabel value trong card và cập nhật
+            for (java.awt.Component comp : card.getComponents()) {
+                if (comp instanceof JPanel) {
+                    JPanel textPanel = (JPanel) comp;
+                    for (java.awt.Component innerComp : textPanel.getComponents()) {
+                        if (innerComp instanceof JLabel) {
+                            JLabel label = (JLabel) innerComp;
+                            // JLabel value có font size 24
+                            if (label.getFont().getSize() == 24) {
+                                label.setText(newValue);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            card.revalidate();
+            card.repaint();
+        }
+    }
+
+    public void updateDashboard() {
+        SwingUtilities.invokeLater(() -> {
+            refreshStatCards();
+        });
     }
 
     private void initCustomComponents() {
@@ -226,7 +340,7 @@ public class Form_Home extends javax.swing.JPanel {
                 loadIcon("customer.png"),
                 new Color(34, 197, 94), new Color(59, 130, 246));
 
-        cardOccupancy = new StatCard("Tỷ lệ lấp đầy", getOccupancyRate(),
+        cardOccupancy = new StatCard("Tỷ lệ đặt phòng", getOccupancyRate(),
                 loadIcon("occupancy.png"),
                 new Color(251, 146, 60), new Color(234, 179, 8));
 

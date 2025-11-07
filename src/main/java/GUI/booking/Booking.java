@@ -2,6 +2,7 @@ package GUI.booking;
 
 import BUS.*;
 import DTO.*;
+import GUI.dashboard.Form_Home;
 import util.SimpleDocumentListener;
 
 import javax.swing.*;
@@ -48,6 +49,7 @@ public class Booking extends javax.swing.JPanel {
     private JSpinner guestAdultsSpinner;
     private JSpinner guestChildrenSpinner;
     private JTextField noteField;
+    private Form_Home formHome;
 
     public Booking() {
         bookingBUS = new BookingBUS(new DAO.BookingDAO());
@@ -612,7 +614,7 @@ public class Booking extends javax.swing.JPanel {
                 bookingRoom.setAdults(adultsCount);
                 bookingRoom.setChildren(childrenCount);
                 bookingRoom.setRatePerNight(ratePerNight);
-                bookingRoom.setStatus("Chờ nhận");
+                bookingRoom.setStatus("BOOKED");
 
                 boolean roomAdded = bookingRoomBUS.addBookingRoom(bookingRoom);
                 if (!roomAdded) {
@@ -621,6 +623,7 @@ public class Booking extends javax.swing.JPanel {
                 }
             }
 
+            formHome.updateDashboard();
             JOptionPane.showMessageDialog(this, "Tạo đơn đặt thành công!\nMã đơn: " + createdBooking.getCode());
             SwingUtilities.windowForComponent(this).dispose();
 
