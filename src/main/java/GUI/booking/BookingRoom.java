@@ -184,7 +184,7 @@ public class BookingRoom extends javax.swing.JFrame {
 
         JLabel statusLabel = new JLabel("Trạng thái:");
         statusLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JComboBox<String> statusCombo = new JComboBox<>(new String[]{"Tất cả", "Đã đặt", "Đã nhận", "Đã trả", "Đã hủy"});
+        JComboBox<String> statusCombo = new JComboBox<>(new String[]{"ALl", "CHECKED_OUT", "CHECKED_IN", "BOOKED" });
         statusCombo.setPreferredSize(new Dimension(150, 30));
         contentPanel.add(statusLabel);
         contentPanel.add(statusCombo);
@@ -215,10 +215,12 @@ public class BookingRoom extends javax.swing.JFrame {
     private void filterBookingRooms(String status) {
         try {
             List<BookingRoomDTO> results;
-            if ("Tất cả".equals(status)) {
+            if ("All".equalsIgnoreCase(status)) {
                 results = bookingRoomData;
             } else {
-                results = bookingRoomBUS.getBookingRoomsByStatus(status);
+                results = bookingRoomData.stream()
+                        .filter(br -> status.equals(br.getStatus()))
+                        .toList();
             }
             updateTableViewWithData(results);
         } catch (Exception e) {
