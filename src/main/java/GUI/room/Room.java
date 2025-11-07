@@ -2,6 +2,8 @@ package GUI.room;
 
 import BUS.*;
 import DTO.*;
+import GUI.dashboard.ModernScrollBarUI;
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -25,6 +27,7 @@ public class Room extends javax.swing.JPanel {
     private static final Color AVAILABLE_COLOR = new Color(232, 245, 233);
     private static final Color RESERVED_COLOR = new Color(255, 243, 224);
     private static final Color OCCUPIED_COLOR = new Color(255, 235, 238);
+    private static final Color CLEANING_COLOR = new Color(227, 242, 253);
     private static final Color BACKGROUND_COLOR = new Color(245, 245, 245);
     private static final Color PANEL_BG = Color.WHITE;
     private static final Color BORDER_COLOR = new Color(224, 224, 224);
@@ -61,6 +64,7 @@ public class Room extends javax.swing.JPanel {
         setLayout(new BorderLayout());
         setBackground(BACKGROUND_COLOR);
 
+        // === CONTROL PANEL ===
         JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
         controlPanel.setBackground(PANEL_BG);
         controlPanel.setBorder(BorderFactory.createCompoundBorder(
@@ -68,7 +72,6 @@ public class Room extends javax.swing.JPanel {
                 BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
 
-        // Nút Thêm phòng
         JButton addButton = new JButton("Thêm phòng");
         addButton.setPreferredSize(new Dimension(140, 35));
         addButton.setIcon(new ImageIcon(getClass().getResource("/images/add-button.png")));
@@ -76,30 +79,28 @@ public class Room extends javax.swing.JPanel {
         addButton.setForeground(Color.WHITE);
         addButton.setFocusPainted(false);
         addButton.setBorderPainted(false);
-        addButton.setFont(new Font("Arial", Font.BOLD, 13));
+        addButton.setFont(new Font("Segoe UI", Font.BOLD, 13));
         addButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         addButton.addActionListener(e -> showAddRoomDialog());
         controlPanel.add(addButton);
 
-        // Nút Đặt phòng
         JButton bookButton = new JButton("Đặt phòng");
         bookButton.setPreferredSize(new Dimension(140, 35));
         bookButton.setBackground(PRIMARY_COLOR);
         bookButton.setForeground(Color.WHITE);
         bookButton.setFocusPainted(false);
         bookButton.setBorderPainted(false);
-        bookButton.setFont(new Font("Arial", Font.BOLD, 13));
+        bookButton.setFont(new Font("Segoe UI", Font.BOLD, 13));
         bookButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        bookButton.setToolTipText("Mở form đặt phòng");
+        bookButton.setToolTipText("Mở form đặt phòng mới");
         bookButton.addActionListener(e -> showBookingDialog());
         controlPanel.add(bookButton);
 
         controlPanel.add(Box.createHorizontalStrut(20));
 
-        // Tìm kiếm
-        searchField = new JTextField(15);
-        searchField.setPreferredSize(new Dimension(200, 35));
-        searchField.setFont(new Font("Arial", Font.PLAIN, 13));
+        searchField = new JTextField(20);
+        searchField.setPreferredSize(new Dimension(250, 35));
+        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         searchField.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER_COLOR, 1),
                 BorderFactory.createEmptyBorder(5, 10, 5, 10)
@@ -123,6 +124,7 @@ public class Room extends javax.swing.JPanel {
         controlPanel.add(filterButton);
 
         toggleButton = createIconButton("/images/grid.png");
+        toggleButton.setToolTipText("Chuyển đổi giữa lưới và bảng");
         toggleButton.addActionListener(e -> {
             isGridView = !isGridView;
             toggleButton.setIcon(new ImageIcon(getClass().getResource(isGridView ? "/images/grid.png" : "/images/cells.png")));
@@ -132,9 +134,17 @@ public class Room extends javax.swing.JPanel {
 
         add(controlPanel, BorderLayout.NORTH);
 
+        // === SCROLL PANE VỚI MODERN SCROLLBAR ===
         scrollPane = new JScrollPane();
         scrollPane.setBorder(null);
         scrollPane.getViewport().setBackground(BACKGROUND_COLOR);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+
+        // Áp dụng Modern Scrollbar
+        scrollPane.getVerticalScrollBar().setUI(new ModernScrollBarUI());
+        scrollPane.getHorizontalScrollBar().setUI(new ModernScrollBarUI());
+
         add(scrollPane, BorderLayout.CENTER);
     }
 
@@ -143,8 +153,8 @@ public class Room extends javax.swing.JPanel {
         button.setPreferredSize(new Dimension(35, 35));
         try {
             button.setIcon(new ImageIcon(getClass().getResource(iconPath)));
-        } catch (Exception e) {
-            button.setText(iconPath.contains("grid") ? "Grid" : iconPath.contains("cells") ? "Table" : "Icon");
+        } catch (Exception ex) {
+            button.setText(iconPath.contains("grid") ? "Grid" : "Icon");
         }
         button.setBackground(PANEL_BG);
         button.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
@@ -155,14 +165,13 @@ public class Room extends javax.swing.JPanel {
 
     private void loadRoomTypes() {
         try {
-            List<RoomTypeDTO> roomTypeList = roomTypeBUS.getAllRoomTypes();
+            List<RoomTypeDTO> list = roomTypeBUS.getAllRoomTypes();
             roomTypes.clear();
-            for (RoomTypeDTO roomType : roomTypeList) {
-                roomTypes.put(roomType.getRoomTypeId(), roomType.getName());
+            for (RoomTypeDTO rt : list) {
+                roomTypes.put(rt.getRoomTypeId(), rt.getName());
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi khi tải loại phòng: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Lỗi tải loại phòng: " + e.getMessage());
         }
     }
 
@@ -172,63 +181,84 @@ public class Room extends javax.swing.JPanel {
             filteredRoomData = new ArrayList<>(roomData);
             updateView();
         } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi khi tải dữ liệu phòng: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Lỗi tải dữ liệu phòng!");
         }
     }
 
     private void performSearch() {
         String query = searchField.getText().trim().toLowerCase();
-        filteredRoomData = query.isEmpty() ? new ArrayList<>(roomData) : roomData.stream()
-                .filter(room -> {
-                    String roomNo = room.getRoomNo().toLowerCase();
-                    String floorNo = String.valueOf(room.getFloorNo());
-                    String status = room.getStatus().toLowerCase();
-                    String roomType = roomTypes.getOrDefault(room.getRoomTypeId(), "").toLowerCase();
-                    String note = room.getNote() != null ? room.getNote().toLowerCase() : "";
-                    return roomNo.contains(query) || floorNo.contains(query) || status.contains(query) ||
-                            roomType.contains(query) || note.contains(query);
-                })
-                .collect(Collectors.toList());
+        filteredRoomData = query.isEmpty() ? new ArrayList<>(roomData) :
+                roomData.stream()
+                        .filter(room -> {
+                            String roomNo = room.getRoomNo().toLowerCase();
+                            String floor = String.valueOf(room.getFloorNo());
+                            String status = room.getStatus().toLowerCase();
+                            String type = roomTypes.getOrDefault(room.getRoomTypeId(), "").toLowerCase();
+                            String note = room.getNote() != null ? room.getNote().toLowerCase() : "";
+                            return roomNo.contains(query) || floor.contains(query) ||
+                                    status.contains(query) || type.contains(query) || note.contains(query);
+                        })
+                        .collect(Collectors.toList());
         updateView();
     }
 
     private void showFilterDialog() {
-        JDialog filterDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Lọc phòng", true);
-        filterDialog.setLayout(new BorderLayout());
-        filterDialog.setSize(350, 200);
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Lọc phòng", true);
+        dialog.setSize(380, 220);
+        dialog.setLayout(new BorderLayout());
+        dialog.setLocationRelativeTo(this);
 
-        JPanel contentPanel = new JPanel(new GridLayout(2, 2, 15, 15));
-        contentPanel.setBackground(PANEL_BG);
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        JPanel panel = new JPanel(new GridLayout(3, 2, 15, 15));
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 25, 20, 25));
+        panel.setBackground(PANEL_BG);
 
-        JLabel roomTypeLabel = new JLabel("Loại phòng:");
-        JComboBox<String> roomTypeCombo = new JComboBox<>();
-        roomTypeCombo.addItem("Tất cả");
-        roomTypes.values().forEach(roomTypeCombo::addItem);
+        panel.add(new JLabel("Loại phòng:"));
+        JComboBox<String> typeCombo = new JComboBox<>();
+        typeCombo.addItem("Tất cả");
+        roomTypes.values().stream().sorted().forEach(typeCombo::addItem);
 
-        JLabel statusLabel = new JLabel("Trạng thái:");
-        JComboBox<String> statusCombo = new JComboBox<>(new String[]{"Tất cả", "AVAILABLE", "RESERVED", "OCCUPIED"});
+        panel.add(new JLabel("Trạng thái:"));
+        JComboBox<String> statusCombo = new JComboBox<>();
+        statusCombo.addItem("Tất cả");
+        statusCombo.addItem("AVAILABLE");
+        statusCombo.addItem("RESERVED");
+        statusCombo.addItem("OCCUPIED");
 
-        contentPanel.add(roomTypeLabel); contentPanel.add(roomTypeCombo);
-        contentPanel.add(statusLabel); contentPanel.add(statusCombo);
+        panel.add(new JLabel("Tầng:"));
+        JComboBox<String> floorCombo = new JComboBox<>();
+        floorCombo.addItem("Tất cả");
+        roomData.stream()
+                .map(r -> r.getFloorNo())
+                .distinct()
+                .sorted()
+                .forEach(f -> floorCombo.addItem(String.valueOf(f)));
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton confirmButton = new JButton("Xác nhận");
-        confirmButton.setPreferredSize(new Dimension(100, 35));
-        confirmButton.setBackground(PRIMARY_COLOR);
-        confirmButton.setForeground(Color.WHITE);
-        confirmButton.addActionListener(e -> {
-            filterRooms((String) roomTypeCombo.getSelectedItem(), (String) statusCombo.getSelectedItem());
-            filterDialog.dispose();
+        panel.add(typeCombo);
+        panel.add(statusCombo);
+        panel.add(floorCombo);
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        btnPanel.setBackground(PANEL_BG);
+        JButton ok = new JButton("Áp dụng");
+        ok.setBackground(PRIMARY_COLOR);
+        ok.setForeground(Color.WHITE);
+        ok.addActionListener(e -> {
+            String type = (String) typeCombo.getSelectedItem();
+            String status = (String) statusCombo.getSelectedItem();
+            String floor = (String) floorCombo.getSelectedItem();
+
+            filteredRoomData = roomData.stream()
+                    .filter(r -> type.equals("Tất cả") || roomTypes.get(r.getRoomTypeId()).equals(type))
+                    .filter(r -> status.equals("Tất cả") || r.getStatus().equals(status))
+                    .filter(r -> floor.equals("Tất cả") || r.getFloorNo() == Integer.parseInt(floor))
+                    .collect(Collectors.toList());
+            updateView();
+            dialog.dispose();
         });
-        buttonPanel.add(confirmButton);
-        buttonPanel.setBackground(PANEL_BG);
-
-        filterDialog.add(contentPanel, BorderLayout.CENTER);
-        filterDialog.add(buttonPanel, BorderLayout.SOUTH);
-        filterDialog.setLocationRelativeTo(this);
-        filterDialog.setVisible(true);
+        btnPanel.add(ok);
+        dialog.add(panel, BorderLayout.CENTER);
+        dialog.add(btnPanel, BorderLayout.SOUTH);
+        dialog.setVisible(true);
     }
 
     private void filterRooms(String roomType, String status) {
@@ -640,71 +670,115 @@ public class Room extends javax.swing.JPanel {
         JPanel rowPanel = null;
 
         for (RoomDTO room : filteredRoomData) {
-            int floorNo = room.getFloorNo();
-            if (floorNo != currentFloor) {
-                currentFloor = floorNo;
-                JPanel floorPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-                floorPanel.setBackground(BACKGROUND_COLOR);
-                JLabel floorLabel = new JLabel("Tầng " + floorNo, SwingConstants.CENTER);
-                floorLabel.setFont(new Font("Arial", Font.BOLD, 18));
-                floorLabel.setForeground(TEXT_COLOR);
-                floorLabel.setOpaque(true);
-                floorLabel.setBackground(PANEL_BG);
-                floorLabel.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                        BorderFactory.createEmptyBorder(10, 30, 10, 30)
-                ));
-                floorPanel.add(floorLabel);
-                mainPanel.add(floorPanel);
+            if (room.getFloorNo() != currentFloor) {
+                currentFloor = room.getFloorNo();
 
-                rowPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 15));
+                JPanel floorHeader = new JPanel(new FlowLayout(FlowLayout.CENTER));
+                floorHeader.setBackground(BACKGROUND_COLOR);
+                JLabel floorLabel = new JLabel("Tầng " + currentFloor);
+                floorLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+                floorLabel.setForeground(new Color(50, 50, 50));
+                floorLabel.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(BORDER_COLOR),
+                        BorderFactory.createEmptyBorder(12, 40, 12, 40)
+                ));
+                floorLabel.setBackground(PANEL_BG);
+                floorLabel.setOpaque(true);
+                floorHeader.add(floorLabel);
+                mainPanel.add(floorHeader);
+                mainPanel.add(Box.createVerticalStrut(10));
+
+                rowPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 25, 20));
                 rowPanel.setBackground(BACKGROUND_COLOR);
                 mainPanel.add(rowPanel);
             }
 
-            JButton btn = new JButton();
-            btn.setLayout(new BorderLayout(0, 5));
-            btn.setPreferredSize(new Dimension(130, 130));
+            JButton btn = new JButton() {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    Graphics2D g2d = (Graphics2D) g.create();
+                    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2d.setColor(getBackground());
+                    g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20); // Bo góc 20px
+                    g2d.dispose();
+                    super.paintComponent(g);
+                }
+            };
+            btn.setPreferredSize(new Dimension(140, 140));
+            btn.setLayout(new BorderLayout());
             btn.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(BORDER_COLOR, 2),
-                    BorderFactory.createEmptyBorder(10, 10, 10, 10)
+                    BorderFactory.createEmptyBorder(12, 12, 12, 12)
             ));
-            btn.setFocusPainted(false);
             btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-            ImageIcon icon = new ImageIcon(getClass().getResource("/images/house.png"));
-            JLabel iconLabel = new JLabel(icon, SwingConstants.CENTER);
+            // Quan trọng: Tắt các thuộc tính mặc định để màu nền hiển thị luôn
+            btn.setOpaque(false);  // Đổi sang false để paintComponent xử lý
+            btn.setContentAreaFilled(false);
+            btn.setBorderPainted(true);  // Giữ viền nếu cần
+            btn.setFocusPainted(false);
+
+            // Icon
+            JLabel iconLabel = new JLabel(new ImageIcon(getClass().getResource("/images/house.png")), SwingConstants.CENTER);
             btn.add(iconLabel, BorderLayout.CENTER);
 
-            JPanel labelPanel = new JPanel(new BorderLayout());
-            labelPanel.setOpaque(false);
-            JLabel nameLabel = new JLabel("Phòng " + room.getRoomNo(), SwingConstants.CENTER);
-            nameLabel.setFont(new Font("Arial", Font.BOLD, 13));
-            JLabel typeLabel = new JLabel(roomTypes.getOrDefault(room.getRoomTypeId(), ""), SwingConstants.CENTER);
-            typeLabel.setFont(new Font("Arial", Font.ITALIC, 11));
-            typeLabel.setForeground(new Color(100, 100, 100));
-            labelPanel.add(nameLabel, BorderLayout.NORTH);
-            labelPanel.add(typeLabel, BorderLayout.SOUTH);
-            btn.add(labelPanel, BorderLayout.SOUTH);
+            // Thông tin
+            JPanel infoPanel = new JPanel(new BorderLayout(0, 4));
+            infoPanel.setOpaque(false);
+            JLabel roomNoLabel = new JLabel("Phòng " + room.getRoomNo(), SwingConstants.CENTER);
+            roomNoLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            roomNoLabel.setForeground(TEXT_COLOR);
 
+            JLabel typeLabel = new JLabel(roomTypes.getOrDefault(room.getRoomTypeId(), "N/A"), SwingConstants.CENTER);
+            typeLabel.setFont(new Font("Segoe UI", Font.ITALIC, 11));
+            typeLabel.setForeground(new Color(100, 100, 100));
+
+            infoPanel.add(roomNoLabel, BorderLayout.NORTH);
+            infoPanel.add(typeLabel, BorderLayout.SOUTH);
+            btn.add(infoPanel, BorderLayout.SOUTH);
+
+            // Màu nền theo trạng thái
+            Color bgColor;
             switch (room.getStatus()) {
-                case "AVAILABLE": btn.setBackground(AVAILABLE_COLOR); break;
-                case "RESERVED": btn.setBackground(RESERVED_COLOR); break;
-                case "OCCUPIED": btn.setBackground(OCCUPIED_COLOR); break;
+                case "AVAILABLE":
+                    bgColor = AVAILABLE_COLOR;
+                    break;
+                case "RESERVED":
+                    bgColor = RESERVED_COLOR;
+                    break;
+                case "OCCUPIED":
+                    bgColor = OCCUPIED_COLOR;
+                    break;
+                default:
+                    bgColor = CLEANING_COLOR;
+                    break;
             }
-            btn.setOpaque(true);
+            btn.setBackground(bgColor);
+
+            btn.addMouseListener(new MouseAdapter() {
+                private Color originalColor = btn.getBackground();
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    btn.setBackground(originalColor.brighter());
+                }
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    btn.setBackground(originalColor);
+                }
+            });
 
             btn.addActionListener(e -> showRoomDetailDialog(room));
 
+            // Popup menu
             JPopupMenu popup = new JPopupMenu();
             JMenuItem detail = new JMenuItem("Xem chi tiết");
             JMenuItem book = new JMenuItem("Đặt phòng");
             JMenuItem checkin = new JMenuItem("Check-in nhanh");
+            checkin.setEnabled("AVAILABLE".equals(room.getStatus()));
 
             detail.addActionListener(e -> showRoomDetailDialog(room));
             book.addActionListener(e -> showBookingDialog());
             checkin.addActionListener(e -> quickCheckin(room));
-            checkin.setEnabled(room.getStatus().equals("AVAILABLE"));
 
             popup.add(detail);
             popup.add(book);
@@ -712,21 +786,16 @@ public class Room extends javax.swing.JPanel {
 
             btn.addMouseListener(new MouseAdapter() {
                 @Override
-                public void mousePressed(MouseEvent e) {
-                    if (e.isPopupTrigger()) showPopup(e);
-                }
+                public void mousePressed(MouseEvent e) { if (e.isPopupTrigger()) popup.show(e.getComponent(), e.getX(), e.getY()); }
                 @Override
-                public void mouseReleased(MouseEvent e) {
-                    if (e.isPopupTrigger()) showPopup(e);
-                }
-                private void showPopup(MouseEvent e) {
-                    popup.show(e.getComponent(), e.getX(), e.getY());
-                }
+                public void mouseReleased(MouseEvent e) { if (e.isPopupTrigger()) popup.show(e.getComponent(), e.getX(), e.getY()); }
             });
 
+            assert rowPanel != null;
             rowPanel.add(btn);
-            if (rowPanel.getComponentCount() == 4) {
-                rowPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 15));
+
+            if (rowPanel.getComponentCount() == 5) {
+                rowPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 25, 20));
                 rowPanel.setBackground(BACKGROUND_COLOR);
                 mainPanel.add(rowPanel);
             }
@@ -736,67 +805,36 @@ public class Room extends javax.swing.JPanel {
     }
 
     private void showTableView() {
-        String[] columnNames = {"ID", "Số phòng", "Tầng", "Trạng thái", "Loại phòng", "Ghi chú"};
-        DefaultTableModel model = new DefaultTableModel(columnNames, 0);
-
-        for (RoomDTO room : filteredRoomData) {
-            Object[] row = {
-                    room.getRoomId(),
-                    room.getRoomNo(),
-                    room.getFloorNo(),
-                    room.getStatus(),
-                    roomTypes.getOrDefault(room.getRoomTypeId(), "Unknown"),
-                    room.getNote()
-            };
-            model.addRow(row);
+        String[] cols = {"ID", "Số phòng", "Tầng", "Trạng thái", "Loại phòng", "Ghi chú"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0);
+        for (RoomDTO r : filteredRoomData) {
+            model.addRow(new Object[]{
+                    r.getRoomId(),
+                    r.getRoomNo(),
+                    r.getFloorNo(),
+                    r.getStatus(),
+                    roomTypes.getOrDefault(r.getRoomTypeId(), ""),
+                    r.getNote()
+            });
         }
 
         JTable table = new JTable(model);
-        table.setRowHeight(40);
-        table.setFont(new Font("Arial", Font.PLAIN, 13));
-        table.setGridColor(BORDER_COLOR);
-        table.setSelectionBackground(new Color(232, 240, 254));
-        table.setSelectionForeground(TEXT_COLOR);
-        table.setShowVerticalLines(true);
-        table.setIntercellSpacing(new Dimension(1, 1));
-
-        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 14));
-        table.getTableHeader().setBackground(PANEL_BG);
+        table.setRowHeight(45);
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
+        table.getTableHeader().setBackground(new Color(250, 250, 250));
         table.getTableHeader().setForeground(TEXT_COLOR);
-        table.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, PRIMARY_COLOR));
-        table.getTableHeader().setPreferredSize(new Dimension(0, 45));
+        table.getTableHeader().setPreferredSize(new Dimension(0, 50));
 
         table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus, int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 if (!isSelected) {
-                    c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(250, 250, 250));
+                    c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(248, 248, 248));
                 }
-                setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
                 return c;
-            }
-        });
-
-        JPopupMenu popupMenu = new JPopupMenu();
-        JMenuItem editItem = new JMenuItem("Sửa");
-        JMenuItem deleteItem = new JMenuItem("Xóa");
-        popupMenu.add(editItem);
-        popupMenu.add(deleteItem);
-
-        table.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseReleased(MouseEvent e) {
-                if (e.isPopupTrigger() && table.getSelectedRow() != -1) {
-                    int rowIndex = table.getSelectedRow();
-                    int modelRow = table.convertRowIndexToModel(rowIndex);
-                    RoomDTO room = filteredRoomData.get(modelRow);
-
-                    editItem.addActionListener(e1 -> showEditRoomDialog(room));
-                    deleteItem.addActionListener(e1 -> deleteRoom(room.getRoomId(), room.getStatus()));
-
-                    popupMenu.show(e.getComponent(), e.getX(), e.getY());
-                }
             }
         });
 

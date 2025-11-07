@@ -16,12 +16,11 @@ import DTO.ServiceOrderDTO;
 import DTO.CustomerDTO;
 import DTO.RoomDTO;
 import DTO.ServiceDTO;
+import GUI.dashboard.ModernScrollBarUI;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public class InvoiceDetail extends JDialog {
@@ -41,7 +40,7 @@ public class InvoiceDetail extends JDialog {
     private JTextField discountTotalField;
     private JTextField taxTotalField;
     private JTextField grandTotalField;
-    private JComboBox<String> statusCombo;
+    private JTextField status;
 
     // Customer info fields
     private JTextField customerNameField;
@@ -63,6 +62,11 @@ public class InvoiceDetail extends JDialog {
     private JTable serviceTable;
     private DefaultTableModel serviceTableModel;
 
+    private static final Color PRIMARY_COLOR = new Color(41, 98, 255);
+    private static final Color SUCCESS_COLOR = new Color(46, 204, 113);
+    private static final Color DANGER_COLOR = new Color(231, 76, 60);
+    private static final Color SECTION_BG = new Color(248, 249, 250);
+
     public InvoiceDetail(Frame parent, InvoiceDTO invoice, InvoiceBUS invoiceBUS) {
         super(parent, "Chi tiết hóa đơn", true);
         this.invoice = invoice;
@@ -80,234 +84,211 @@ public class InvoiceDetail extends JDialog {
     }
 
     private void initComponents() {
-        setSize(1200, 800);
+        setSize(1000, 700);
         setLocationRelativeTo(getParent());
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 
-        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        JPanel mainPanel = new JPanel(new BorderLayout(0, 0));
         mainPanel.setBackground(Color.WHITE);
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-        JTabbedPane tabbedPane = new JTabbedPane();
-        tabbedPane.setBackground(Color.WHITE);
+        // Content Panel with Custom ScrollBar
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.setBackground(Color.WHITE);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        // Tab 1: Invoice Info
-        JPanel invoicePanel = createInvoicePanel();
-        tabbedPane.addTab("Thông tin hóa đơn", invoicePanel);
+        // Add all sections
+        contentPanel.add(createInvoiceSection());
+        contentPanel.add(Box.createVerticalStrut(15));
+        contentPanel.add(createCustomerSection());
+        contentPanel.add(Box.createVerticalStrut(15));
+        contentPanel.add(createBookingSection());
+        contentPanel.add(Box.createVerticalStrut(15));
+        contentPanel.add(createRoomSection());
+        contentPanel.add(Box.createVerticalStrut(15));
+        contentPanel.add(createServiceSection());
+        contentPanel.add(Box.createVerticalStrut(20));
 
-        // Tab 2: Customer Info
-        JPanel customerPanel = createCustomerPanel();
-        tabbedPane.addTab("Thông tin khách hàng", customerPanel);
+        // Scroll Pane with Modern ScrollBar
+        JScrollPane scrollPane = new JScrollPane(contentPanel);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.getVerticalScrollBar().setUI(new ModernScrollBarUI());
+        scrollPane.getHorizontalScrollBar().setUI(new ModernScrollBarUI());
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
-        // Tab 3: Booking Info
-        JPanel bookingPanel = createBookingPanel();
-        tabbedPane.addTab("Thông tin đặt phòng", bookingPanel);
-
-        // Tab 4: Room Info
-        JPanel roomPanel = createRoomPanel();
-        tabbedPane.addTab("Phòng đặt", roomPanel);
-
-        // Tab 5: Service Info
-        JPanel servicePanel = createServicePanel();
-        tabbedPane.addTab("Dịch vụ sử dụng", servicePanel);
-
-        mainPanel.add(tabbedPane, BorderLayout.CENTER);
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
 
         // Buttons
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
         buttonPanel.setBackground(Color.WHITE);
+        buttonPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(230, 230, 230)));
 
         JButton saveButton = new JButton("Lưu");
-        saveButton.setBackground(new Color(46, 204, 113));
+        saveButton.setBackground(SUCCESS_COLOR);
         saveButton.setForeground(Color.WHITE);
+        saveButton.setFocusPainted(false);
+        saveButton.setPreferredSize(new Dimension(100, 35));
         saveButton.addActionListener(e -> saveInvoice());
 
         JButton closeButton = new JButton("Đóng");
-        closeButton.setBackground(new Color(231, 76, 60));
+        closeButton.setBackground(DANGER_COLOR);
         closeButton.setForeground(Color.WHITE);
+        closeButton.setFocusPainted(false);
+        closeButton.setPreferredSize(new Dimension(100, 35));
         closeButton.addActionListener(e -> dispose());
 
         buttonPanel.add(saveButton);
         buttonPanel.add(closeButton);
 
-        add(mainPanel, BorderLayout.CENTER);
-        add(buttonPanel, BorderLayout.SOUTH);
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+        add(mainPanel);
     }
 
-    private JPanel createInvoicePanel() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+    private JPanel createInvoiceSection() {
+        JPanel section = createSection("Thông tin hóa đơn");
+        JPanel content = new JPanel(new GridBagLayout());
+        content.setBackground(Color.WHITE);
+        content.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.insets = new Insets(8, 10, 8, 10);
         gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        // Số hóa đơn
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        panel.add(new JLabel("Số hóa đơn:"), gbc);
-        invoiceNoField = new JTextField(25);
-        invoiceNoField.setEditable(false);
-        gbc.gridx = 1;
-        panel.add(invoiceNoField, gbc);
+        // Row 1
+        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0;
+        content.add(createLabel("Số hóa đơn:"), gbc);
+        gbc.gridx = 1; gbc.weightx = 1;
+        invoiceNoField = createTextField(false);
+        content.add(invoiceNoField, gbc);
 
-        // Đặt phòng
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        panel.add(new JLabel("ID Đặt phòng:"), gbc);
-        bookingIdField = new JTextField(25);
-        bookingIdField.setEditable(false);
-        gbc.gridx = 1;
-        panel.add(bookingIdField, gbc);
+        gbc.gridx = 2; gbc.weightx = 0;
+        content.add(createLabel("ID Đặt phòng:"), gbc);
+        gbc.gridx = 3; gbc.weightx = 1;
+        bookingIdField = createTextField(false);
+        content.add(bookingIdField, gbc);
 
-        // Tổng phụ
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        panel.add(new JLabel("Tổng phụ:"), gbc);
-        subtotalField = new JTextField(25);
-        subtotalField.setEditable(false);
-        gbc.gridx = 1;
-        panel.add(subtotalField, gbc);
+        // Row 2
+        gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0;
+        content.add(createLabel("Tổng phụ:"), gbc);
+        gbc.gridx = 1; gbc.weightx = 1;
+        subtotalField = createTextField(false);
+        content.add(subtotalField, gbc);
 
-        // Chiết khấu
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        panel.add(new JLabel("Chiết khấu:"), gbc);
-        discountTotalField = new JTextField(25);
-        discountTotalField.setEditable(false);
-        gbc.gridx = 1;
-        panel.add(discountTotalField, gbc);
+        gbc.gridx = 2; gbc.weightx = 0;
+        content.add(createLabel("Chiết khấu:"), gbc);
+        gbc.gridx = 3; gbc.weightx = 1;
+        discountTotalField = createTextField(false);
+        content.add(discountTotalField, gbc);
 
-        // Thuế
-        gbc.gridx = 0;
-        gbc.gridy = 4;
-        panel.add(new JLabel("Thuế:"), gbc);
-        taxTotalField = new JTextField(25);
-        taxTotalField.setEditable(false);
-        gbc.gridx = 1;
-        panel.add(taxTotalField, gbc);
+        // Row 3
+        gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0;
+        content.add(createLabel("Thuế:"), gbc);
+        gbc.gridx = 1; gbc.weightx = 1;
+        taxTotalField = createTextField(false);
+        content.add(taxTotalField, gbc);
 
-        // Tổng cộng
-        gbc.gridx = 0;
-        gbc.gridy = 5;
-        panel.add(new JLabel("Tổng cộng:"), gbc);
-        grandTotalField = new JTextField(25);
-        grandTotalField.setEditable(false);
-        gbc.gridx = 1;
-        panel.add(grandTotalField, gbc);
+        gbc.gridx = 2; gbc.weightx = 0;
+        content.add(createLabel("Tổng cộng:"), gbc);
+        gbc.gridx = 3; gbc.weightx = 1;
+        grandTotalField = createTextField(false);
+        grandTotalField.setFont(grandTotalField.getFont().deriveFont(Font.BOLD, 14f));
+        content.add(grandTotalField, gbc);
 
-        // Trạng thái
-        gbc.gridx = 0;
-        gbc.gridy = 6;
-        panel.add(new JLabel("Trạng thái:"), gbc);
-        statusCombo = new JComboBox<>(new String[]{"Draft", "Issued", "Paid", "Cancelled"});
-        gbc.gridx = 1;
-        panel.add(statusCombo, gbc);
+        // Row 4
+        gbc.gridx = 0; gbc.gridy = 3; gbc.weightx = 0;
+        content.add(createLabel("Trạng thái:"), gbc);
+        gbc.gridx = 1; gbc.weightx = 1;
+        status = createTextField(false);
+        content.add(status, gbc);
 
-        return panel;
+        section.add(content, BorderLayout.CENTER);
+        return section;
     }
 
-    private JPanel createCustomerPanel() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+    private JPanel createCustomerSection() {
+        JPanel section = createSection("Thông tin khách hàng");
+        JPanel content = new JPanel(new GridBagLayout());
+        content.setBackground(Color.WHITE);
+        content.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.insets = new Insets(8, 10, 8, 10);
         gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        // Tên khách hàng
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        panel.add(new JLabel("Tên khách hàng:"), gbc);
-        customerNameField = new JTextField(25);
-        customerNameField.setEditable(false);
-        gbc.gridx = 1;
-        panel.add(customerNameField, gbc);
+        // Row 1
+        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0;
+        content.add(createLabel("Tên khách hàng:"), gbc);
+        gbc.gridx = 1; gbc.weightx = 1;
+        customerNameField = createTextField(false);
+        content.add(customerNameField, gbc);
 
-        // Số điện thoại
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        panel.add(new JLabel("Số điện thoại:"), gbc);
-        customerPhoneField = new JTextField(25);
-        customerPhoneField.setEditable(false);
-        gbc.gridx = 1;
-        panel.add(customerPhoneField, gbc);
+        gbc.gridx = 2; gbc.weightx = 0;
+        content.add(createLabel("Số điện thoại:"), gbc);
+        gbc.gridx = 3; gbc.weightx = 1;
+        customerPhoneField = createTextField(false);
+        content.add(customerPhoneField, gbc);
 
-        // Email
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        panel.add(new JLabel("Email:"), gbc);
-        customerEmailField = new JTextField(25);
-        customerEmailField.setEditable(false);
-        gbc.gridx = 1;
-        panel.add(customerEmailField, gbc);
+        // Row 2
+        gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0;
+        content.add(createLabel("Email:"), gbc);
+        gbc.gridx = 1; gbc.weightx = 1;
+        customerEmailField = createTextField(false);
+        content.add(customerEmailField, gbc);
 
-        // CMND/CCCD
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        panel.add(new JLabel("CMND/CCCD:"), gbc);
-        customerIdCardField = new JTextField(25);
-        customerIdCardField.setEditable(false);
-        gbc.gridx = 1;
-        panel.add(customerIdCardField, gbc);
+        gbc.gridx = 2; gbc.weightx = 0;
+        content.add(createLabel("CMND/CCCD:"), gbc);
+        gbc.gridx = 3; gbc.weightx = 1;
+        customerIdCardField = createTextField(false);
+        content.add(customerIdCardField, gbc);
 
-        // Quốc tịch
-        gbc.gridx = 0;
-        gbc.gridy = 4;
-        panel.add(new JLabel("Quốc tịch:"), gbc);
-        customerNationalityField = new JTextField(25);
-        customerNationalityField.setEditable(false);
-        gbc.gridx = 1;
-        panel.add(customerNationalityField, gbc);
+        // Row 3
+        gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0;
+        content.add(createLabel("Quốc tịch:"), gbc);
+        gbc.gridx = 1; gbc.weightx = 1;
+        customerNationalityField = createTextField(false);
+        content.add(customerNationalityField, gbc);
 
-        return panel;
+        section.add(content, BorderLayout.CENTER);
+        return section;
     }
 
-    private JPanel createBookingPanel() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+    private JPanel createBookingSection() {
+        JPanel section = createSection("Thông tin đặt phòng");
+        JPanel content = new JPanel(new GridBagLayout());
+        content.setBackground(Color.WHITE);
+        content.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.insets = new Insets(8, 10, 8, 10);
         gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        // Mã đặt phòng
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        panel.add(new JLabel("Mã đặt phòng:"), gbc);
-        bookingCodeField = new JTextField(25);
-        bookingCodeField.setEditable(false);
-        gbc.gridx = 1;
-        panel.add(bookingCodeField, gbc);
+        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0;
+        content.add(createLabel("Mã đặt phòng:"), gbc);
+        gbc.gridx = 1; gbc.weightx = 1;
+        bookingCodeField = createTextField(false);
+        content.add(bookingCodeField, gbc);
 
-        // Ngày đặt
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        panel.add(new JLabel("Ngày đặt:"), gbc);
-        bookingDateField = new JTextField(25);
-        bookingDateField.setEditable(false);
-        gbc.gridx = 1;
-        panel.add(bookingDateField, gbc);
+        gbc.gridx = 2; gbc.weightx = 0;
+        content.add(createLabel("Ngày đặt:"), gbc);
+        gbc.gridx = 3; gbc.weightx = 1;
+        bookingDateField = createTextField(false);
+        content.add(bookingDateField, gbc);
 
-        // Nguồn đặt
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        panel.add(new JLabel("Nguồn đặt:"), gbc);
-        bookingSourceField = new JTextField(25);
-        bookingSourceField.setEditable(false);
-        gbc.gridx = 1;
-        panel.add(bookingSourceField, gbc);
+        gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0;
+        content.add(createLabel("Nguồn đặt:"), gbc);
+        gbc.gridx = 1; gbc.weightx = 1;
+        bookingSourceField = createTextField(false);
+        content.add(bookingSourceField, gbc);
 
-        return panel;
+        section.add(content, BorderLayout.CENTER);
+        return section;
     }
 
-    private JPanel createRoomPanel() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+    private JPanel createRoomSection() {
+        JPanel section = createSection("Phòng đặt");
 
         String[] columnNames = {"STT", "Số phòng", "Ngày nhận", "Ngày trả", "Giá/đêm", "Tổng tiền"};
         roomTableModel = new DefaultTableModel(columnNames, 0) {
@@ -318,19 +299,22 @@ public class InvoiceDetail extends JDialog {
         };
 
         bookingRoomTable = new JTable(roomTableModel);
-        bookingRoomTable.setRowHeight(25);
+        bookingRoomTable.setRowHeight(30);
         bookingRoomTable.getTableHeader().setReorderingAllowed(false);
+        bookingRoomTable.setShowGrid(true);
+        bookingRoomTable.setGridColor(new Color(230, 230, 230));
 
         JScrollPane scrollPane = new JScrollPane(bookingRoomTable);
-        panel.add(scrollPane, BorderLayout.CENTER);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.getVerticalScrollBar().setUI(new ModernScrollBarUI());
+        scrollPane.setPreferredSize(new Dimension(0, 150));
 
-        return panel;
+        section.add(scrollPane, BorderLayout.CENTER);
+        return section;
     }
 
-    private JPanel createServicePanel() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+    private JPanel createServiceSection() {
+        JPanel section = createSection("Dịch vụ sử dụng");
 
         String[] columnNames = {"STT", "Tên dịch vụ", "Đơn vị", "Đơn giá", "Số lượng", "Thành tiền"};
         serviceTableModel = new DefaultTableModel(columnNames, 0) {
@@ -341,23 +325,63 @@ public class InvoiceDetail extends JDialog {
         };
 
         serviceTable = new JTable(serviceTableModel);
-        serviceTable.setRowHeight(25);
+        serviceTable.setRowHeight(30);
         serviceTable.getTableHeader().setReorderingAllowed(false);
+        serviceTable.setShowGrid(true);
+        serviceTable.setGridColor(new Color(230, 230, 230));
 
         JScrollPane scrollPane = new JScrollPane(serviceTable);
-        panel.add(scrollPane, BorderLayout.CENTER);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.getVerticalScrollBar().setUI(new ModernScrollBarUI());
+        scrollPane.setPreferredSize(new Dimension(0, 150));
 
-        return panel;
+        section.add(scrollPane, BorderLayout.CENTER);
+        return section;
+    }
+
+    private JPanel createSection(String title) {
+        JPanel section = new JPanel(new BorderLayout());
+        section.setBackground(Color.WHITE);
+        section.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(220, 220, 220), 1),
+                BorderFactory.createEmptyBorder(0, 0, 0, 0)
+        ));
+
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        titleLabel.setForeground(PRIMARY_COLOR);
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+        titleLabel.setBackground(SECTION_BG);
+        titleLabel.setOpaque(true);
+
+        section.add(titleLabel, BorderLayout.NORTH);
+        return section;
+    }
+
+    private JLabel createLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("Arial", Font.PLAIN, 13));
+        return label;
+    }
+
+    private JTextField createTextField(boolean editable) {
+        JTextField field = new JTextField(20);
+        field.setEditable(editable);
+        field.setPreferredSize(new Dimension(200, 30));
+        if (!editable) {
+            field.setBackground(new Color(245, 245, 245));
+        }
+        return field;
     }
 
     private void loadInvoiceData() {
         invoiceNoField.setText(invoice.getInvoiceNo());
         bookingIdField.setText(String.valueOf(invoice.getBookingId()));
-        subtotalField.setText(String.format("%.2f", invoice.getSubtotal()));
-        discountTotalField.setText(String.format("%.2f", invoice.getDiscountTotal()));
-        taxTotalField.setText(String.format("%.2f", invoice.getTaxTotal()));
-        grandTotalField.setText(String.format("%.2f", invoice.getGrandTotal()));
-        statusCombo.setSelectedItem(invoice.getStatus());
+        subtotalField.setText(String.format("%.2f VNĐ", invoice.getSubtotal()));
+        discountTotalField.setText(String.format("%.2f VNĐ", invoice.getDiscountTotal()));
+        taxTotalField.setText(String.format("%.2f VNĐ", invoice.getTaxTotal()));
+        grandTotalField.setText(String.format("%.2f VNĐ", invoice.getGrandTotal()));
+        status.setText(invoice.getStatus());
 
         loadCustomerInfo();
         loadBookingInfo();
@@ -366,59 +390,70 @@ public class InvoiceDetail extends JDialog {
     }
 
     private void loadCustomerInfo() {
-        BookingDTO booking = bookingBUS.getBookingById(invoice.getBookingId());
-        if (booking != null) {
-            CustomerDTO customer = customerBUS.getCustomerById(booking.getCustomerId());
-            if (customer != null) {
-                customerNameField.setText(customer.getFull_name());
-                customerPhoneField.setText(customer.getPhone());
-                customerEmailField.setText(customer.getEmail() != null ? customer.getEmail() : "");
-                customerIdCardField.setText(customer.getId_card());
-                customerNationalityField.setText(customer.getNationality());
+        try {
+            BookingDTO booking = bookingBUS.getBookingById(invoice.getBookingId());
+            if (booking != null) {
+                CustomerDTO customer = customerBUS.getCustomerById(booking.getCustomerId());
+                if (customer != null) {
+                    customerNameField.setText(customer.getFull_name());
+                    customerPhoneField.setText(customer.getPhone());
+                    customerEmailField.setText(customer.getEmail() != null ? customer.getEmail() : "");
+                    customerIdCardField.setText(customer.getId_card());
+                    customerNationalityField.setText(customer.getNationality());
+                }
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
     private void loadBookingInfo() {
-        BookingDTO booking = bookingBUS.getBookingById(invoice.getBookingId());
-        if (booking != null) {
-            bookingCodeField.setText(booking.getCode());
-            bookingDateField.setText(booking.getBookingDate().toString());
-            bookingSourceField.setText(booking.getSource());
+        try {
+            BookingDTO booking = bookingBUS.getBookingById(invoice.getBookingId());
+            if (booking != null) {
+                bookingCodeField.setText(booking.getCode());
+                bookingDateField.setText(booking.getBookingDate().toString());
+                bookingSourceField.setText(booking.getSource());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
     private void loadRoomInfo() {
         roomTableModel.setRowCount(0);
-        List<BookingRoomDTO> bookingRooms = bookingRoomBUS.getBookingRoomsByBooking(invoice.getBookingId());
+        try {
+            List<BookingRoomDTO> bookingRooms = bookingRoomBUS.getBookingRoomsByBooking(invoice.getBookingId());
 
-        int stt = 1;
-        for (BookingRoomDTO br : bookingRooms) {
-            RoomDTO room = roomBUS.getRoomById(br.getRoomId());
-            String roomNo = room != null ? room.getRoomNo() : "N/A";
+            int stt = 1;
+            for (BookingRoomDTO br : bookingRooms) {
+                RoomDTO room = roomBUS.getRoomById(br.getRoomId());
+                String roomNo = room != null ? room.getRoomNo() : "N/A";
 
-            Object[] row = {
-                    stt++,
-                    roomNo,
-                    br.getCheckInPlan().toLocalDate(),
-                    br.getCheckOutPlan().toLocalDate(),
-                    String.format("%.2f", br.getRatePerNight()),
-                    String.format("%.2f", br.getRatePerNight().multiply(new java.math.BigDecimal(
-                            java.time.temporal.ChronoUnit.DAYS.between(br.getCheckInPlan(), br.getCheckOutPlan())
-                    )))
-            };
-            roomTableModel.addRow(row);
+                long nights = java.time.temporal.ChronoUnit.DAYS.between(br.getCheckInPlan(), br.getCheckOutPlan());
+                double total = br.getRatePerNight().doubleValue() * nights;
+
+                Object[] row = {
+                        stt++,
+                        roomNo,
+                        br.getCheckInPlan().toLocalDate(),
+                        br.getCheckOutPlan().toLocalDate(),
+                        String.format("%.2f VNĐ", br.getRatePerNight()),
+                        String.format("%.2f VNĐ", total)
+                };
+                roomTableModel.addRow(row);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
     private void loadServiceInfo() {
         serviceTableModel.setRowCount(0);
-        List<BookingRoomDTO> bookingRooms = bookingRoomBUS.getBookingRoomsByBooking(invoice.getBookingId());
-
-        int stt = 1;
-        for (BookingRoomDTO br : bookingRooms) {
+        try {
             List<ServiceOrderDTO> services = serviceOrderBUS.getServiceOrdersByBooking(invoice.getBookingId());
 
+            int stt = 1;
             for (ServiceOrderDTO so : services) {
                 ServiceDTO service = serviceBUS.getById(so.getServiceId());
                 if (service != null) {
@@ -428,13 +463,15 @@ public class InvoiceDetail extends JDialog {
                             stt++,
                             service.getName(),
                             service.getUnit(),
-                            String.format("%.2f", so.getUnitPrice()),
+                            String.format("%.2f VNĐ", so.getUnitPrice()),
                             so.getQuantity(),
-                            String.format("%.2f", total)
+                            String.format("%.2f VNĐ", total)
                     };
                     serviceTableModel.addRow(row);
                 }
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -445,7 +482,7 @@ public class InvoiceDetail extends JDialog {
                 return;
             }
 
-            invoice.setStatus((String) statusCombo.getSelectedItem());
+//            invoice.setStatus((String) statusCombo.getSelectedItem());
 
             if (invoiceBUS.updateInvoice(invoice)) {
                 JOptionPane.showMessageDialog(this, "Cập nhật hóa đơn thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);

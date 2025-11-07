@@ -5,6 +5,7 @@ import java.sql.Timestamp;
 public class PaymentDTO {
     private int paymentId;
     private int bookingId;
+    private int invoiceId;
     private double amount;
     private String method;
     private Timestamp paidAt;
@@ -15,10 +16,19 @@ public class PaymentDTO {
 
     public PaymentDTO() {}
 
-    public PaymentDTO(int paymentId, int bookingId, double amount, String method,
+    public int getInvoiceId() {
+        return invoiceId;
+    }
+
+    public void setInvoiceId(int invoiceId) {
+        this.invoiceId = invoiceId;
+    }
+
+    public PaymentDTO(int paymentId, int bookingId, int invoiceId, double amount, String method,
                       Timestamp paidAt, String referenceNo, String status, String note) {
         this.paymentId = paymentId;
         this.bookingId = bookingId;
+        this.invoiceId = invoiceId;
         this.amount = amount;
         this.method = method;
         this.paidAt = paidAt;

@@ -172,7 +172,7 @@ public List<String> getAllNationalities() {
         if (phone == null) return false;
         List<CustomerDTO> all = getAllCustomers();
         for (CustomerDTO c : all) {
-            if (c.getPhone() == phone && c.getCustomer_id() != excludeId) {
+            if (c.getPhone().equals(phone) && c.getCustomer_id() != excludeId) {
                 return true;
             }
         }
@@ -202,7 +202,7 @@ public List<String> getAllNationalities() {
         }
         List<CustomerDTO> all = getAllCustomers();
         for (CustomerDTO c : all) {
-            if (c.getPhone() == phone) {
+            if (c.getPhone().equals(phone)) {
                 return c;
             }
         }

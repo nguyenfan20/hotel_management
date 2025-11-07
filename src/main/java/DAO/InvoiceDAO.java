@@ -73,6 +73,10 @@ public class InvoiceDAO {
         return DatabaseConnection.executeQueryList(SELECT_BY_BOOKING, this::mapToDTO, bookingId);
     }
 
+    public InvoiceDTO getInvoiceByBookingId(int bookingId) {
+        return DatabaseConnection.executeQuerySingle(SELECT_BY_BOOKING, this::mapToDTO, bookingId);
+    }
+
     private InvoiceDTO mapToDTO(ResultSet rs) throws SQLException {
         InvoiceDTO dto = new InvoiceDTO(
                 rs.getInt("invoice_id"),

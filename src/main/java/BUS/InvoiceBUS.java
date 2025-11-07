@@ -74,6 +74,10 @@ public class InvoiceBUS {
         return invoiceDAO.getInvoicesByBooking(bookingId);
     }
 
+    public InvoiceDTO getInvoiceByBookingId(int bookingId){
+        return invoiceDAO.getInvoiceByBookingId(bookingId);
+    }
+
     private boolean validateInvoice(InvoiceDTO invoice) {
         if (invoice == null) {
             System.err.println("Dữ liệu hóa đơn không được null");

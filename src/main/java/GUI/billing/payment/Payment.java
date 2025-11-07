@@ -2,14 +2,21 @@ package GUI.billing.payment;
 
 import BUS.PaymentBUS;
 import BUS.InvoiceBUS;
+import BUS.BookingBUS;
+import BUS.CustomerBUS;
+import DAO.BookingDAO;
 import DTO.PaymentDTO;
 import DTO.InvoiceDTO;
+import DTO.BookingDTO;
+import DTO.CustomerDTO;
+import GUI.dashboard.ModernScrollBarUI;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class Payment extends JPanel {
@@ -17,80 +24,242 @@ public class Payment extends JPanel {
     private DefaultTableModel tableModel;
     private PaymentBUS paymentBUS;
     private InvoiceBUS invoiceBUS;
-    private JTextField searchField;
-    private JComboBox<String> statusFilterCombo;
+    private BookingBUS bookingBUS;
+    private CustomerBUS customerBUS;
+
     private JComboBox<String> invoiceCombo;
+    private JTextField customerNameField;
+    private JTextField customerPhoneField;
+    private JTextField invoiceAmountField;
+    private JTextField amountField;
+    private JComboBox<String> methodCombo;
+    private JTextField referenceNoField;
+    private JTextArea noteArea;
+    private JLabel changeLabel;
+
+    private InvoiceDTO selectedInvoice;
+
     private static final Color PRIMARY_COLOR = new Color(41, 98, 255);
     private static final Color SUCCESS_COLOR = new Color(34, 197, 94);
+    private static final Color WARNING_COLOR = new Color(245, 158, 11);
+    private static final Color DANGER_COLOR = new Color(239, 68, 68);
+    private static final Color BG_COLOR = new Color(248, 249, 250);
 
     public Payment() {
         paymentBUS = new PaymentBUS();
         invoiceBUS = new InvoiceBUS();
+        bookingBUS = new BookingBUS(new BookingDAO());
+        customerBUS = new CustomerBUS();
         initComponents();
         loadPaymentData();
     }
 
     private void initComponents() {
-        setLayout(new BorderLayout(10, 10));
-        setBackground(new Color(240, 240, 245));
+        setLayout(new BorderLayout(0, 0));
+        setBackground(BG_COLOR);
 
-        JPanel invoicePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        invoicePanel.setBackground(Color.WHITE);
-        invoicePanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        // Main Container
+        JPanel mainContainer = new JPanel(new BorderLayout(0, 10));
+        mainContainer.setBackground(BG_COLOR);
+        mainContainer.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-        invoicePanel.add(new JLabel("Hóa đơn chưa thanh toán:"));
+        // Top Section - Invoice Selection & Payment Form
+        JPanel topSection = createPaymentFormSection();
+
+        // Bottom Section - Payment History
+        JPanel bottomSection = createPaymentHistorySection();
+
+        mainContainer.add(topSection, BorderLayout.NORTH);
+        mainContainer.add(bottomSection, BorderLayout.CENTER);
+
+        add(mainContainer);
+    }
+
+    private JPanel createPaymentFormSection() {
+        JPanel section = new JPanel(new BorderLayout());
+        section.setBackground(Color.WHITE);
+        section.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(220, 220, 220), 1),
+                BorderFactory.createEmptyBorder(15, 15, 15, 15)
+        ));
+
+        // Title
+        JLabel titleLabel = new JLabel("Thanh toán hóa đơn");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        titleLabel.setForeground(PRIMARY_COLOR);
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
+
+        // Invoice Selection Panel
+        JPanel selectionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        selectionPanel.setBackground(Color.WHITE);
+
+        selectionPanel.add(new JLabel("Chọn hóa đơn:"));
         invoiceCombo = new JComboBox<>();
-        loadUnpaidInvoices();
-        invoiceCombo.setPreferredSize(new Dimension(350, 30));
-        invoicePanel.add(invoiceCombo);
-
-        JButton payButton = new JButton("Thanh toán");
-        payButton.setBackground(PRIMARY_COLOR);
-        payButton.setForeground(Color.WHITE);
-        payButton.setPreferredSize(new Dimension(100, 30));
-        payButton.addActionListener(e -> openPaymentDialog());
-        invoicePanel.add(payButton);
+        invoiceCombo.setPreferredSize(new Dimension(400, 32));
+        invoiceCombo.addActionListener(e -> onInvoiceSelected());
+        selectionPanel.add(invoiceCombo);
 
         JButton refreshInvoiceBtn = new JButton("Làm mới");
         refreshInvoiceBtn.setBackground(new Color(149, 165, 166));
         refreshInvoiceBtn.setForeground(Color.WHITE);
+        refreshInvoiceBtn.setFocusPainted(false);
+        refreshInvoiceBtn.setPreferredSize(new Dimension(100, 32));
         refreshInvoiceBtn.addActionListener(e -> loadUnpaidInvoices());
-        invoicePanel.add(refreshInvoiceBtn);
+        selectionPanel.add(refreshInvoiceBtn);
 
-        add(invoicePanel, BorderLayout.NORTH);
+        // Payment Form Panel
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBackground(Color.WHITE);
+        formPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(230, 230, 230)),
+                BorderFactory.createEmptyBorder(15, 0, 0, 0)
+        ));
 
-        JPanel topPanel = new JPanel(new BorderLayout(10, 10));
-        topPanel.setBackground(Color.WHITE);
-        topPanel.setBorder(BorderFactory.createTitledBorder("Lịch sử thanh toán"));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 10, 8, 10);
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        searchPanel.setBackground(Color.WHITE);
+        // Row 1
+        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0;
+        formPanel.add(createLabel("Tên khách hàng:"), gbc);
+        gbc.gridx = 1; gbc.weightx = 1;
+        customerNameField = createTextField(false);
+        formPanel.add(customerNameField, gbc);
 
-        searchField = new JTextField(20);
+        gbc.gridx = 2; gbc.weightx = 0;
+        formPanel.add(createLabel("Số điện thoại:"), gbc);
+        gbc.gridx = 3; gbc.weightx = 1;
+        customerPhoneField = createTextField(false);
+        formPanel.add(customerPhoneField, gbc);
+
+        // Row 2
+        gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0;
+        formPanel.add(createLabel("Tổng tiền hóa đơn:"), gbc);
+        gbc.gridx = 1; gbc.weightx = 1;
+        invoiceAmountField = createTextField(false);
+        invoiceAmountField.setFont(invoiceAmountField.getFont().deriveFont(Font.BOLD, 14f));
+        invoiceAmountField.setForeground(DANGER_COLOR);
+        formPanel.add(invoiceAmountField, gbc);
+
+        gbc.gridx = 2; gbc.weightx = 0;
+        formPanel.add(createLabel("Phương thức:"), gbc);
+        gbc.gridx = 3; gbc.weightx = 1;
+        methodCombo = new JComboBox<>(new String[]{"Tiền mặt", "Chuyển khoản", "Thẻ tín dụng", "Ví điện tử"});
+        methodCombo.setPreferredSize(new Dimension(200, 32));
+        formPanel.add(methodCombo, gbc);
+
+        // Row 3
+        gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0;
+        formPanel.add(createLabel("Số tiền thanh toán:"), gbc);
+        gbc.gridx = 1; gbc.weightx = 1;
+        amountField = createTextField(true);
+        amountField.setFont(amountField.getFont().deriveFont(Font.BOLD, 14f));
+        amountField.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                calculateChange();
+            }
+        });
+        formPanel.add(amountField, gbc);
+
+        gbc.gridx = 2; gbc.weightx = 0;
+        formPanel.add(createLabel("Mã tham chiếu:"), gbc);
+        gbc.gridx = 3; gbc.weightx = 1;
+        referenceNoField = createTextField(true);
+        formPanel.add(referenceNoField, gbc);
+
+        // Row 4
+        gbc.gridx = 0; gbc.gridy = 3; gbc.weightx = 0;
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+        formPanel.add(createLabel("Ghi chú:"), gbc);
+        gbc.gridx = 1; gbc.weightx = 1; gbc.gridwidth = 3;
+        noteArea = new JTextArea(3, 20);
+        noteArea.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200)),
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        ));
+        JScrollPane noteScroll = new JScrollPane(noteArea);
+        noteScroll.setPreferredSize(new Dimension(0, 70));
+        formPanel.add(noteScroll, gbc);
+
+        // Row 5 - Change Amount
+        gbc.gridx = 0; gbc.gridy = 4; gbc.weightx = 0; gbc.gridwidth = 1;
+        gbc.anchor = GridBagConstraints.WEST;
+        formPanel.add(createLabel("Tiền thừa trả lại:"), gbc);
+        gbc.gridx = 1; gbc.weightx = 1;
+        changeLabel = new JLabel("0.00 VNĐ");
+        changeLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        changeLabel.setForeground(SUCCESS_COLOR);
+        formPanel.add(changeLabel, gbc);
+
+        // Payment Button
+        gbc.gridx = 3; gbc.weightx = 0;
+        gbc.anchor = GridBagConstraints.EAST;
+        JButton payButton = new JButton("THANH TOÁN");
+        payButton.setBackground(PRIMARY_COLOR);
+        payButton.setForeground(Color.WHITE);
+        payButton.setFocusPainted(false);
+        payButton.setFont(new Font("Arial", Font.BOLD, 14));
+        payButton.setPreferredSize(new Dimension(150, 40));
+        payButton.addActionListener(e -> processPayment());
+        formPanel.add(payButton, gbc);
+
+        // Assemble section
+        JPanel contentPanel = new JPanel(new BorderLayout(0, 10));
+        contentPanel.setBackground(Color.WHITE);
+        contentPanel.add(titleLabel, BorderLayout.NORTH);
+        contentPanel.add(selectionPanel, BorderLayout.CENTER);
+        contentPanel.add(formPanel, BorderLayout.SOUTH);
+
+        section.add(contentPanel);
+
+        // Load invoices
+        loadUnpaidInvoices();
+
+        return section;
+    }
+
+    private JPanel createPaymentHistorySection() {
+        JPanel section = new JPanel(new BorderLayout(0, 10));
+        section.setBackground(Color.WHITE);
+        section.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(220, 220, 220), 1),
+                BorderFactory.createEmptyBorder(15, 15, 15, 15)
+        ));
+
+        // Title
+        JLabel titleLabel = new JLabel("Lịch sử thanh toán");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        titleLabel.setForeground(PRIMARY_COLOR);
+
+        // Filter Panel
+        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        filterPanel.setBackground(Color.WHITE);
+
+        JTextField searchField = new JTextField(20);
         JButton searchButton = new JButton("Tìm kiếm");
         searchButton.setBackground(PRIMARY_COLOR);
         searchButton.setForeground(Color.WHITE);
-        searchButton.addActionListener(e -> searchPayments());
+        searchButton.setFocusPainted(false);
+        searchButton.addActionListener(e -> searchPayments(searchField.getText()));
 
-        statusFilterCombo = new JComboBox<>(new String[]{"Tất cả", "Pending", "Completed", "Failed", "Cancelled"});
-        statusFilterCombo.addActionListener(e -> filterByStatus());
+        JComboBox<String> statusFilterCombo = new JComboBox<>(new String[]{"Tất cả", "Pending", "Completed", "Failed", "Cancelled"});
+        statusFilterCombo.addActionListener(e -> filterByStatus((String) statusFilterCombo.getSelectedItem()));
 
         JButton refreshButton = new JButton("Làm mới");
         refreshButton.setBackground(new Color(149, 165, 166));
         refreshButton.setForeground(Color.WHITE);
+        refreshButton.setFocusPainted(false);
         refreshButton.addActionListener(e -> loadPaymentData());
 
-        searchPanel.add(new JLabel("Tìm kiếm:"));
-        searchPanel.add(searchField);
-        searchPanel.add(searchButton);
-        searchPanel.add(new JLabel("Trạng thái:"));
-        searchPanel.add(statusFilterCombo);
-        searchPanel.add(refreshButton);
+        filterPanel.add(new JLabel("Tìm kiếm:"));
+        filterPanel.add(searchField);
+        filterPanel.add(searchButton);
+        filterPanel.add(new JLabel("Trạng thái:"));
+        filterPanel.add(statusFilterCombo);
+        filterPanel.add(refreshButton);
 
-        topPanel.add(searchPanel, BorderLayout.CENTER);
-
-        add(topPanel, BorderLayout.SOUTH);
-
+        // Table
         String[] columnNames = {"ID", "Mã đặt phòng", "Phiếu thu", "Số tiền", "Phương thức", "Ngày thanh toán", "Ghi chú", "Trạng thái"};
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
@@ -103,6 +272,8 @@ public class Payment extends JPanel {
         paymentTable.setRowHeight(30);
         paymentTable.getTableHeader().setReorderingAllowed(false);
         paymentTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        paymentTable.setShowGrid(true);
+        paymentTable.setGridColor(new Color(230, 230, 230));
 
         paymentTable.addMouseListener(new MouseAdapter() {
             @Override
@@ -115,58 +286,193 @@ public class Payment extends JPanel {
 
         JPopupMenu popupMenu = new JPopupMenu();
         JMenuItem viewItem = new JMenuItem("Xem chi tiết");
-        JMenuItem editItem = new JMenuItem("Sửa");
         JMenuItem deleteItem = new JMenuItem("Xóa");
 
         viewItem.addActionListener(e -> viewPaymentDetail());
-        editItem.addActionListener(e -> editPayment());
         deleteItem.addActionListener(e -> deletePayment());
 
         popupMenu.add(viewItem);
-        popupMenu.add(editItem);
         popupMenu.add(deleteItem);
 
         paymentTable.setComponentPopupMenu(popupMenu);
 
         JScrollPane scrollPane = new JScrollPane(paymentTable);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        add(scrollPane, BorderLayout.CENTER);
+        scrollPane.getVerticalScrollBar().setUI(new ModernScrollBarUI());
+        scrollPane.getHorizontalScrollBar().setUI(new ModernScrollBarUI());
+
+        // Assemble
+        JPanel topPanel = new JPanel(new BorderLayout(0, 10));
+        topPanel.setBackground(Color.WHITE);
+        topPanel.add(titleLabel, BorderLayout.NORTH);
+        topPanel.add(filterPanel, BorderLayout.CENTER);
+
+        section.add(topPanel, BorderLayout.NORTH);
+        section.add(scrollPane, BorderLayout.CENTER);
+
+        return section;
+    }
+
+    private JLabel createLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("Arial", Font.PLAIN, 13));
+        return label;
+    }
+
+    private JTextField createTextField(boolean editable) {
+        JTextField field = new JTextField(20);
+        field.setEditable(editable);
+        field.setPreferredSize(new Dimension(200, 32));
+        if (!editable) {
+            field.setBackground(new Color(245, 245, 245));
+        }
+        return field;
     }
 
     private void loadUnpaidInvoices() {
         invoiceCombo.removeAllItems();
+        invoiceCombo.addItem("-- Chọn hóa đơn cần thanh toán --");
+
         List<InvoiceDTO> unpaidInvoices = invoiceBUS.getUnpaidInvoices();
 
-        if (unpaidInvoices.isEmpty()) {
-            invoiceCombo.addItem("Không có hóa đơn chưa thanh toán");
-        } else {
-            for (InvoiceDTO invoice : unpaidInvoices) {
-                invoiceCombo.addItem(invoice.getInvoiceId() + " | " + invoice.getInvoiceNo() +
-                        " | " + String.format("%.2f", invoice.getGrandTotal()) + " VNĐ");
+        for (InvoiceDTO invoice : unpaidInvoices) {
+            invoiceCombo.addItem(invoice.getInvoiceId() + " | " + invoice.getInvoiceNo() +
+                    " | " + String.format("%.2f VNĐ", invoice.getGrandTotal()));
+        }
+
+        clearForm();
+    }
+
+    private void onInvoiceSelected() {
+        String selected = (String) invoiceCombo.getSelectedItem();
+        if (selected == null || selected.startsWith("--")) {
+            clearForm();
+            selectedInvoice = null;
+            return;
+        }
+
+        try {
+            int invoiceId = Integer.parseInt(selected.split("\\|")[0].trim());
+            selectedInvoice = invoiceBUS.getInvoiceById(invoiceId);
+
+            if (selectedInvoice != null) {
+                loadInvoiceDetails();
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+            clearForm();
         }
     }
 
-    private void openPaymentDialog() {
-        String selected = (String) invoiceCombo.getSelectedItem();
-        if (selected == null || selected.contains("Không có")) {
+    private void loadInvoiceDetails() {
+        if (selectedInvoice == null) return;
+
+        try {
+            // Load booking info
+            BookingDTO booking = bookingBUS.getBookingById(selectedInvoice.getBookingId());
+            if (booking != null) {
+                CustomerDTO customer = customerBUS.getCustomerById(booking.getCustomerId());
+                if (customer != null) {
+                    customerNameField.setText(customer.getFull_name());
+                    customerPhoneField.setText(customer.getPhone());
+                }
+            }
+
+            invoiceAmountField.setText(String.format("%.2f VNĐ", selectedInvoice.getGrandTotal()));
+            amountField.setText(String.format("%.2f", selectedInvoice.getGrandTotal()));
+            calculateChange();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void clearForm() {
+        customerNameField.setText("");
+        customerPhoneField.setText("");
+        invoiceAmountField.setText("");
+        amountField.setText("");
+        referenceNoField.setText("");
+        noteArea.setText("");
+        changeLabel.setText("0.00 VNĐ");
+        changeLabel.setForeground(SUCCESS_COLOR);
+    }
+
+    private void calculateChange() {
+        if (selectedInvoice == null) {
+            changeLabel.setText("0.00 VNĐ");
+            changeLabel.setForeground(SUCCESS_COLOR);
+            return;
+        }
+
+        try {
+            double invoiceAmount = selectedInvoice.getGrandTotal();
+            double paidAmount = Double.parseDouble(amountField.getText().trim());
+            double change = paidAmount - invoiceAmount;
+
+            if (change < 0) {
+                changeLabel.setText(String.format("Thiếu: %.2f VNĐ", Math.abs(change)));
+                changeLabel.setForeground(DANGER_COLOR);
+            } else {
+                changeLabel.setText(String.format("%.2f VNĐ", change));
+                changeLabel.setForeground(SUCCESS_COLOR);
+            }
+        } catch (NumberFormatException e) {
+            changeLabel.setText("0.00 VNĐ");
+            changeLabel.setForeground(SUCCESS_COLOR);
+        }
+    }
+
+    private void processPayment() {
+        if (selectedInvoice == null) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn hóa đơn cần thanh toán!", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        int invoiceId = Integer.parseInt(selected.split("\\|")[0].trim());
-        InvoiceDTO invoice = invoiceBUS.getInvoiceById(invoiceId);
+        try {
+            double invoiceAmount = selectedInvoice.getGrandTotal();
+            double paidAmount = Double.parseDouble(amountField.getText().trim());
 
-        if (invoice != null) {
-            PaymentDetail detailDialog = new PaymentDetail(
-                    (Frame) SwingUtilities.getWindowAncestor(this),
-                    null,
-                    paymentBUS,
-                    invoice
-            );
-            detailDialog.setVisible(true);
-            loadPaymentData();
-            loadUnpaidInvoices();
+            if (paidAmount < invoiceAmount) {
+                JOptionPane.showMessageDialog(this,
+                        String.format("Số tiền thanh toán (%.2f VNĐ) không đủ để thanh toán hóa đơn (%.2f VNĐ)!", paidAmount, invoiceAmount),
+                        "Lỗi",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            PaymentDTO payment = new PaymentDTO();
+            payment.setBookingId(selectedInvoice.getBookingId());
+            payment.setInvoiceId(selectedInvoice.getInvoiceId());
+            payment.setAmount(paidAmount);
+            payment.setMethod((String) methodCombo.getSelectedItem());
+            payment.setReferenceNo(referenceNoField.getText().trim());
+            payment.setNote(noteArea.getText().trim());
+            payment.setStatus("Completed");
+            payment.setPaidAt(java.sql.Timestamp.valueOf(LocalDateTime.now()));
+
+            if (paymentBUS.addPayment(payment)) {
+                // Update invoice status
+                selectedInvoice.setStatus("PAID");
+                invoiceBUS.updateInvoice(selectedInvoice);
+
+                double change = paidAmount - invoiceAmount;
+                String message = "Thanh toán thành công!\n";
+                if (change > 0) {
+                    message += String.format("Tiền thừa trả lại: %.2f VNĐ", change);
+                }
+
+                JOptionPane.showMessageDialog(this, message, "Thành công", JOptionPane.INFORMATION_MESSAGE);
+
+                loadPaymentData();
+                loadUnpaidInvoices();
+                clearForm();
+            } else {
+                JOptionPane.showMessageDialog(this, "Thanh toán thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập đúng định dạng số!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -179,7 +485,7 @@ public class Payment extends JPanel {
                     payment.getPaymentId(),
                     payment.getBookingId(),
                     payment.getReferenceNo() != null ? payment.getReferenceNo() : "N/A",
-                    String.format("%.2f", payment.getAmount()),
+                    String.format("%.2f VNĐ", payment.getAmount()),
                     payment.getMethod() != null ? payment.getMethod() : "N/A",
                     payment.getPaidAt() != null ? payment.getPaidAt().toString() : "N/A",
                     payment.getNote() != null ? payment.getNote() : "",
@@ -189,9 +495,8 @@ public class Payment extends JPanel {
         }
     }
 
-    private void searchPayments() {
-        String keyword = searchField.getText().trim();
-        if (keyword.isEmpty()) {
+    private void searchPayments(String keyword) {
+        if (keyword.trim().isEmpty()) {
             loadPaymentData();
             return;
         }
@@ -204,7 +509,7 @@ public class Payment extends JPanel {
                     payment.getPaymentId(),
                     payment.getBookingId(),
                     payment.getReferenceNo() != null ? payment.getReferenceNo() : "N/A",
-                    String.format("%.2f", payment.getAmount()),
+                    String.format("%.2f VNĐ", payment.getAmount()),
                     payment.getMethod() != null ? payment.getMethod() : "N/A",
                     payment.getPaidAt() != null ? payment.getPaidAt().toString() : "N/A",
                     payment.getNote() != null ? payment.getNote() : "",
@@ -214,8 +519,7 @@ public class Payment extends JPanel {
         }
     }
 
-    private void filterByStatus() {
-        String status = (String) statusFilterCombo.getSelectedItem();
+    private void filterByStatus(String status) {
         if (status.equals("Tất cả")) {
             loadPaymentData();
             return;
@@ -229,7 +533,7 @@ public class Payment extends JPanel {
                     payment.getPaymentId(),
                     payment.getBookingId(),
                     payment.getReferenceNo() != null ? payment.getReferenceNo() : "N/A",
-                    String.format("%.2f", payment.getAmount()),
+                    String.format("%.2f VNĐ", payment.getAmount()),
                     payment.getMethod() != null ? payment.getMethod() : "N/A",
                     payment.getPaidAt() != null ? payment.getPaidAt().toString() : "N/A",
                     payment.getNote() != null ? payment.getNote() : "",
@@ -248,39 +552,24 @@ public class Payment extends JPanel {
 
         int paymentId = (int) tableModel.getValueAt(selectedRow, 0);
         PaymentDTO payment = paymentBUS.getPaymentById(paymentId);
-
-        if (payment != null) {
-            PaymentDetail detailDialog = new PaymentDetail(
-                    (Frame) SwingUtilities.getWindowAncestor(this),
-                    payment,
-                    paymentBUS,
-                    null
-            );
-            detailDialog.setVisible(true);
-            loadPaymentData();
-        }
-    }
-
-    private void editPayment() {
-        int selectedRow = paymentTable.getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn thanh toán cần sửa!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+        if (payment == null) {
+            JOptionPane.showMessageDialog(this, "Không tìm thấy thanh toán!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        int paymentId = (int) tableModel.getValueAt(selectedRow, 0);
-        PaymentDTO payment = paymentBUS.getPaymentById(paymentId);
-
-        if (payment != null) {
-            PaymentDetail detailDialog = new PaymentDetail(
-                    (Frame) SwingUtilities.getWindowAncestor(this),
-                    payment,
-                    paymentBUS,
-                    null
-            );
-            detailDialog.setVisible(true);
-            loadPaymentData();
+        InvoiceDTO invoice = null;
+        if (payment.getInvoiceId() > 0) {
+            invoice = invoiceBUS.getInvoiceById(payment.getInvoiceId());
         }
+
+        PaymentDetail detailDialog = new PaymentDetail(
+                (Frame) SwingUtilities.getWindowAncestor(this),
+                payment,
+                paymentBUS,
+                invoice
+        );
+        detailDialog.setVisible(true);
+        loadPaymentData();
     }
 
     private void deletePayment() {

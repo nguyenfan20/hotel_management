@@ -333,7 +333,7 @@ public class BookingManagement extends javax.swing.JPanel {
 
         JLabel statusLabel = new JLabel("Trạng thái:");
         statusLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JComboBox<String> statusCombo = new JComboBox<>(new String[]{"Đã đặt", "Đã nhận phòng", "Đã trả phòng", "Đã hủy"});
+        JComboBox<String> statusCombo = new JComboBox<>(new String[]{"BOOKED", "CHECKED_IN", "CANCELED"});
         statusCombo.setSelectedItem(booking.getStatus());
         statusCombo.setFont(new Font("Arial", Font.PLAIN, 13));
         contentPanel.add(statusLabel);

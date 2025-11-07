@@ -34,7 +34,7 @@ public class PaymentDAO {
 
     public boolean addPayment(PaymentDTO payment) {
         return DatabaseConnection.executeUpdate(INSERT_SQL,
-                payment.getBookingId(), payment.getAmount(), payment.getMethod(),
+                payment.getBookingId(), payment.getInvoiceId(), payment.getAmount(), payment.getMethod(),
                 payment.getPaidAt(), payment.getReferenceNo(), payment.getStatus(), payment.getNote()
         );
     }
@@ -58,6 +58,7 @@ public class PaymentDAO {
         return new PaymentDTO(
                 rs.getInt("payment_id"),
                 rs.getInt("booking_id"),
+                rs.getInt("invoice_id"),
                 rs.getDouble("amount"),
                 rs.getString("method"),
                 rs.getTimestamp("paid_at"),

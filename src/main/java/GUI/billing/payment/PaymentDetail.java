@@ -151,10 +151,26 @@ public class PaymentDetail extends JDialog {
         if (payment != null) {
             bookingIdField.setText(String.valueOf(payment.getBookingId()));
             amountField.setText(String.format("%.2f", payment.getAmount()));
-            methodField.setText(payment.getMethod() != null ? payment.getMethod() : "");
-            referenceNoField.setText(payment.getReferenceNo() != null ? payment.getReferenceNo() : "");
-            noteField.setText(payment.getNote() != null ? payment.getNote() : "");
+            methodField.setText(payment.getMethod() != null ? payment.getMethod() : "z");
+            referenceNoField.setText(payment.getReferenceNo() != null ? payment.getReferenceNo() : "z");
+            noteField.setText(payment.getNote() != null ? payment.getNote() : "z    ");
             statusCombo.setSelectedItem(payment.getStatus());
+
+            if (payment.getInvoiceId() > 0) {
+                invoice = invoiceBUS.getInvoiceById(payment.getInvoiceId());
+            }
+            // Nếu không có invoice_id → fallback dùng booking_id
+            else if (invoice == null) {
+                invoice = invoiceBUS.getInvoiceByBookingId(payment.getBookingId());
+            }
+
+            if (invoice != null) {
+                invoiceNoField.setText(invoice.getInvoiceNo());
+                invoiceAmountField.setText(String.format("%.2f", invoice.getGrandTotal()));
+            } else {
+                invoiceNoField.setText("Không tìm thấy");
+                invoiceAmountField.setText("0.00");
+            }
         }
     }
 

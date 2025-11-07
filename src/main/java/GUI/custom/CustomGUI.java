@@ -417,17 +417,17 @@ public class CustomGUI extends JPanel {
         btnThem.addActionListener(e -> showAddCustomerDialog());
     }
 
-    // private void showAddCustomerDialog() {
-    //     JOptionPane.showMessageDialog(this,
-    //         "Mở form thêm khách hàng mới\n(Gợi ý: Tạo CustomerAddDialog extends JDialog)",
-    //         "Thêm khách hàng", JOptionPane.INFORMATION_MESSAGE);
-    // }
+     private void showAddCustomerDialog() {
+         JOptionPane.showMessageDialog(this,
+             "Mở form thêm khách hàng mới\n(Gợi ý: Tạo CustomerAddDialog extends JDialog)",
+             "Thêm khách hàng", JOptionPane.INFORMATION_MESSAGE);
+     }
 
-    // private void performSearch() {
-    //     String keyword = tfTimKiem.getText().trim();
-    //     List<CustomerDTO> results = customerBUS.searchCustomers(keyword);
-    //     updateTable(results);
-    // }
+     private void performSearch() {
+         String keyword = tfTimKiem.getText().trim();
+         List<CustomerDTO> results = customerBUS.searchCustomers(keyword);
+         updateTable(results);
+     }
 
     private void initFilterDialog() {
         filterDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Bộ lọc khách hàng", true);
