@@ -184,7 +184,7 @@ public class BookingRoom extends javax.swing.JFrame {
 
         JLabel statusLabel = new JLabel("Trạng thái:");
         statusLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JComboBox<String> statusCombo = new JComboBox<>(new String[]{"ALl", "CHECKED_OUT", "CHECKED_IN", "BOOKED" });
+        JComboBox<String> statusCombo = new JComboBox<>(new String[]{"All", "CHECKED_OUT", "CHECKED_IN", "BOOKED" });
         statusCombo.setPreferredSize(new Dimension(150, 30));
         contentPanel.add(statusLabel);
         contentPanel.add(statusCombo);
@@ -576,7 +576,7 @@ public class BookingRoom extends javax.swing.JFrame {
                 java.time.LocalDateTime checkOut = checkIn.plusDays(1);
 
                 BookingRoomDTO newBookingRoom = new BookingRoomDTO(0, filterByBookingId, room.getRoomId(),
-                        checkIn, checkOut, null, null, 1, 0, java.math.BigDecimal.ZERO, null, null, "Đã đặt");
+                        checkIn, checkOut, null, null, 1, 0, java.math.BigDecimal.ZERO, null, null, "BOOKED");
 
                 if (bookingRoomBUS.addBookingRoom(newBookingRoom)) {
                     JOptionPane.showMessageDialog(detailDialog, "Thêm phòng thành công!");
