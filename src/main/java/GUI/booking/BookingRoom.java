@@ -366,12 +366,13 @@ public class BookingRoom extends javax.swing.JFrame {
         scrollPane.getViewport().setBackground(BACKGROUND_COLOR);
 
         try {
-            // Get all rooms with AVAILABLE status
+            // Get all rooms with AVAILABLE status and not currently booked
             RoomBUS roomBUS = new RoomBUS();
             RoomTypeBUS roomTypeBUS = new RoomTypeBUS();
 
             List<RoomDTO> availableRooms = roomBUS.getAllRooms().stream()
-                    .filter(room -> "AVAILABLE".equals(room.getStatus()))
+                    .filter(room -> "AVAILABLE".equals(room.getStatus()) &&
+                            !bookingRoomBUS.isRoomCurrentlyBooked(room.getRoomId()))
                     .toList();
 
             Map<Integer, String> roomTypes = new HashMap<>();
@@ -384,9 +385,6 @@ public class BookingRoom extends javax.swing.JFrame {
             int currentFloor = -1;
             JPanel rowPanel = null;
             Color AVAILABLE_COLOR = new Color(232, 245, 233);
-            Color PANEL_BG = Color.WHITE;
-            Color BORDER_COLOR = new Color(224, 224, 224);
-            Color TEXT_COLOR = new Color(33, 33, 33);
 
             for (RoomDTO room : availableRooms) {
                 int floorNo = room.getFloorNo();
@@ -439,7 +437,7 @@ public class BookingRoom extends javax.swing.JFrame {
                 btn.add(labelPanel, BorderLayout.SOUTH);
 
                 // Click to add this room to booking
-                DTO.RoomDTO selectedRoom = room;
+                RoomDTO selectedRoom = room;
                 btn.addActionListener(e -> {
                     try {
                         addRoomToBooking(selectedRoom);
@@ -490,13 +488,23 @@ public class BookingRoom extends javax.swing.JFrame {
         addDialog.setVisible(true);
     }
 
-    private void addRoomToBooking(DTO.RoomDTO room) {
+    private void addRoomToBooking(RoomDTO room) {
+        // Kiểm tra phòng đã được thêm vào booking hiện tại chưa
         boolean roomAlreadyAdded = bookingRoomData.stream()
                 .anyMatch(br -> br.getRoomId() == room.getRoomId() && br.getBookingId() == filterByBookingId);
 
         if (roomAlreadyAdded) {
             JOptionPane.showMessageDialog(this, "Phòng này đã được thêm vào đặt phòng rồi!",
                     "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // KIỂM TRA PHÒNG CÓ ĐANG ĐƯỢC ĐẶT BỞI BOOKING KHÁC KHÔNG
+        if (bookingRoomBUS.isRoomCurrentlyBooked(room.getRoomId())) {
+            JOptionPane.showMessageDialog(this,
+                    "Phòng này đang được đặt bởi khách hàng khác!\n" +
+                            "Vui lòng chọn phòng khác.",
+                    "Không thể thêm phòng", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
@@ -554,6 +562,14 @@ public class BookingRoom extends javax.swing.JFrame {
                     return;
                 }
 
+                // Kiểm tra lại một lần nữa trước khi thêm
+                if (bookingRoomBUS.isRoomCurrentlyBooked(room.getRoomId())) {
+                    JOptionPane.showMessageDialog(detailDialog,
+                            "Phòng này đã được đặt bởi khách hàng khác!",
+                            "Không thể thêm phòng", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
                 java.time.LocalDateTime checkIn = java.time.LocalDateTime.now();
                 java.time.LocalDateTime checkOut = checkIn.plusDays(1);
 
@@ -565,7 +581,7 @@ public class BookingRoom extends javax.swing.JFrame {
                     detailDialog.dispose();
                     loadBookingRoomData();
                 } else {
-                    JOptionPane.showMessageDialog(detailDialog, "Thêm phòng thất bại!",
+                    JOptionPane.showMessageDialog(detailDialog, "Thêm phòng thất bại!\nPhòng có thể đã được đặt.",
                             "Lỗi", JOptionPane.ERROR_MESSAGE);
                 }
             } catch (Exception ex) {

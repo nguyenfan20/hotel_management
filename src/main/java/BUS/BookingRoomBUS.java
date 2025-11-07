@@ -23,6 +23,55 @@ public class BookingRoomBUS {
         this.roomTypeBUS = new RoomTypeBUS();
     }
 
+    /**
+     * Kiểm tra xem phòng có đang được đặt trong khoảng thời gian không
+     * @param roomId Mã phòng cần kiểm tra
+     * @param checkInPlan Ngày nhận phòng dự kiến
+     * @param checkOutPlan Ngày trả phòng dự kiến
+     * @param excludeBookingRoomId Mã booking room cần loại trừ (dùng khi update, truyền -1 nếu không cần)
+     * @return true nếu phòng đang bận, false nếu phòng trống
+     */
+    public boolean isRoomOccupied(int roomId, LocalDateTime checkInPlan, LocalDateTime checkOutPlan, int excludeBookingRoomId) {
+        List<BookingRoomDTO> allBookingRooms = bookingRoomDAO.getAll();
+
+        for (BookingRoomDTO br : allBookingRooms) {
+            // Bỏ qua booking room đang được update
+            if (excludeBookingRoomId > 0 && br.getBookingRoomId() == excludeBookingRoomId) {
+                continue;
+            }
+
+            // Chỉ kiểm tra những booking room chưa trả hoặc chưa hủy
+            if (br.getRoomId() == roomId &&
+                    !br.getStatus().equals("Đã trả") &&
+                    !br.getStatus().equals("Đã hủy")) {
+
+                // Kiểm tra xem có trùng thời gian không
+                // Trùng khi: checkIn mới < checkOut cũ VÀ checkOut mới > checkIn cũ
+                boolean isOverlap = checkInPlan.isBefore(br.getCheckOutPlan()) &&
+                        checkOutPlan.isAfter(br.getCheckInPlan());
+
+                if (isOverlap) {
+                    return true; // Phòng đang bận
+                }
+            }
+        }
+
+        return false; // Phòng trống
+    }
+
+    /**
+     * Kiểm tra phòng có đang được đặt không (không quan tâm thời gian)
+     * Dùng cho trường hợp đơn giản: chỉ cần biết phòng có booking active không
+     */
+    public boolean isRoomCurrentlyBooked(int roomId) {
+        List<BookingRoomDTO> allBookingRooms = bookingRoomDAO.getAll();
+
+        return allBookingRooms.stream()
+                .anyMatch(br -> br.getRoomId() == roomId &&
+                        !br.getStatus().equals("Đã trả") &&
+                        !br.getStatus().equals("Đã hủy"));
+    }
+
     // Thêm phòng đặt mới với kiểm tra
     public boolean addBookingRoom(BookingRoomDTO bookingRoom) {
         // Kiểm tra dữ liệu
@@ -48,6 +97,15 @@ public class BookingRoomBUS {
 
         if (bookingRoom.getAdults() < 1) {
             System.err.println("Lỗi: Phải có ít nhất 1 người lớn");
+            return false;
+        }
+
+        // KIỂM TRA PHÒNG CÓ ĐANG ĐƯỢC ĐẶT KHÔNG
+        if (isRoomOccupied(bookingRoom.getRoomId(),
+                bookingRoom.getCheckInPlan(),
+                bookingRoom.getCheckOutPlan(),
+                -1)) {
+            System.err.println("Lỗi: Phòng này đã được đặt trong khoảng thời gian này");
             return false;
         }
 
@@ -107,6 +165,15 @@ public class BookingRoomBUS {
 
         if (bookingRoom.getCheckInPlan().isAfter(bookingRoom.getCheckOutPlan())) {
             System.err.println("Lỗi: Ngày nhận phòng phải trước ngày trả phòng");
+            return false;
+        }
+
+        // Kiểm tra phòng có bị trùng với booking khác không (loại trừ chính nó)
+        if (isRoomOccupied(bookingRoom.getRoomId(),
+                bookingRoom.getCheckInPlan(),
+                bookingRoom.getCheckOutPlan(),
+                bookingRoom.getBookingRoomId())) {
+            System.err.println("Lỗi: Phòng này đã được đặt trong khoảng thời gian này");
             return false;
         }
 
