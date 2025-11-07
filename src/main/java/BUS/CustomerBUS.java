@@ -49,7 +49,7 @@ public class CustomerBUS {
         }
 
         // Kiểm tra trùng số điện thoại
-        if (customer.getPhone() > 0 && isPhoneExists(customer.getPhone(), 0)) {
+        if (customer.getPhone() != null && isPhoneExists(customer.getPhone(), 0)) {
             System.err.println("Số điện thoại đã được sử dụng!");
             return false;
         }
@@ -83,7 +83,7 @@ public class CustomerBUS {
         }
 
         // Kiểm tra trùng phone
-        if (customer.getPhone() > 0 && isPhoneExists(customer.getPhone(), customer.getCustomer_id())) {
+        if (customer.getPhone() != null && isPhoneExists(customer.getPhone(), customer.getCustomer_id())) {
             System.err.println("Số điện thoại đã được sử dụng bởi khách hàng khác!");
             return false;
         }
@@ -168,8 +168,8 @@ public List<String> getAllNationalities() {
         return false;
     }
 
-    public boolean isPhoneExists(int phone, int excludeId) {
-        if (phone <= 0) return false;
+    public boolean isPhoneExists(String phone, int excludeId) {
+        if (phone == null) return false;
         List<CustomerDTO> all = getAllCustomers();
         for (CustomerDTO c : all) {
             if (c.getPhone() == phone && c.getCustomer_id() != excludeId) {
@@ -195,8 +195,8 @@ public List<String> getAllNationalities() {
         return false;
     }
 
-    public CustomerDTO getCustomerByPhone(long phone) {
-        if (phone <= 0) {
+    public CustomerDTO getCustomerByPhone(String phone) {
+        if (phone == null) {
             System.err.println("Số điện thoại không hợp lệ");
             return null;
         }
@@ -222,7 +222,7 @@ public List<String> getAllNationalities() {
             return false;
         }
 
-        if (customer.getPhone() <= 0 || String.valueOf(customer.getPhone()).length() < 10) {
+        if (customer.getPhone() == null || String.valueOf(customer.getPhone()).length() < 10) {
             System.err.println("Số điện thoại phải có ít nhất 10 chữ số");
             return false;
         }

@@ -29,7 +29,7 @@ public class CustomerDAO {
     public boolean addCustomer(CustomerDTO customer) {
         return DatabaseConnection.executeUpdate(INSERT_SQL,
                 customer.getFull_name(),
-                customer.getPhone() > 0 ? String.valueOf(customer.getPhone()) : null,
+                customer.getPhone(),
                 customer.getEmail(),
                 customer.getId_card(),
                 null, // address
@@ -43,7 +43,7 @@ public class CustomerDAO {
     public boolean updateCustomer(CustomerDTO customer) {
         return DatabaseConnection.executeUpdate(UPDATE_SQL,
                 customer.getFull_name(),
-                customer.getPhone() > 0 ? String.valueOf(customer.getPhone()) : null,
+                customer.getPhone(),
                 customer.getEmail(),
                 customer.getId_card(),
                 null, // address
@@ -73,7 +73,7 @@ public class CustomerDAO {
         customer.setCustomer_id(rs.getInt("customer_id"));
         customer.setFull_name(rs.getString("full_name"));
         String phoneStr = rs.getString("phone");
-        customer.setPhone(phoneStr != null && !phoneStr.isEmpty() ? Integer.parseInt(phoneStr) : 0);
+        customer.setPhone(phoneStr != null && !phoneStr.isEmpty() ? phoneStr : null);
         customer.setEmail(rs.getString("email"));
         customer.setId_card(rs.getString("id_card"));
         customer.setNationality(rs.getString("nationality"));

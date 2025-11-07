@@ -18,6 +18,11 @@ public class BookingRoomBUS {
         this.roomTypeBUS = new RoomTypeBUS();
     }
 
+    public BookingRoomBUS() {
+        this.bookingRoomDAO = bookingRoomDAO;
+        this.roomTypeBUS = new RoomTypeBUS();
+    }
+
     // Thêm phòng đặt mới với kiểm tra
     public boolean addBookingRoom(BookingRoomDTO bookingRoom) {
         // Kiểm tra dữ liệu

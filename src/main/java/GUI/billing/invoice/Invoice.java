@@ -78,7 +78,7 @@ public class Invoice extends JPanel {
         });
 
         JPopupMenu popupMenu = new JPopupMenu();
-        JMenuItem editItem = new JMenuItem("Sửa");
+        JMenuItem editItem = new JMenuItem("Xem chi tiết");
         JMenuItem deleteItem = new JMenuItem("Xóa");
 
         editItem.addActionListener(e -> editInvoice());
@@ -93,17 +93,8 @@ public class Invoice extends JPanel {
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         add(scrollPane, BorderLayout.CENTER);
 
-        // Bottom Panel - Action Buttons
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
         bottomPanel.setBackground(Color.WHITE);
-
-        JButton addButton = new JButton("Thêm hóa đơn");
-        addButton.setBackground(new Color(52, 152, 219));
-        addButton.setForeground(Color.WHITE);
-        addButton.setPreferredSize(new Dimension(150, 35));
-        addButton.addActionListener(e -> addInvoice());
-
-        bottomPanel.add(addButton);
         add(bottomPanel, BorderLayout.SOUTH);
     }
 
@@ -179,20 +170,10 @@ public class Invoice extends JPanel {
         }
     }
 
-    private void addInvoice() {
-        InvoiceDetail detailDialog = new InvoiceDetail(
-                (Frame) SwingUtilities.getWindowAncestor(this),
-                null,
-                invoiceBUS
-        );
-        detailDialog.setVisible(true);
-        loadInvoiceData();
-    }
-
     private void editInvoice() {
         int selectedRow = invoiceTable.getSelectedRow();
         if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn hóa đơn cần sửa!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn hóa đơn cần xem!", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -233,4 +214,3 @@ public class Invoice extends JPanel {
         }
     }
 }
-

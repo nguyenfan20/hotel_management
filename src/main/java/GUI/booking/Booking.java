@@ -215,16 +215,8 @@ public class Booking extends javax.swing.JPanel {
             }
 
             try {
-                // Parse phone to int
-                int phoneInt;
-                try {
-                    phoneInt = Integer.parseInt(phone);
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(this, "Số điện thoại không hợp lệ!");
-                    return;
-                }
 
-                CustomerDTO foundCustomer = customerBUS.getCustomerByPhone(phoneInt);
+                CustomerDTO foundCustomer = customerBUS.getCustomerByPhone(phone);
 
                 if (foundCustomer != null) {
                     currentCustomer = foundCustomer;

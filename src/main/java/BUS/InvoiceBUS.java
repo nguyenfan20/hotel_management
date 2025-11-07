@@ -23,6 +23,10 @@ public class InvoiceBUS {
         return invoiceDAO.getInvoiceById(invoiceId);
     }
 
+    public List<InvoiceDTO> getUnpaidInvoices() {
+        return invoiceDAO.getUnpaidInvoices();
+    }
+
     public boolean addInvoice(InvoiceDTO invoice) {
         if (!validateInvoice(invoice)) {
             return false;

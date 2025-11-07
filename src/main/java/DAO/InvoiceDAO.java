@@ -17,6 +17,7 @@ public class InvoiceDAO {
     private static final String DELETE_SQL = "DELETE FROM Invoice WHERE invoice_id = ?";
     private static final String SEARCH_SQL = "SELECT i.*, ua.full_name as created_by_name, b.booking_id FROM Invoice i JOIN UserAccount ua ON i.created_by = ua.user_id JOIN Booking b ON i.booking_id = b.booking_id WHERE i.invoice_no LIKE ? OR i.status LIKE ? ORDER BY i.created_at DESC";
     private static final String SELECT_BY_BOOKING = "SELECT i.*, ua.full_name as created_by_name, b.booking_id FROM Invoice i JOIN UserAccount ua ON i.created_by = ua.user_id JOIN Booking b ON i.booking_id = b.booking_id WHERE i.booking_id = ? ORDER BY i.created_at DESC";
+    private static final String SELECT_UNPAID = "SELECT i.*, ua.full_name as created_by_name, b.booking_id FROM Invoice i JOIN UserAccount ua ON i.created_by = ua.user_id JOIN Booking b ON i.booking_id = b.booking_id WHERE i.status = 'Unpaid' ORDER BY i.created_at DESC";
 
     public List<InvoiceDTO> getAllInvoices() {
         return DatabaseConnection.executeQueryList(SELECT_ALL, this::mapToDTO);
@@ -28,6 +29,10 @@ public class InvoiceDAO {
 
     public InvoiceDTO getInvoiceById(int invoiceId) {
         return DatabaseConnection.executeQuerySingle(SELECT_BY_ID, this::mapToDTO, invoiceId);
+    }
+
+    public List<InvoiceDTO> getUnpaidInvoices() {
+        return DatabaseConnection.executeQueryList(SELECT_UNPAID, this::mapToDTO);
     }
 
     public boolean addInvoice(InvoiceDTO invoice) {

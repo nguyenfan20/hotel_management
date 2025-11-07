@@ -5,7 +5,7 @@ import java.util.Date;
 public class CustomerDTO{
     private int customer_id;
     private String full_name;
-    private int phone;
+    private String phone;
     private String email;
     private String id_card;
     private String nationality;
@@ -16,8 +16,8 @@ public class CustomerDTO{
     public CustomerDTO(){
     }
 
-    public CustomerDTO(int customer_id, String full_name, int phone, 
-    String email, String id_card, String nationality, Date dob, String genger, String note){
+    public CustomerDTO(int customer_id, String full_name, String phone,
+                       String email, String id_card, String nationality, Date dob, String genger, String note){
 
         this.customer_id=customer_id;
         this.full_name=full_name;
@@ -31,8 +31,8 @@ public class CustomerDTO{
         this.gender=genger;
         this.note=note;
     }
-    public CustomerDTO (String full_name, int phone, 
-    String email, String id_card, String nationality, Date dob, String genger, String note){
+    public CustomerDTO (String full_name, String phone,
+                        String email, String id_card, String nationality, Date dob, String genger, String note){
         this.full_name=full_name;
         this.nationality=nationality;
         this.dob=dob;
@@ -61,11 +61,11 @@ public class CustomerDTO{
         this.full_name = full_name;
     }
 
-    public int getPhone() {
+    public String getPhone() {
         return phone;
     }
 
-    public void setPhone(int phone) {
+    public void setPhone(String phone) {
         this.phone = phone;
     }
 

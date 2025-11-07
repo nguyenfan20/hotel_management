@@ -1,7 +1,9 @@
 package GUI.billing.payment;
 
 import BUS.PaymentBUS;
+import BUS.InvoiceBUS;
 import DTO.PaymentDTO;
+import DTO.InvoiceDTO;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -14,13 +16,16 @@ public class Payment extends JPanel {
     private JTable paymentTable;
     private DefaultTableModel tableModel;
     private PaymentBUS paymentBUS;
+    private InvoiceBUS invoiceBUS;
     private JTextField searchField;
     private JComboBox<String> statusFilterCombo;
+    private JComboBox<String> invoiceCombo;
     private static final Color PRIMARY_COLOR = new Color(41, 98, 255);
     private static final Color SUCCESS_COLOR = new Color(34, 197, 94);
 
     public Payment() {
         paymentBUS = new PaymentBUS();
+        invoiceBUS = new InvoiceBUS();
         initComponents();
         loadPaymentData();
     }
@@ -29,8 +34,37 @@ public class Payment extends JPanel {
         setLayout(new BorderLayout(10, 10));
         setBackground(new Color(240, 240, 245));
 
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        JPanel invoicePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        invoicePanel.setBackground(Color.WHITE);
+        invoicePanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        invoicePanel.add(new JLabel("Hóa đơn chưa thanh toán:"));
+        invoiceCombo = new JComboBox<>();
+        loadUnpaidInvoices();
+        invoiceCombo.setPreferredSize(new Dimension(350, 30));
+        invoicePanel.add(invoiceCombo);
+
+        JButton payButton = new JButton("Thanh toán");
+        payButton.setBackground(PRIMARY_COLOR);
+        payButton.setForeground(Color.WHITE);
+        payButton.setPreferredSize(new Dimension(100, 30));
+        payButton.addActionListener(e -> openPaymentDialog());
+        invoicePanel.add(payButton);
+
+        JButton refreshInvoiceBtn = new JButton("Làm mới");
+        refreshInvoiceBtn.setBackground(new Color(149, 165, 166));
+        refreshInvoiceBtn.setForeground(Color.WHITE);
+        refreshInvoiceBtn.addActionListener(e -> loadUnpaidInvoices());
+        invoicePanel.add(refreshInvoiceBtn);
+
+        add(invoicePanel, BorderLayout.NORTH);
+
+        JPanel topPanel = new JPanel(new BorderLayout(10, 10));
         topPanel.setBackground(Color.WHITE);
+        topPanel.setBorder(BorderFactory.createTitledBorder("Lịch sử thanh toán"));
+
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        searchPanel.setBackground(Color.WHITE);
 
         searchField = new JTextField(20);
         JButton searchButton = new JButton("Tìm kiếm");
@@ -46,14 +80,16 @@ public class Payment extends JPanel {
         refreshButton.setForeground(Color.WHITE);
         refreshButton.addActionListener(e -> loadPaymentData());
 
-        topPanel.add(new JLabel("Tìm kiếm:"));
-        topPanel.add(searchField);
-        topPanel.add(searchButton);
-        topPanel.add(new JLabel("Trạng thái:"));
-        topPanel.add(statusFilterCombo);
-        topPanel.add(refreshButton);
+        searchPanel.add(new JLabel("Tìm kiếm:"));
+        searchPanel.add(searchField);
+        searchPanel.add(searchButton);
+        searchPanel.add(new JLabel("Trạng thái:"));
+        searchPanel.add(statusFilterCombo);
+        searchPanel.add(refreshButton);
 
-        add(topPanel, BorderLayout.NORTH);
+        topPanel.add(searchPanel, BorderLayout.CENTER);
+
+        add(topPanel, BorderLayout.SOUTH);
 
         String[] columnNames = {"ID", "Mã đặt phòng", "Phiếu thu", "Số tiền", "Phương thức", "Ngày thanh toán", "Ghi chú", "Trạng thái"};
         tableModel = new DefaultTableModel(columnNames, 0) {
@@ -72,18 +108,21 @@ public class Payment extends JPanel {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 2) {
-                    editPayment();
+                    viewPaymentDetail();
                 }
             }
         });
 
         JPopupMenu popupMenu = new JPopupMenu();
+        JMenuItem viewItem = new JMenuItem("Xem chi tiết");
         JMenuItem editItem = new JMenuItem("Sửa");
         JMenuItem deleteItem = new JMenuItem("Xóa");
 
+        viewItem.addActionListener(e -> viewPaymentDetail());
         editItem.addActionListener(e -> editPayment());
         deleteItem.addActionListener(e -> deletePayment());
 
+        popupMenu.add(viewItem);
         popupMenu.add(editItem);
         popupMenu.add(deleteItem);
 
@@ -92,37 +131,43 @@ public class Payment extends JPanel {
         JScrollPane scrollPane = new JScrollPane(paymentTable);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         add(scrollPane, BorderLayout.CENTER);
+    }
 
-        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
-        bottomPanel.setBackground(Color.WHITE);
+    private void loadUnpaidInvoices() {
+        invoiceCombo.removeAllItems();
+        List<InvoiceDTO> unpaidInvoices = invoiceBUS.getUnpaidInvoices();
 
-        JButton addButton = new JButton("Thêm thanh toán");
-        addButton.setBackground(PRIMARY_COLOR);
-        addButton.setForeground(Color.WHITE);
-        addButton.setPreferredSize(new Dimension(150, 35));
-        addButton.addActionListener(e -> addPayment());
+        if (unpaidInvoices.isEmpty()) {
+            invoiceCombo.addItem("Không có hóa đơn chưa thanh toán");
+        } else {
+            for (InvoiceDTO invoice : unpaidInvoices) {
+                invoiceCombo.addItem(invoice.getInvoiceId() + " | " + invoice.getInvoiceNo() +
+                        " | " + String.format("%.2f", invoice.getGrandTotal()) + " VNĐ");
+            }
+        }
+    }
 
-        JButton qrPaymentButton = new JButton("Thanh toán QR");
-        qrPaymentButton.setBackground(SUCCESS_COLOR);
-        qrPaymentButton.setForeground(Color.WHITE);
-        qrPaymentButton.setPreferredSize(new Dimension(150, 35));
-        qrPaymentButton.addActionListener(e -> openQRPaymentDialog());
+    private void openPaymentDialog() {
+        String selected = (String) invoiceCombo.getSelectedItem();
+        if (selected == null || selected.contains("Không có")) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn hóa đơn cần thanh toán!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
 
-        JButton exportButton = new JButton("Xuất");
-        exportButton.setBackground(new Color(149, 165, 166));
-        exportButton.setForeground(Color.WHITE);
-        exportButton.addActionListener(e -> exportData());
+        int invoiceId = Integer.parseInt(selected.split("\\|")[0].trim());
+        InvoiceDTO invoice = invoiceBUS.getInvoiceById(invoiceId);
 
-        JButton printButton = new JButton("In");
-        printButton.setBackground(new Color(149, 165, 166));
-        printButton.setForeground(Color.WHITE);
-        printButton.addActionListener(e -> printData());
-
-        bottomPanel.add(addButton);
-        bottomPanel.add(qrPaymentButton);
-        bottomPanel.add(exportButton);
-        bottomPanel.add(printButton);
-        add(bottomPanel, BorderLayout.SOUTH);
+        if (invoice != null) {
+            PaymentDetail detailDialog = new PaymentDetail(
+                    (Frame) SwingUtilities.getWindowAncestor(this),
+                    null,
+                    paymentBUS,
+                    invoice
+            );
+            detailDialog.setVisible(true);
+            loadPaymentData();
+            loadUnpaidInvoices();
+        }
     }
 
     private void loadPaymentData() {
@@ -135,8 +180,8 @@ public class Payment extends JPanel {
                     payment.getBookingId(),
                     payment.getReferenceNo() != null ? payment.getReferenceNo() : "N/A",
                     String.format("%.2f", payment.getAmount()),
-//                    payment.getPaymentMethod() != null ? payment.getPaymentMethod() : "Tiền mặt", // Hiển thị phương thức thanh toán
-//                    payment.getPaymentDate() != null ? payment.getPaymentDate().toString() : "N/A",
+                    payment.getMethod() != null ? payment.getMethod() : "N/A",
+                    payment.getPaidAt() != null ? payment.getPaidAt().toString() : "N/A",
                     payment.getNote() != null ? payment.getNote() : "",
                     payment.getStatus()
             };
@@ -160,8 +205,8 @@ public class Payment extends JPanel {
                     payment.getBookingId(),
                     payment.getReferenceNo() != null ? payment.getReferenceNo() : "N/A",
                     String.format("%.2f", payment.getAmount()),
-//                    payment.getPaymentMethod() != null ? payment.getPaymentMethod() : "Tiền mặt",
-//                    payment.getPaymentDate() != null ? payment.getPaymentDate().toString() : "N/A",
+                    payment.getMethod() != null ? payment.getMethod() : "N/A",
+                    payment.getPaidAt() != null ? payment.getPaidAt().toString() : "N/A",
                     payment.getNote() != null ? payment.getNote() : "",
                     payment.getStatus()
             };
@@ -185,8 +230,8 @@ public class Payment extends JPanel {
                     payment.getBookingId(),
                     payment.getReferenceNo() != null ? payment.getReferenceNo() : "N/A",
                     String.format("%.2f", payment.getAmount()),
-//                    payment.getPaymentMethod() != null ? payment.getPaymentMethod() : "Tiền mặt",
-//                    payment.getPaymentDate() != null ? payment.getPaymentDate().toString() : "N/A",
+                    payment.getMethod() != null ? payment.getMethod() : "N/A",
+                    payment.getPaidAt() != null ? payment.getPaidAt().toString() : "N/A",
                     payment.getNote() != null ? payment.getNote() : "",
                     payment.getStatus()
             };
@@ -194,67 +239,26 @@ public class Payment extends JPanel {
         }
     }
 
-    private void addPayment() {
-        PaymentDetail detailDialog = new PaymentDetail(
-                (Frame) SwingUtilities.getWindowAncestor(this),
-                null,
-                paymentBUS
-        );
-        detailDialog.setVisible(true);
-        loadPaymentData();
-    }
+    private void viewPaymentDetail() {
+        int selectedRow = paymentTable.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn thanh toán cần xem!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
 
-    private void openQRPaymentDialog() {
-        JDialog qrDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Thanh toán bằng QR", true);
-        qrDialog.setSize(500, 450);
-        qrDialog.setLayout(new BorderLayout(10, 10));
+        int paymentId = (int) tableModel.getValueAt(selectedRow, 0);
+        PaymentDTO payment = paymentBUS.getPaymentById(paymentId);
 
-        JPanel contentPanel = new JPanel(new BorderLayout(10, 10));
-        contentPanel.setBackground(Color.WHITE);
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        JLabel titleLabel = new JLabel("Quét mã QR để thanh toán");
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        contentPanel.add(titleLabel, BorderLayout.NORTH);
-
-        // QR Code placeholder
-        JPanel qrPanel = new JPanel();
-        qrPanel.setBackground(Color.WHITE);
-        qrPanel.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200), 2));
-        JLabel qrLabel = new JLabel("📱 QR Code");
-        qrLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        qrLabel.setFont(new Font("Arial", Font.PLAIN, 50));
-        qrPanel.add(qrLabel);
-        contentPanel.add(qrPanel, BorderLayout.CENTER);
-
-        JPanel statusPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
-        statusPanel.setBackground(Color.WHITE);
-        JLabel statusLabel = new JLabel("⏳ Chờ quét...");
-        statusLabel.setFont(new Font("Arial", Font.BOLD, 12));
-        statusLabel.setForeground(new Color(241, 196, 15));
-
-        JButton confirmButton = new JButton("✓ Quét thành công");
-        confirmButton.setBackground(SUCCESS_COLOR);
-        confirmButton.setForeground(Color.WHITE);
-        confirmButton.setPreferredSize(new Dimension(150, 35));
-        confirmButton.setFocusPainted(false);
-        confirmButton.setBorderPainted(false);
-        confirmButton.setFont(new Font("Arial", Font.BOLD, 12));
-        confirmButton.addActionListener(e -> {
-            statusLabel.setText("✓ Thanh toán thành công!");
-            statusLabel.setForeground(SUCCESS_COLOR);
-            JOptionPane.showMessageDialog(qrDialog, "Thanh toán QR thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-            qrDialog.dispose();
+        if (payment != null) {
+            PaymentDetail detailDialog = new PaymentDetail(
+                    (Frame) SwingUtilities.getWindowAncestor(this),
+                    payment,
+                    paymentBUS,
+                    null
+            );
+            detailDialog.setVisible(true);
             loadPaymentData();
-        });
-
-        statusPanel.add(statusLabel);
-        statusPanel.add(confirmButton);
-
-        qrDialog.add(contentPanel, BorderLayout.CENTER);
-        qrDialog.add(statusPanel, BorderLayout.SOUTH);
-        qrDialog.setLocationRelativeTo(this);
-        qrDialog.setVisible(true);
+        }
     }
 
     private void editPayment() {
@@ -271,7 +275,8 @@ public class Payment extends JPanel {
             PaymentDetail detailDialog = new PaymentDetail(
                     (Frame) SwingUtilities.getWindowAncestor(this),
                     payment,
-                    paymentBUS
+                    paymentBUS,
+                    null
             );
             detailDialog.setVisible(true);
             loadPaymentData();
@@ -299,13 +304,5 @@ public class Payment extends JPanel {
                 JOptionPane.showMessageDialog(this, "Xóa thanh toán thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         }
-    }
-
-    private void exportData() {
-        JOptionPane.showMessageDialog(this, "Chức năng xuất dữ liệu đang được phát triển!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    private void printData() {
-        JOptionPane.showMessageDialog(this, "Chức năng in dữ liệu đang được phát triển!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
     }
 }

@@ -121,7 +121,7 @@ public class CustomGUI extends JPanel {
                 c.getCustomer_id(),
                 c.getFull_name(),
                 c.getDob() != null ? dateFormat.format(c.getDob()) : "Chưa có",
-                c.getPhone() > 0 ? c.getPhone() : "Chưa có",
+                c.getPhone() != null ? c.getPhone() : "Chưa có",
                 c.getGender() != null ? c.getGender() : "Chưa chọn",
                 c.getNationality() != null ? c.getNationality() : "Chưa có"
             });
@@ -310,7 +310,7 @@ public class CustomGUI extends JPanel {
         info.setText(
             "Mã khách hàng: " + customer.getCustomer_id() + "\n\n" +
             "Họ và tên: " + customer.getFull_name() + "\n" +
-            "Số điện thoại: " + (customer.getPhone() > 0 ? customer.getPhone() : "Chưa có") + "\n" +
+            "Số điện thoại: " + (customer.getPhone() != null ? customer.getPhone() : "Chưa có") + "\n" +
             "Email: " + (customer.getEmail() != null && !customer.getEmail().isEmpty() ? customer.getEmail() : "Chưa có") + "\n" +
             "CMND/CCCD: " + (customer.getId_card() != null ? customer.getId_card() : "Chưa có") + "\n" +
             "Địa chỉ: Chưa hỗ trợ hiển thị\n" +
@@ -485,7 +485,7 @@ public class CustomGUI extends JPanel {
                 c.getCustomer_id(),
                 c.getFull_name(),
                 c.getDob() != null ? dateFormat.format(c.getDob()) : "Chưa có",
-                c.getPhone() > 0 ? c.getPhone() : "Chưa có",
+                c.getPhone() != null ? c.getPhone() : "Chưa có",
                 c.getGender() != null ? c.getGender() : "Chưa chọn",
                 c.getNationality() != null ? c.getNationality() : "Chưa có"
             });
