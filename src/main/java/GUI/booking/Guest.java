@@ -38,7 +38,7 @@ public class Guest extends javax.swing.JFrame {
     // Khởi tạo các component
     private void initComponents() {
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-        setTitle("Quản lý khách hàng");
+        setTitle("Danh sách khách lưu trú");
         setSize(900, 600);
 
         JPanel mainPanel = new JPanel(new BorderLayout());
@@ -62,7 +62,7 @@ public class Guest extends javax.swing.JFrame {
         addButton.addActionListener(e -> addNewGuest());
         controlPanel.add(addButton);
 
-        JButton reloadButton = createIconButton("/images/icon/reload.png");
+        JButton reloadButton = createIconButton("/icon/reload.png");
         reloadButton.addActionListener(e -> loadGuestData());
         controlPanel.add(reloadButton);
 

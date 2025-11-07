@@ -8,6 +8,8 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Frame;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -38,10 +40,10 @@ import DTO.CustomerDTO;
 
 public class CustomGUI extends JPanel {
 
-    // === MÀU SẮC HIỆN ĐẠI (giống BookingGUI) ===
-    private static final Color PRIMARY_COLOR = new Color(41, 128, 185);      // Xanh dương
+    // === MÀU SẮC HIỆN ĐẠI ===
+    private static final Color PRIMARY_COLOR = new Color(41, 128, 185);
     private static final Color PRIMARY_DARK = new Color(31, 97, 141);
-    private static final Color SECONDARY_COLOR = new Color(52, 152, 219);    // Xanh nhạt
+    private static final Color SECONDARY_COLOR = new Color(52, 152, 219);
     private static final Color SUCCESS_COLOR = new Color(46, 204, 113);
     private static final Color DANGER_COLOR = new Color(231, 76, 60);
     private static final Color WARNING_COLOR = new Color(241, 196, 15);
@@ -51,8 +53,7 @@ public class CustomGUI extends JPanel {
 
     // Components
     private JTextField tfTimKiem;
-    private JButton btnTimKiem;
-    private JButton btnLoc;
+    private JButton btnTimKiem, btnLoc, btnThem;
     private JTable tbDatPhong;
     private JScrollPane jScrollPane1;
     private JPopupMenu popupMenu;
@@ -77,27 +78,58 @@ public class CustomGUI extends JPanel {
         setBackground(BACKGROUND_COLOR);
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        // Top panel: search + filter
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        // === TOP PANEL: TÌM KIẾM + LỌC + THÊM ===
+        JPanel topPanel = new JPanel(new GridBagLayout());
         topPanel.setBackground(BACKGROUND_COLOR);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        tfTimKiem = new JTextField(25);
+        // Ô tìm kiếm
+        tfTimKiem = new JTextField(20);
+        tfTimKiem.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        tfTimKiem.setPreferredSize(new Dimension(300, 38));
+
+        // Nút tìm kiếm
         btnTimKiem = new JButton("Tìm kiếm");
-        btnTimKiem.setIcon(new ImageIcon(getClass().getResource("/images/search.png")));
+        btnTimKiem.setIcon(getIcon("/images/search.png"));
+        btnTimKiem.setPreferredSize(new Dimension(110, 38));
+
+        // Nút lọc
         btnLoc = new JButton("Lọc");
-        btnLoc.setIcon(new ImageIcon(getClass().getResource("/images/filter.png")));
+        btnLoc.setIcon(getIcon("/images/filter.png"));
+        btnLoc.setPreferredSize(new Dimension(90, 38));
 
-        topPanel.add(tfTimKiem);
-        topPanel.add(btnTimKiem);
-        topPanel.add(btnLoc);
+        // Nút thêm
+        btnThem = new JButton("Thêm");
+        btnThem.setIcon(getIcon("/images/add.png"));
+        btnThem.setPreferredSize(new Dimension(90, 38));
 
-        // Table
+        // Căn chỉnh
+        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 1.0;
+        topPanel.add(tfTimKiem, gbc);
+
+        gbc.gridx = 1; gbc.weightx = 0;
+        topPanel.add(btnTimKiem, gbc);
+
+        gbc.gridx = 2;
+        topPanel.add(btnLoc, gbc);
+
+        gbc.gridx = 3;
+        topPanel.add(btnThem, gbc);
+
+        // === TABLE ===
         tbDatPhong = new JTable();
         jScrollPane1 = new JScrollPane(tbDatPhong);
         jScrollPane1.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
 
         add(topPanel, BorderLayout.NORTH);
         add(jScrollPane1, BorderLayout.CENTER);
+    }
+
+    private ImageIcon getIcon(String path) {
+        java.net.URL imgURL = getClass().getResource(path);
+        return imgURL != null ? new ImageIcon(imgURL) : null;
     }
 
     private void initTableModel() {
@@ -117,25 +149,27 @@ public class CustomGUI extends JPanel {
         tableModel.setRowCount(0);
         List<CustomerDTO> customers = customerBUS.getAllCustomers();
         for (CustomerDTO c : customers) {
-            tableModel.addRow(new Object[]{
-                c.getCustomer_id(),
-                c.getFull_name(),
-                c.getDob() != null ? dateFormat.format(c.getDob()) : "Chưa có",
-                c.getPhone() != null ? c.getPhone() : "Chưa có",
-                c.getGender() != null ? c.getGender() : "Chưa chọn",
-                c.getNationality() != null ? c.getNationality() : "Chưa có"
-            });
+            addCustomerToTable(c);
         }
     }
 
-    // === GIAO DIỆN ĐẸP NHƯ BOOKINGGUI + NỀN TRẮNG HOÀN TOÀN ===
+    private void addCustomerToTable(CustomerDTO c) {
+        tableModel.addRow(new Object[]{
+            c.getCustomer_id(),
+            c.getFull_name(),
+            c.getDob() != null ? dateFormat.format(c.getDob()) : "Chưa có",
+            c.getPhone() != null ? c.getPhone() : "Chưa có",
+            c.getGender() != null ? c.getGender() : "Chưa chọn",
+            c.getNationality() != null ? c.getNationality() : "Chưa có"
+        });
+    }
+
+    // === STYLE ===
     private void styleComponents() {
         // TextField
-        tfTimKiem.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        tfTimKiem.setPreferredSize(new Dimension(300, 35));
         tfTimKiem.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(BORDER_COLOR, 1),
-            BorderFactory.createEmptyBorder(5, 10, 5, 10)
+            BorderFactory.createEmptyBorder(5, 12, 5, 12)
         ));
         tfTimKiem.setBackground(Color.WHITE);
         tfTimKiem.setForeground(TEXT_COLOR);
@@ -143,8 +177,9 @@ public class CustomGUI extends JPanel {
         // Buttons
         styleButton(btnTimKiem, PRIMARY_COLOR, Color.WHITE);
         styleButton(btnLoc, SECONDARY_COLOR, Color.WHITE);
+        styleButton(btnThem, SUCCESS_COLOR, Color.WHITE);
 
-        // Table styling
+        // Table
         styleTable();
     }
 
@@ -165,19 +200,19 @@ public class CustomGUI extends JPanel {
 
     private void styleTable() {
         tbDatPhong.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        tbDatPhong.setRowHeight(40);
+        tbDatPhong.setRowHeight(42);
         tbDatPhong.setShowGrid(true);
-        tbDatPhong.setGridColor(new Color(230, 230, 230)); // Viền nhẹ
+        tbDatPhong.setGridColor(new Color(230, 230, 230));
         tbDatPhong.setIntercellSpacing(new Dimension(1, 1));
         tbDatPhong.setSelectionBackground(SECONDARY_COLOR);
         tbDatPhong.setSelectionForeground(Color.WHITE);
+        tbDatPhong.setBackground(Color.WHITE);
 
         // Header
-        
         JTableHeader header = tbDatPhong.getTableHeader();
         header.setFont(new Font("Segoe UI", Font.BOLD, 13));
         header.setBackground(PRIMARY_COLOR);
-        header.setForeground(Color.BLACK);
+        header.setForeground(Color.WHITE);
         header.setPreferredSize(new Dimension(0, 45));
         header.setBorder(BorderFactory.createLineBorder(PRIMARY_DARK, 1));
         ((DefaultTableCellRenderer) header.getDefaultRenderer()).setHorizontalAlignment(JLabel.CENTER);
@@ -189,40 +224,38 @@ public class CustomGUI extends JPanel {
             tbDatPhong.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
         }
 
-        // === NỀN TRẮNG HOÀN TOÀN + HOVER + MÀU GIỚI TÍNH ===
+        // Custom renderer: nền trắng + hover + màu giới tính
         tbDatPhong.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
                                                            boolean isSelected, boolean hasFocus, int row, int column) {
-                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                JLabel label = (JLabel) c;
+                JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 label.setHorizontalAlignment(JLabel.CENTER);
 
                 if (!isSelected) {
-                    // Nền trắng hoàn toàn
-                    c.setBackground(Color.WHITE);
-                    c.setForeground(TEXT_COLOR);
+                    label.setBackground(Color.WHITE);
+                    label.setForeground(TEXT_COLOR);
                 } else {
-                    c.setBackground(SECONDARY_COLOR);
-                    c.setForeground(Color.WHITE);
+                    label.setBackground(SECONDARY_COLOR);
+                    label.setForeground(Color.WHITE);
                 }
 
                 // Tô màu giới tính
                 if (column == 4 && value != null) {
                     String gender = value.toString();
-                    if ("Nam".equals(gender)) c.setForeground(PRIMARY_COLOR);
-                    else if ("Nữ".equals(gender)) c.setForeground(new Color(231, 76, 133));
-                    else if ("Khác".equals(gender)) c.setForeground(WARNING_COLOR);
-                    else c.setForeground(new Color(149, 165, 166));
+                    if ("Nam".equals(gender)) label.setForeground(PRIMARY_COLOR);
+                    else if ("Nữ".equals(gender)) label.setForeground(new Color(231, 76, 133));
+                    else if ("Khác".equals(gender)) label.setForeground(WARNING_COLOR);
+                    else label.setForeground(new Color(149, 165, 166));
                 } else if (!isSelected) {
-                    c.setForeground(TEXT_COLOR);
+                    label.setForeground(TEXT_COLOR);
                 }
 
-                return c;
+                return label;
             }
         });
 
-        // === HOVER DÒNG (tăng tính tương tác) ===
+        // Hover dòng
         tbDatPhong.addMouseMotionListener(new MouseAdapter() {
             @Override
             public void mouseMoved(MouseEvent e) {
@@ -233,8 +266,6 @@ public class CustomGUI extends JPanel {
             }
         });
 
-        // Đảm bảo nền trắng cho toàn bộ table và scrollpane
-        tbDatPhong.setBackground(Color.WHITE);
         jScrollPane1.setBackground(Color.WHITE);
         jScrollPane1.getViewport().setBackground(Color.WHITE);
     }
@@ -296,17 +327,21 @@ public class CustomGUI extends JPanel {
 
     private void showCustomerDetailDialog(CustomerDTO customer) {
         JDialog dialog = new JDialog((Frame) null, "Chi tiết khách hàng", true);
-        dialog.setSize(480, 560);
+        dialog.setSize(500, 620);
         dialog.setLocationRelativeTo(this);
         dialog.setLayout(new BorderLayout());
+        dialog.getContentPane().setBackground(BACKGROUND_COLOR);
 
         JTextArea info = new JTextArea();
         info.setEditable(false);
         info.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        info.setMargin(new Insets(20, 20, 20, 20));
-        info.setBackground(Color.BLACK);
+        info.setMargin(new Insets(25, 25, 25, 25));
+        info.setBackground(Color.WHITE);
+        info.setForeground(TEXT_COLOR);
+        info.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
+        info.setLineWrap(true);
+        info.setWrapStyleWord(true);
 
-        info.setForeground(TEXT_COLOR); 
         info.setText(
             "Mã khách hàng: " + customer.getCustomer_id() + "\n\n" +
             "Họ và tên: " + customer.getFull_name() + "\n" +
@@ -321,19 +356,18 @@ public class CustomGUI extends JPanel {
         );
 
         JScrollPane scroll = new JScrollPane(info);
-        scroll.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
+        scroll.setBorder(null);
         dialog.add(scroll, BorderLayout.CENTER);
 
         JButton closeBtn = new JButton("Đóng");
         styleButton(closeBtn, new Color(149, 165, 166), Color.WHITE);
         closeBtn.addActionListener(e -> dialog.dispose());
 
-        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 15));
         bottom.setBackground(BACKGROUND_COLOR);
         bottom.add(closeBtn);
         dialog.add(bottom, BorderLayout.SOUTH);
 
-        dialog.getContentPane().setBackground(BACKGROUND_COLOR);
         dialog.setVisible(true);
     }
 
@@ -380,84 +414,104 @@ public class CustomGUI extends JPanel {
         tfTimKiem.addActionListener(e -> performSearch());
         btnTimKiem.addActionListener(e -> performSearch());
         btnLoc.addActionListener(e -> filterDialog.setVisible(true));
+        btnThem.addActionListener(e -> showAddCustomerDialog());
     }
 
-    private void performSearch() {
-        String keyword = tfTimKiem.getText().trim();
-        List<CustomerDTO> results = customerBUS.searchCustomers(keyword);
-        updateTable(results);
-    }
+    // private void showAddCustomerDialog() {
+    //     JOptionPane.showMessageDialog(this,
+    //         "Mở form thêm khách hàng mới\n(Gợi ý: Tạo CustomerAddDialog extends JDialog)",
+    //         "Thêm khách hàng", JOptionPane.INFORMATION_MESSAGE);
+    // }
+
+    // private void performSearch() {
+    //     String keyword = tfTimKiem.getText().trim();
+    //     List<CustomerDTO> results = customerBUS.searchCustomers(keyword);
+    //     updateTable(results);
+    // }
 
     private void initFilterDialog() {
         filterDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Bộ lọc khách hàng", true);
-        filterDialog.setSize(420, 380);
+        filterDialog.setSize(460, 380);
         filterDialog.setLocationRelativeTo(this);
-        filterDialog.setLayout(null);
+        filterDialog.setLayout(new BorderLayout());
         filterDialog.getContentPane().setBackground(BACKGROUND_COLOR);
 
         // Title
         JPanel titlePanel = new JPanel();
         titlePanel.setBackground(PRIMARY_COLOR);
-        titlePanel.setBounds(0, 0, 420, 50);
+        titlePanel.setPreferredSize(new Dimension(460, 55));
         JLabel titleLabel = new JLabel("BỘ LỌC KHÁCH HÀNG");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 17));
         titleLabel.setForeground(Color.WHITE);
         titlePanel.add(titleLabel);
-        filterDialog.add(titlePanel);
+        filterDialog.add(titlePanel, BorderLayout.NORTH);
+
+        // Form
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBackground(BACKGROUND_COLOR);
+        formPanel.setBorder(BorderFactory.createEmptyBorder(25, 35, 25, 35));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(12, 10, 12, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
         // Quốc tịch
         JLabel lblQuocTich = new JLabel("Quốc tịch:");
         lblQuocTich.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        lblQuocTich.setBounds(40, 70, 100, 30);
-        filterDialog.add(lblQuocTich);
-
         JComboBox<String> cbQuocTich = new JComboBox<>();
         cbQuocTich.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         cbQuocTich.addItem("Tất cả");
         List<String> nationalities = customerBUS.getAllNationalities();
         for (String nat : nationalities) cbQuocTich.addItem(nat);
-        cbQuocTich.setBounds(150, 70, 220, 35);
         cbQuocTich.setBackground(Color.WHITE);
         cbQuocTich.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
-        filterDialog.add(cbQuocTich);
+
+        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0.35;
+        formPanel.add(lblQuocTich, gbc);
+        gbc.gridx = 1; gbc.weightx = 0.65;
+        formPanel.add(cbQuocTich, gbc);
 
         // Giới tính
         JLabel lblGioiTinh = new JLabel("Giới tính:");
         lblGioiTinh.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        lblGioiTinh.setBounds(40, 130, 100, 30);
-        filterDialog.add(lblGioiTinh);
-
         JComboBox<String> cbGioiTinh = new JComboBox<>(new String[]{"Tất cả", "Nam", "Nữ", "Khác"});
         cbGioiTinh.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        cbGioiTinh.setBounds(150, 130, 220, 35);
         cbGioiTinh.setBackground(Color.WHITE);
         cbGioiTinh.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
-        filterDialog.add(cbGioiTinh);
+
+        gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0.35;
+        formPanel.add(lblGioiTinh, gbc);
+        gbc.gridx = 1; gbc.weightx = 0.65;
+        formPanel.add(cbGioiTinh, gbc);
+
+        filterDialog.add(formPanel, BorderLayout.CENTER);
 
         // Buttons
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 15));
+        buttonPanel.setBackground(BACKGROUND_COLOR);
+
         JButton btnApDung = new JButton("Áp dụng");
-        btnApDung.setBounds(100, 210, 100, 40);
         styleButton(btnApDung, SUCCESS_COLOR, Color.WHITE);
         btnApDung.addActionListener(e -> {
             applyFilter(cbQuocTich.getSelectedItem().toString(), cbGioiTinh.getSelectedItem().toString());
             filterDialog.dispose();
         });
-        filterDialog.add(btnApDung);
 
         JButton btnHuy = new JButton("Hủy");
-        btnHuy.setBounds(220, 210, 100, 40);
         styleButton(btnHuy, new Color(149, 165, 166), Color.WHITE);
         btnHuy.addActionListener(e -> filterDialog.dispose());
-        filterDialog.add(btnHuy);
 
         JButton btnReset = new JButton("Đặt lại");
-        btnReset.setBounds(160, 270, 100, 35);
         styleButton(btnReset, WARNING_COLOR, Color.WHITE);
         btnReset.addActionListener(e -> {
             cbQuocTich.setSelectedIndex(0);
             cbGioiTinh.setSelectedIndex(0);
         });
-        filterDialog.add(btnReset);
+
+        buttonPanel.add(btnApDung);
+        buttonPanel.add(btnHuy);
+        buttonPanel.add(btnReset);
+
+        filterDialog.add(buttonPanel, BorderLayout.SOUTH);
     }
 
     private void applyFilter(String nationality, String gender) {
@@ -481,14 +535,7 @@ public class CustomGUI extends JPanel {
     private void updateTable(List<CustomerDTO> customers) {
         tableModel.setRowCount(0);
         for (CustomerDTO c : customers) {
-            tableModel.addRow(new Object[]{
-                c.getCustomer_id(),
-                c.getFull_name(),
-                c.getDob() != null ? dateFormat.format(c.getDob()) : "Chưa có",
-                c.getPhone() != null ? c.getPhone() : "Chưa có",
-                c.getGender() != null ? c.getGender() : "Chưa chọn",
-                c.getNationality() != null ? c.getNationality() : "Chưa có"
-            });
+            addCustomerToTable(c);
         }
     }
 }

@@ -184,7 +184,7 @@ public class BookingRoom extends javax.swing.JFrame {
 
         JLabel statusLabel = new JLabel("Trạng thái:");
         statusLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JComboBox<String> statusCombo = new JComboBox<>(new String[]{"Tất cả", "Đã đặt", "Đã nhận", "Đã trả", "Đã hủy"});
+        JComboBox<String> statusCombo = new JComboBox<>(new String[]{"All", "CHECKED_OUT", "CHECKED_IN", "BOOKED" });
         statusCombo.setPreferredSize(new Dimension(150, 30));
         contentPanel.add(statusLabel);
         contentPanel.add(statusCombo);
@@ -215,10 +215,12 @@ public class BookingRoom extends javax.swing.JFrame {
     private void filterBookingRooms(String status) {
         try {
             List<BookingRoomDTO> results;
-            if ("Tất cả".equals(status)) {
+            if ("All".equalsIgnoreCase(status)) {
                 results = bookingRoomData;
             } else {
-                results = bookingRoomBUS.getBookingRoomsByStatus(status);
+                results = bookingRoomData.stream()
+                        .filter(br -> status.equals(br.getStatus()))
+                        .toList();
             }
             updateTableViewWithData(results);
         } catch (Exception e) {
@@ -310,19 +312,82 @@ public class BookingRoom extends javax.swing.JFrame {
     }
 
     private void editBookingRoom(BookingRoomDTO br) {
-        String newStatus = JOptionPane.showInputDialog(this, "Nhập trạng thái mới:", br.getStatus());
-        if (newStatus != null && !newStatus.isEmpty()) {
+        JDialog editDialog = new JDialog(this, "Sửa phòng đặt", true);
+        editDialog.setLayout(new BorderLayout());
+        editDialog.setSize(400, 250);
+
+        JPanel contentPanel = new JPanel(new GridLayout(3, 2, 15, 15));
+        contentPanel.setBackground(PANEL_BG);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel idLabel = new JLabel("Mã phòng đặt:");
+        idLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JLabel idValue = new JLabel("PD00" + br.getBookingRoomId());
+        idValue.setFont(new Font("Arial", Font.PLAIN, 13));
+        contentPanel.add(idLabel);
+        contentPanel.add(idValue);
+
+        JLabel roomLabel = new JLabel("Mã phòng:");
+        roomLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JLabel roomValue = new JLabel("P00" + br.getRoomId());
+        roomValue.setFont(new Font("Arial", Font.PLAIN, 13));
+        contentPanel.add(roomLabel);
+        contentPanel.add(roomValue);
+
+        JLabel statusLabel = new JLabel("Trạng thái:");
+        statusLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JComboBox<String> statusCombo = new JComboBox<>(new String[]{"BOOKED", "CHECKED_IN", "CHECKED_OUT"});
+        statusCombo.setSelectedItem(br.getStatus());
+        statusCombo.setFont(new Font("Arial", Font.PLAIN, 13));
+        statusCombo.setPreferredSize(new Dimension(150, 30));
+        contentPanel.add(statusLabel);
+        contentPanel.add(statusCombo);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        buttonPanel.setBackground(PANEL_BG);
+
+        JButton saveButton = new JButton("Lưu");
+        saveButton.setPreferredSize(new Dimension(100, 35));
+        saveButton.setBackground(PRIMARY_COLOR);
+        saveButton.setForeground(Color.WHITE);
+        saveButton.setFocusPainted(false);
+        saveButton.setBorderPainted(false);
+        saveButton.setFont(new Font("Arial", Font.BOLD, 13));
+        saveButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        saveButton.addActionListener(e -> {
             try {
+                String newStatus = (String) statusCombo.getSelectedItem();
                 br.setStatus(newStatus);
                 if (bookingRoomBUS.updateBookingRoom(br)) {
-                    JOptionPane.showMessageDialog(this, "Cập nhật thành công!");
+                    JOptionPane.showMessageDialog(editDialog, "Cập nhật thành công!");
+                    editDialog.dispose();
                     loadBookingRoomData();
+                } else {
+                    JOptionPane.showMessageDialog(editDialog, "Cập nhật thất bại!",
+                            "Lỗi", JOptionPane.ERROR_MESSAGE);
                 }
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(this, "Lỗi: " + e.getMessage(),
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(editDialog, "Lỗi: " + ex.getMessage(),
                         "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
-        }
+        });
+        buttonPanel.add(saveButton);
+
+        JButton cancelButton = new JButton("Hủy");
+        cancelButton.setPreferredSize(new Dimension(100, 35));
+        cancelButton.setBackground(new Color(200, 200, 200));
+        cancelButton.setForeground(TEXT_COLOR);
+        cancelButton.setFocusPainted(false);
+        cancelButton.setBorderPainted(false);
+        cancelButton.setFont(new Font("Arial", Font.BOLD, 13));
+        cancelButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        cancelButton.addActionListener(e -> editDialog.dispose());
+        buttonPanel.add(cancelButton);
+
+        editDialog.add(contentPanel, BorderLayout.CENTER);
+        editDialog.add(buttonPanel, BorderLayout.SOUTH);
+        editDialog.setLocationRelativeTo(this);
+        editDialog.setVisible(true);
     }
 
     private void deleteBookingRoom(BookingRoomDTO br) {
@@ -574,7 +639,7 @@ public class BookingRoom extends javax.swing.JFrame {
                 java.time.LocalDateTime checkOut = checkIn.plusDays(1);
 
                 BookingRoomDTO newBookingRoom = new BookingRoomDTO(0, filterByBookingId, room.getRoomId(),
-                        checkIn, checkOut, null, null, 1, 0, java.math.BigDecimal.ZERO, null, null, "Đã đặt");
+                        checkIn, checkOut, null, null, 1, 0, java.math.BigDecimal.ZERO, null, null, "BOOKED");
 
                 if (bookingRoomBUS.addBookingRoom(newBookingRoom)) {
                     JOptionPane.showMessageDialog(detailDialog, "Thêm phòng thành công!");
