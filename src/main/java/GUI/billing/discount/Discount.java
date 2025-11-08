@@ -49,7 +49,7 @@ public class Discount extends JPanel {
         add(topPanel, BorderLayout.NORTH);
 
         // Center Panel - Table
-        String[] columnNames = {"ID", "Mã", "Loại", "Giá trị", "Chi tiêu tối thiểu", "Ngày bắt đầu", "Ngày kết thúc", "Trạng thái"};
+        String[] columnNames = {"ID", "Mã", "Loại", "Giá trị", "Chi tiêu tối thiểu", "Chiết khấu tối đa", "Ngày bắt đầu", "Ngày kết thúc", "Giới hạn sử dụng", "Giới hạn mỗi người dùng", "Trạng thái"};  // Thêm cột mới
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -112,8 +112,11 @@ public class Discount extends JPanel {
                     discount.getDiscountType(),
                     String.format("%.2f", discount.getDiscountValue()),
                     String.format("%.2f", discount.getMinSpend()),
+                    String.format("%.2f", discount.getMaxDiscountAmount()),  // Thêm dữ liệu mới
                     discount.getStartDate(),
                     discount.getExpiryDate(),
+                    discount.getUsageLimit(),  // Thêm dữ liệu mới
+                    discount.getPerUserLimit(),  // Thêm dữ liệu mới
                     discount.getStatus()
             };
             tableModel.addRow(row);
@@ -137,8 +140,11 @@ public class Discount extends JPanel {
                     discount.getDiscountType(),
                     String.format("%.2f", discount.getDiscountValue()),
                     String.format("%.2f", discount.getMinSpend()),
+                    String.format("%.2f", discount.getMaxDiscountAmount()),  // Thêm dữ liệu mới
                     discount.getStartDate(),
                     discount.getExpiryDate(),
+                    discount.getUsageLimit(),  // Thêm dữ liệu mới
+                    discount.getPerUserLimit(),  // Thêm dữ liệu mới
                     discount.getStatus()
             };
             tableModel.addRow(row);
@@ -199,4 +205,3 @@ public class Discount extends JPanel {
         }
     }
 }
-

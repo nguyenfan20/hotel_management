@@ -22,7 +22,7 @@ public class PaymentDetail extends JDialog {
     private JTextField methodField;
     private JTextField referenceNoField;
     private JTextField noteField;
-    private JComboBox<String> statusCombo;
+    private JTextField statusField;  // Thay thế JComboBox bằng JTextField (read-only để hiển thị trạng thái hiện tại)
 
     public PaymentDetail(Frame parent, PaymentDTO payment, PaymentBUS paymentBUS, InvoiceDTO invoice) {
         super(parent, "Chi tiết thanh toán", true);
@@ -31,11 +31,7 @@ public class PaymentDetail extends JDialog {
         this.paymentBUS = paymentBUS;
         this.invoiceBUS = new InvoiceBUS();
         initComponents();
-        if (invoice != null) {
-            loadInvoiceData();
-        } else if (payment != null) {
-            loadPaymentData();
-        }
+        loadData();  // Gọi hàm load thống nhất
     }
 
     private void initComponents() {
@@ -108,13 +104,14 @@ public class PaymentDetail extends JDialog {
         gbc.gridx = 1;
         mainPanel.add(noteField, gbc);
 
-        // Status
+        // Status (thay bằng JTextField read-only)
         gbc.gridx = 0;
         gbc.gridy = 7;
         mainPanel.add(new JLabel("Trạng thái:"), gbc);
-        statusCombo = new JComboBox<>(new String[]{"Pending", "Completed", "Failed", "Cancelled"});
+        statusField = new JTextField(20);
+        statusField.setEditable(false);  // Không cho chỉnh sửa, chỉ hiển thị trạng thái hiện tại
         gbc.gridx = 1;
-        mainPanel.add(statusCombo, gbc);
+        mainPanel.add(statusField, gbc);
 
         add(mainPanel, BorderLayout.CENTER);
 
@@ -136,41 +133,57 @@ public class PaymentDetail extends JDialog {
         buttonPanel.add(cancelButton);
 
         add(buttonPanel, BorderLayout.SOUTH);
-    }
 
-    private void loadInvoiceData() {
-        if (invoice != null) {
-            bookingIdField.setText(String.valueOf(invoice.getBookingId()));
-            invoiceNoField.setText(invoice.getInvoiceNo());
-            invoiceAmountField.setText(String.format("%.2f", invoice.getGrandTotal()));
-            amountField.setText(String.format("%.2f", invoice.getGrandTotal()));
+        // Tùy chỉnh button và fields dựa trên mode (new hoặc edit)
+        if (payment != null) {
+            saveButton.setText("Cập nhật");  // Khi edit, đổi thành "Cập nhật"
         }
     }
 
-    private void loadPaymentData() {
+    private void loadData() {
         if (payment != null) {
+            // Load từ payment (edit mode)
             bookingIdField.setText(String.valueOf(payment.getBookingId()));
             amountField.setText(String.format("%.2f", payment.getAmount()));
-            methodField.setText(payment.getMethod() != null ? payment.getMethod() : "z");
-            referenceNoField.setText(payment.getReferenceNo() != null ? payment.getReferenceNo() : "z");
-            noteField.setText(payment.getNote() != null ? payment.getNote() : "z    ");
-            statusCombo.setSelectedItem(payment.getStatus());
+            methodField.setText(payment.getMethod() != null ? payment.getMethod() : "");
+            referenceNoField.setText(payment.getReferenceNo() != null ? payment.getReferenceNo() : "");
+            noteField.setText(payment.getNote() != null ? payment.getNote() : "");
+            statusField.setText(payment.getStatus() != null ? payment.getStatus() : "");  // Lấy đúng trạng thái hiện tại
 
-            if (payment.getInvoiceId() > 0) {
-                invoice = invoiceBUS.getInvoiceById(payment.getInvoiceId());
-            }
-            // Nếu không có invoice_id → fallback dùng booking_id
-            else if (invoice == null) {
-                invoice = invoiceBUS.getInvoiceByBookingId(payment.getBookingId());
-            }
-
-            if (invoice != null) {
-                invoiceNoField.setText(invoice.getInvoiceNo());
-                invoiceAmountField.setText(String.format("%.2f", invoice.getGrandTotal()));
+            // Truy xuất số hóa đơn và tổng tiền dựa trên invoice_id mà không load các thông tin khác
+            int invoiceId = payment.getInvoiceId();
+            if (invoiceId > 0) {
+                InvoiceDTO tempInvoice = invoiceBUS.getInvoiceById(invoiceId);
+                if (tempInvoice != null) {
+                    invoiceNoField.setText(tempInvoice.getInvoiceNo());
+                    invoiceAmountField.setText(String.format("%.2f", tempInvoice.getGrandTotal()));
+                } else {
+                    invoiceNoField.setText("Không tìm thấy");
+                    invoiceAmountField.setText("0.00");
+                }
             } else {
-                invoiceNoField.setText("Không tìm thấy");
-                invoiceAmountField.setText("0.00");
+                // Fallback nếu không có invoice_id
+                InvoiceDTO tempInvoice = invoiceBUS.getInvoiceByBookingId(payment.getBookingId());
+                if (tempInvoice != null) {
+                    invoiceNoField.setText(tempInvoice.getInvoiceNo());
+                    invoiceAmountField.setText(String.format("%.2f", tempInvoice.getGrandTotal()));
+                } else {
+                    invoiceNoField.setText("Không tìm thấy");
+                    invoiceAmountField.setText("0.00");
+                }
             }
+        } else if (invoice != null) {
+            // Load từ invoice (new mode)
+            bookingIdField.setText(String.valueOf(invoice.getBookingId()));
+            amountField.setText(String.format("%.2f", invoice.getGrandTotal()));
+            statusField.setText("Pending");  // Default cho new payment
+
+            // Load thông tin invoice
+            invoiceNoField.setText(invoice.getInvoiceNo());
+            invoiceAmountField.setText(String.format("%.2f", invoice.getGrandTotal()));
+        } else {
+            invoiceNoField.setText("Không tìm thấy");
+            invoiceAmountField.setText("0.00");
         }
     }
 
@@ -188,6 +201,7 @@ public class PaymentDetail extends JDialog {
 
             if (payment == null) {
                 payment = new PaymentDTO();
+                payment.setStatus("Completed");  // Default cho new payment (vì không có combo để chọn)
             }
 
             payment.setBookingId(Integer.parseInt(bookingIdField.getText()));
@@ -195,7 +209,7 @@ public class PaymentDetail extends JDialog {
             payment.setMethod(methodField.getText());
             payment.setReferenceNo(referenceNoField.getText());
             payment.setNote(noteField.getText());
-            payment.setStatus((String) statusCombo.getSelectedItem());
+            // Status giữ nguyên từ hiện tại (vì field read-only)
             payment.setPaidAt(java.sql.Timestamp.valueOf(LocalDateTime.now()));
 
             boolean success;
@@ -206,9 +220,18 @@ public class PaymentDetail extends JDialog {
             }
 
             if (success) {
-                if (invoice != null && "Completed".equals(payment.getStatus())) {
-                    invoice.setStatus("Paid");
-                    invoiceBUS.updateInvoice(invoice);
+                // Load invoice chỉ khi cần cập nhật status
+                if ("Completed".equals(payment.getStatus())) {
+                    int invoiceId = payment.getInvoiceId();
+                    if (invoice == null && invoiceId > 0) {
+                        invoice = invoiceBUS.getInvoiceById(invoiceId);
+                    } else if (invoice == null) {
+                        invoice = invoiceBUS.getInvoiceByBookingId(payment.getBookingId());
+                    }
+                    if (invoice != null) {
+                        invoice.setStatus("Paid");
+                        invoiceBUS.updateInvoice(invoice);
+                    }
                 }
 
                 JOptionPane.showMessageDialog(this, "Thanh toán thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
