@@ -1,14 +1,8 @@
 package GUI.billing.payment;
 
-import BUS.PaymentBUS;
-import BUS.InvoiceBUS;
-import BUS.BookingBUS;
-import BUS.CustomerBUS;
+import BUS.*;
 import DAO.BookingDAO;
-import DTO.PaymentDTO;
-import DTO.InvoiceDTO;
-import DTO.BookingDTO;
-import DTO.CustomerDTO;
+import DTO.*;
 import GUI.dashboard.ModernScrollBarUI;
 
 import javax.swing.*;
@@ -26,6 +20,7 @@ public class Payment extends JPanel {
     private InvoiceBUS invoiceBUS;
     private BookingBUS bookingBUS;
     private CustomerBUS customerBUS;
+    private DiscountBUS discountBUS;
 
     private JComboBox<String> invoiceCombo;
     private JTextField customerNameField;
@@ -36,6 +31,7 @@ public class Payment extends JPanel {
     private JTextField referenceNoField;
     private JTextArea noteArea;
     private JLabel changeLabel;
+    private JComboBox<String> discountCombo;
 
     private InvoiceDTO selectedInvoice;
 
@@ -50,6 +46,7 @@ public class Payment extends JPanel {
         invoiceBUS = new InvoiceBUS();
         bookingBUS = new BookingBUS(new BookingDAO());
         customerBUS = new CustomerBUS();
+        discountBUS = new DiscountBUS();
         initComponents();
         loadPaymentData();
     }
@@ -170,6 +167,16 @@ public class Payment extends JPanel {
 
         // Row 4
         gbc.gridx = 0; gbc.gridy = 3; gbc.weightx = 0;
+        formPanel.add(createLabel("Voucher:"), gbc);
+        gbc.gridx = 1; gbc.weightx = 1;
+        discountCombo = new JComboBox<>();
+        discountCombo.setPreferredSize(new Dimension(200, 32));
+        loadDiscounts();
+        discountCombo.addActionListener(e -> applySelectedDiscount());
+        formPanel.add(discountCombo, gbc);
+
+        // Row 5
+        gbc.gridx = 0; gbc.gridy = 4; gbc.weightx = 0;
         gbc.anchor = GridBagConstraints.NORTHWEST;
         formPanel.add(createLabel("Ghi chú:"), gbc);
         gbc.gridx = 1; gbc.weightx = 1; gbc.gridwidth = 3;
@@ -182,8 +189,8 @@ public class Payment extends JPanel {
         noteScroll.setPreferredSize(new Dimension(0, 70));
         formPanel.add(noteScroll, gbc);
 
-        // Row 5 - Change Amount
-        gbc.gridx = 0; gbc.gridy = 4; gbc.weightx = 0; gbc.gridwidth = 1;
+        // Row 6 - Change Amount
+        gbc.gridx = 0; gbc.gridy = 5; gbc.weightx = 0; gbc.gridwidth = 1;
         gbc.anchor = GridBagConstraints.WEST;
         formPanel.add(createLabel("Tiền thừa trả lại:"), gbc);
         gbc.gridx = 1; gbc.weightx = 1;
@@ -217,6 +224,39 @@ public class Payment extends JPanel {
         loadUnpaidInvoices();
 
         return section;
+    }
+
+    private void loadDiscounts() {
+        discountCombo.removeAllItems();
+        discountCombo.addItem("Không áp dụng");
+        List<DiscountDTO> discounts = discountBUS.getAllDiscounts();
+        for (DiscountDTO discount : discounts) {
+            discountCombo.addItem(discount.getCode() + " - " + discount.getDiscountValue() + (discount.getDiscountType().equals("PERCENTAGE") ? "%" : " VNĐ"));
+        }
+    }
+
+    private void applySelectedDiscount() {
+        if (selectedInvoice == null) return;
+
+        String selected = (String) discountCombo.getSelectedItem();
+        if ("Không áp dụng".equals(selected)) {
+            selectedInvoice.setDiscountTotal(0.0);
+            invoiceBUS.updateInvoice(selectedInvoice);
+            loadInvoiceDetails();
+            return;
+        }
+
+        // Extract discount code
+        String discountCode = selected.split(" - ")[0];
+        DiscountDTO discount = discountBUS.getDiscountByCode(discountCode);
+        if (discount != null) {
+            if (invoiceBUS.applyDiscount(selectedInvoice.getInvoiceId(), discount.getDiscountId())) {
+                selectedInvoice = invoiceBUS.getInvoiceById(selectedInvoice.getInvoiceId());
+                loadInvoiceDetails();
+            } else {
+                JOptionPane.showMessageDialog(this, "Không thể áp dụng voucher này!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 
     private JPanel createPaymentHistorySection() {
@@ -447,7 +487,7 @@ public class Payment extends JPanel {
             payment.setMethod((String) methodCombo.getSelectedItem());
             payment.setReferenceNo(referenceNoField.getText().trim());
             payment.setNote(noteArea.getText().trim());
-            payment.setStatus("Completed");
+            payment.setStatus("SUCCESS");
             payment.setPaidAt(java.sql.Timestamp.valueOf(LocalDateTime.now()));
 
             if (paymentBUS.addPayment(payment)) {

@@ -11,7 +11,7 @@ public class PaymentDAO {
     private static final String FILTER_STATUS = "SELECT * FROM Payment WHERE status = ? ORDER BY paid_at DESC";
     private static final String SELECT_BY_BOOKING = "SELECT * FROM Payment WHERE booking_id = ? ORDER BY paid_at DESC";
     private static final String SELECT_BY_ID = "SELECT * FROM Payment WHERE payment_id = ?";
-    private static final String INSERT_SQL = "INSERT INTO Payment (booking_id, amount, method, paid_at, reference_no, status, note) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    private static final String INSERT_SQL = "INSERT INTO Payment (booking_id, invoice_id, amount, method, paid_at, reference_no, status, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
     private static final String UPDATE_SQL = "UPDATE Payment SET amount = ?, method = ?, paid_at = ?, reference_no = ?, status = ?, note = ? WHERE payment_id = ?";
     private static final String DELETE_SQL = "DELETE FROM Payment WHERE payment_id = ?";
     private static final String SEARCH_SQL = "SELECT * FROM Payment WHERE reference_no LIKE ? OR note LIKE ? ORDER BY paid_at DESC";

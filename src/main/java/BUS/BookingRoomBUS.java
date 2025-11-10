@@ -1,6 +1,8 @@
 package BUS;
 
+import DAO.BookingDAO;
 import DAO.BookingRoomDAO;
+import DTO.BookingDTO;
 import DTO.BookingRoomDTO;
 import DTO.RoomDTO;
 import DTO.RoomTypeDTO;
@@ -8,73 +10,66 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-// Lớp xử lý logic nghiệp vụ phòng đặt
 public class BookingRoomBUS {
     private BookingRoomDAO bookingRoomDAO;
     private RoomTypeBUS roomTypeBUS;
+    private RoomBUS roomBUS;
 
     public BookingRoomBUS(BookingRoomDAO bookingRoomDAO) {
         this.bookingRoomDAO = bookingRoomDAO;
         this.roomTypeBUS = new RoomTypeBUS();
+        this.roomBUS = new RoomBUS();
     }
 
     public BookingRoomBUS() {
-        this.bookingRoomDAO = bookingRoomDAO;
+        this.bookingRoomDAO = new BookingRoomDAO();
         this.roomTypeBUS = new RoomTypeBUS();
+        this.roomBUS = new RoomBUS();
     }
 
     /**
      * Kiểm tra xem phòng có đang được đặt trong khoảng thời gian không
-     * @param roomId Mã phòng cần kiểm tra
-     * @param checkInPlan Ngày nhận phòng dự kiến
-     * @param checkOutPlan Ngày trả phòng dự kiến
-     * @param excludeBookingRoomId Mã booking room cần loại trừ (dùng khi update, truyền -1 nếu không cần)
-     * @return true nếu phòng đang bận, false nếu phòng trống
      */
     public boolean isRoomOccupied(int roomId, LocalDateTime checkInPlan, LocalDateTime checkOutPlan, int excludeBookingRoomId) {
         List<BookingRoomDTO> allBookingRooms = bookingRoomDAO.getAll();
 
         for (BookingRoomDTO br : allBookingRooms) {
-            // Bỏ qua booking room đang được update
             if (excludeBookingRoomId > 0 && br.getBookingRoomId() == excludeBookingRoomId) {
                 continue;
             }
 
-            // Chỉ kiểm tra những booking room chưa trả hoặc chưa hủy
             if (br.getRoomId() == roomId &&
-                    !br.getStatus().equals("Đã trả") &&
-                    !br.getStatus().equals("Đã hủy")) {
+                    !br.getStatus().equals("CHECKED_OUT") &&
+                    !br.getStatus().equals("CANCELLED")) {
 
-                // Kiểm tra xem có trùng thời gian không
-                // Trùng khi: checkIn mới < checkOut cũ VÀ checkOut mới > checkIn cũ
                 boolean isOverlap = checkInPlan.isBefore(br.getCheckOutPlan()) &&
                         checkOutPlan.isAfter(br.getCheckInPlan());
 
                 if (isOverlap) {
-                    return true; // Phòng đang bận
+                    return true;
                 }
             }
         }
 
-        return false; // Phòng trống
+        return false;
     }
 
     /**
-     * Kiểm tra phòng có đang được đặt không (không quan tâm thời gian)
-     * Dùng cho trường hợp đơn giản: chỉ cần biết phòng có booking active không
+     * Kiểm tra phòng có đang được đặt không
      */
     public boolean isRoomCurrentlyBooked(int roomId) {
         List<BookingRoomDTO> allBookingRooms = bookingRoomDAO.getAll();
 
         return allBookingRooms.stream()
                 .anyMatch(br -> br.getRoomId() == roomId &&
-                        !br.getStatus().equals("Đã trả") &&
-                        !br.getStatus().equals("Đã hủy"));
+                        !br.getStatus().equals("CHECKED_OUT") &&
+                        !br.getStatus().equals("CANCELLED"));
     }
 
-    // Thêm phòng đặt mới với kiểm tra
+    /**
+     * Thêm phòng đặt mới với kiểm tra
+     */
     public boolean addBookingRoom(BookingRoomDTO bookingRoom) {
-        // Kiểm tra dữ liệu
         if (bookingRoom.getBookingId() <= 0) {
             System.err.println("Lỗi: Mã đặt phòng không hợp lệ");
             return false;
@@ -100,7 +95,6 @@ public class BookingRoomBUS {
             return false;
         }
 
-        // KIỂM TRA PHÒNG CÓ ĐANG ĐƯỢC ĐẶT KHÔNG
         if (isRoomOccupied(bookingRoom.getRoomId(),
                 bookingRoom.getCheckInPlan(),
                 bookingRoom.getCheckOutPlan(),
@@ -109,54 +103,19 @@ public class BookingRoomBUS {
             return false;
         }
 
-        return bookingRoomDAO.insert(bookingRoom);
-    }
-
-    public boolean addBookingRoomFromRoom(int bookingId, RoomDTO room) {
-        if (bookingId <= 0) {
-            System.err.println("Lỗi: Mã đặt phòng không hợp lệ");
-            return false;
+        // Cập nhật trạng thái phòng sang RESERVED
+        RoomDTO room = roomBUS.getRoomById(bookingRoom.getRoomId());
+        if (room != null) {
+            room.setStatus("RESERVED");
+            roomBUS.updateRoom(room);
         }
-
-        if (room == null || room.getRoomId() <= 0) {
-            System.err.println("Lỗi: Mã phòng không hợp lệ");
-            return false;
-        }
-
-        BigDecimal price = BigDecimal.ZERO;
-        try {
-            RoomTypeDTO roomType = roomTypeBUS.getRoomTypeById(room.getRoomTypeId());
-            if (roomType != null && roomType.getBasePrice() != null) {
-                price = roomType.getBasePrice();
-            }
-        } catch (Exception e) {
-            System.err.println("Lỗi lấy giá từ loại phòng: " + e.getMessage());
-        }
-
-        // Auto-fill thông tin từ phòng
-        LocalDateTime checkIn = LocalDateTime.now();
-        LocalDateTime checkOut = checkIn.plusDays(1);
-
-        BookingRoomDTO bookingRoom = new BookingRoomDTO(
-                0,
-                bookingId,
-                room.getRoomId(),
-                checkIn,
-                checkOut,
-                null,
-                null,
-                1,  // 1 người lớn mặc định
-                0,  // 0 trẻ em mặc định
-                price,  // Giá từ loại phòng
-                BigDecimal.ZERO,  // Không giảm giá mặc định
-                BigDecimal.ZERO,  // Không thuế mặc định
-                "Đã đặt"
-        );
 
         return bookingRoomDAO.insert(bookingRoom);
     }
 
-    // Cập nhật phòng đặt với kiểm tra
+    /**
+     * Cập nhật phòng đặt
+     */
     public boolean updateBookingRoom(BookingRoomDTO bookingRoom) {
         if (bookingRoom.getBookingRoomId() <= 0) {
             System.err.println("Lỗi: Mã phòng đặt không hợp lệ");
@@ -168,7 +127,6 @@ public class BookingRoomBUS {
             return false;
         }
 
-        // Kiểm tra phòng có bị trùng với booking khác không (loại trừ chính nó)
         if (isRoomOccupied(bookingRoom.getRoomId(),
                 bookingRoom.getCheckInPlan(),
                 bookingRoom.getCheckOutPlan(),
@@ -180,7 +138,9 @@ public class BookingRoomBUS {
         return bookingRoomDAO.update(bookingRoom);
     }
 
-    // Cập nhật nhận phòng
+    /**
+     * Check-in phòng
+     */
     public boolean checkIn(int bookingRoomId, LocalDateTime checkInTime) {
         BookingRoomDTO bookingRoom = bookingRoomDAO.getById(bookingRoomId);
         if (bookingRoom == null) {
@@ -188,13 +148,28 @@ public class BookingRoomBUS {
             return false;
         }
 
+        if (!"BOOKED".equals(bookingRoom.getStatus())) {
+            System.err.println("Lỗi: Phòng không ở trạng thái BOOKED");
+            return false;
+        }
+
         bookingRoom.setCheckInActual(checkInTime);
-        bookingRoom.setStatus("Đã nhận");
+        bookingRoom.setStatus("CHECKED_IN");
+
+        RoomDTO room = roomBUS.getRoomById(bookingRoom.getRoomId());
+        if (room != null) {
+            room.setStatus("OCCUPIED");
+            roomBUS.updateRoom(room);
+        }
+
+        updateBookingStatus(bookingRoom.getBookingId());
 
         return bookingRoomDAO.update(bookingRoom);
     }
 
-    // Cập nhật trả phòng
+    /**
+     * Check-out phòng
+     */
     public boolean checkOut(int bookingRoomId, LocalDateTime checkOutTime) {
         BookingRoomDTO bookingRoom = bookingRoomDAO.getById(bookingRoomId);
         if (bookingRoom == null) {
@@ -202,23 +177,118 @@ public class BookingRoomBUS {
             return false;
         }
 
-        bookingRoom.setCheckOutActual(checkOutTime);
-        bookingRoom.setStatus("Đã trả");
+        if (bookingRoom.getCheckInActual() == null) {
+            System.err.println("Lỗi: Phòng chưa được check-in");
+            return false;
+        }
 
-        return bookingRoomDAO.update(bookingRoom);
+        bookingRoom.setCheckOutActual(checkOutTime);
+        bookingRoom.setStatus("CHECKED_OUT");
+
+        RoomDTO room = roomBUS.getRoomById(bookingRoom.getRoomId());
+        if (room != null) {
+            room.setStatus("AVAILABLE");
+            roomBUS.updateRoom(room);
+        }
+
+        boolean success = bookingRoomDAO.update(bookingRoom);
+
+        // Cập nhật trạng thái Booking
+        updateBookingStatus(bookingRoom.getBookingId());
+
+        return success;
     }
 
-    // Xóa phòng đặt
+    // Hàm phụ trợ cập nhật trạng thái Booking
+    private void updateBookingStatus(int bookingId) {
+        BookingBUS bookingBUS = new BookingBUS(new BookingDAO());
+        BookingDTO booking = bookingBUS.getBookingById(bookingId);
+        if (booking == null) return;
+
+        List<BookingRoomDTO> rooms = getBookingRoomsByBooking(bookingId);
+
+        boolean allCheckedIn = rooms.stream().allMatch(r -> "CHECKED_IN".equals(r.getStatus()) || "CHECKED_OUT".equals(r.getStatus()));
+        boolean anyCheckedIn = rooms.stream().anyMatch(r -> "CHECKED_IN".equals(r.getStatus()));
+        boolean allCheckedOut = rooms.stream().allMatch(r -> "CHECKED_OUT".equals(r.getStatus()) || "CANCELLED".equals(r.getStatus()));
+
+        if (allCheckedOut) {
+            booking.setStatus("CHECKED_OUT");
+        } else if (allCheckedIn) {
+            booking.setStatus("CHECKED_IN");
+        } else if (anyCheckedIn) {
+            booking.setStatus("PARTIAL_CHECKED_IN");
+        } else {
+            booking.setStatus("BOOKED");
+        }
+
+        bookingBUS.updateBooking(booking);
+    }
+
+    /**
+     * Check-out tất cả phòng trong booking
+     */
+    public boolean checkOutAllRooms(int bookingId, LocalDateTime checkOutTime) {
+        List<BookingRoomDTO> bookingRooms = bookingRoomDAO.getByBookingId(bookingId);
+
+        boolean allSuccess = true;
+        for (BookingRoomDTO br : bookingRooms) {
+            if ("CHECKED_IN".equals(br.getStatus())) {
+                if (!checkOut(br.getBookingRoomId(), checkOutTime)) {
+                    allSuccess = false;
+                }
+            }
+        }
+
+        return allSuccess;
+    }
+
+    /**
+     * Kiểm tra xem tất cả phòng trong booking đã check-out chưa
+     */
+    public boolean areAllRoomsCheckedOut(int bookingId) {
+        List<BookingRoomDTO> bookingRooms = bookingRoomDAO.getByBookingId(bookingId);
+
+        return bookingRooms.stream()
+                .allMatch(br -> "CHECKED_OUT".equals(br.getStatus()) || "CANCELLED".equals(br.getStatus()));
+    }
+
+    /**
+     * Đếm số phòng đã check-out trong booking
+     */
+    public int countCheckedOutRooms(int bookingId) {
+        List<BookingRoomDTO> bookingRooms = bookingRoomDAO.getByBookingId(bookingId);
+
+        return (int) bookingRooms.stream()
+                .filter(br -> "CHECKED_OUT".equals(br.getStatus()))
+                .count();
+    }
+
+    /**
+     * Xóa phòng đặt
+     */
     public boolean deleteBookingRoom(int bookingRoomId) {
         if (bookingRoomId <= 0) {
             System.err.println("Lỗi: Mã phòng đặt không hợp lệ");
             return false;
         }
 
+        // Lấy thông tin phòng trước khi xóa
+        BookingRoomDTO bookingRoom = bookingRoomDAO.getById(bookingRoomId);
+        if (bookingRoom != null) {
+            // Cập nhật trạng thái phòng về AVAILABLE nếu đang RESERVED
+            RoomDTO room = roomBUS.getRoomById(bookingRoom.getRoomId());
+            if (room != null && "RESERVED".equals(room.getStatus())) {
+                room.setStatus("AVAILABLE");
+                roomBUS.updateRoom(room);
+            }
+        }
+
         return bookingRoomDAO.delete(bookingRoomId);
     }
 
-    // Lấy phòng đặt theo mã
+    /**
+     * Lấy phòng đặt theo mã
+     */
     public BookingRoomDTO getBookingRoomById(int bookingRoomId) {
         if (bookingRoomId <= 0) {
             System.err.println("Lỗi: Mã phòng đặt không hợp lệ");
@@ -228,7 +298,9 @@ public class BookingRoomBUS {
         return bookingRoomDAO.getById(bookingRoomId);
     }
 
-    // Lấy phòng đặt theo đặt phòng
+    /**
+     * Lấy phòng đặt theo booking
+     */
     public List<BookingRoomDTO> getBookingRoomsByBooking(int bookingId) {
         if (bookingId <= 0) {
             System.err.println("Lỗi: Mã đặt phòng không hợp lệ");
@@ -238,7 +310,9 @@ public class BookingRoomBUS {
         return bookingRoomDAO.getByBookingId(bookingId);
     }
 
-    // Lấy phòng đặt theo trạng thái
+    /**
+     * Lấy phòng đặt theo trạng thái
+     */
     public List<BookingRoomDTO> getBookingRoomsByStatus(String status) {
         if (status == null || status.trim().isEmpty()) {
             System.err.println("Lỗi: Trạng thái không được trống");
@@ -248,26 +322,31 @@ public class BookingRoomBUS {
         return bookingRoomDAO.getByStatus(status);
     }
 
-    // Lấy tất cả phòng đặt
+    /**
+     * Lấy tất cả phòng đặt
+     */
     public List<BookingRoomDTO> getAllBookingRooms() {
         return bookingRoomDAO.getAll();
     }
 
-    // Tính tổng giá phòng
+    /**
+     * Tính tổng giá phòng
+     */
     public BigDecimal calculateTotalPrice(BookingRoomDTO bookingRoom) {
-        long nights = java.time.temporal.ChronoUnit.DAYS.between(
-                bookingRoom.getCheckInPlan(),
-                bookingRoom.getCheckOutPlan()
-        );
+        LocalDateTime checkIn = bookingRoom.getCheckInActual() != null ?
+                bookingRoom.getCheckInActual() : bookingRoom.getCheckInPlan();
+        LocalDateTime checkOut = bookingRoom.getCheckOutActual() != null ?
+                bookingRoom.getCheckOutActual() : bookingRoom.getCheckOutPlan();
+
+        long nights = java.time.temporal.ChronoUnit.DAYS.between(checkIn, checkOut);
+        if (nights < 1) nights = 1;
 
         BigDecimal total = bookingRoom.getRatePerNight().multiply(BigDecimal.valueOf(nights));
 
-        // Áp dụng giảm giá nếu có
         if (bookingRoom.getDiscountAmount() != null && bookingRoom.getDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
             total = total.subtract(bookingRoom.getDiscountAmount());
         }
 
-        // Áp dụng thuế
         if (bookingRoom.getTaxRate() != null && bookingRoom.getTaxRate().compareTo(BigDecimal.ZERO) > 0) {
             BigDecimal taxAmount = total.multiply(bookingRoom.getTaxRate().divide(BigDecimal.valueOf(100)));
             total = total.add(taxAmount);

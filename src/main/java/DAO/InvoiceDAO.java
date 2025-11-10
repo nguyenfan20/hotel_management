@@ -17,6 +17,20 @@ public class InvoiceDAO {
     private static final String DELETE_SQL = "DELETE FROM Invoice WHERE invoice_id = ?";
     private static final String SEARCH_SQL = "SELECT i.*, ua.full_name as created_by_name, b.booking_id FROM Invoice i JOIN UserAccount ua ON i.created_by = ua.user_id JOIN Booking b ON i.booking_id = b.booking_id WHERE i.invoice_no LIKE ? OR i.status LIKE ? ORDER BY i.created_at DESC";
     private static final String SELECT_BY_BOOKING = "SELECT i.*, ua.full_name as created_by_name, b.booking_id FROM Invoice i JOIN UserAccount ua ON i.created_by = ua.user_id JOIN Booking b ON i.booking_id = b.booking_id WHERE i.booking_id = ? ORDER BY i.created_at DESC";
+    private static final String INVOICES_BY_BOOKINGROOM = "SELECT i.*, ua.full_name as created_by_name, b.booking_id " +
+                                                        "FROM Invoice i " +
+                                                        "JOIN UserAccount ua ON i.created_by = ua.user_id " +
+                                                        "JOIN Booking b ON i.booking_id = b.booking_id " +
+                                                        "JOIN BookingRoom br ON b.booking_id = br.booking_id " +
+                                                        "WHERE br.booking_room_id = ? " +
+                                                        "ORDER BY i.created_at DESC";
+    private static final String INVOICE_BY_BOOKINGROOM = "SELECT TOP 1 i.*, ua.full_name as created_by_name, b.booking_id " +
+                                                        "FROM Invoice i " +
+                                                        "JOIN UserAccount ua ON i.created_by = ua.user_id " +
+                                                        "JOIN Booking b ON i.booking_id = b.booking_id " +
+                                                        "JOIN BookingRoom br ON b.booking_id = br.booking_id " +
+                                                        "WHERE br.booking_room_id = ? " +
+                                                        "ORDER BY i.created_at DESC";
     private static final String SELECT_UNPAID = "SELECT i.*, ua.full_name as created_by_name, b.booking_id FROM Invoice i JOIN UserAccount ua ON i.created_by = ua.user_id JOIN Booking b ON i.booking_id = b.booking_id WHERE i.status = 'Unpaid' ORDER BY i.created_at DESC";
 
     public List<InvoiceDTO> getAllInvoices() {
@@ -75,6 +89,14 @@ public class InvoiceDAO {
 
     public InvoiceDTO getInvoiceByBookingId(int bookingId) {
         return DatabaseConnection.executeQuerySingle(SELECT_BY_BOOKING, this::mapToDTO, bookingId);
+    }
+
+    public List<InvoiceDTO> getInvoicesByBookingRoom(int bookingRoomId) {
+        return DatabaseConnection.executeQueryList(INVOICES_BY_BOOKINGROOM, this::mapToDTO, bookingRoomId);
+    }
+
+    public InvoiceDTO getInvoiceByBookingRoom(int bookingRoomId) {
+        return DatabaseConnection.executeQuerySingle(INVOICE_BY_BOOKINGROOM, this::mapToDTO, bookingRoomId);
     }
 
     private InvoiceDTO mapToDTO(ResultSet rs) throws SQLException {

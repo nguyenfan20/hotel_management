@@ -1,7 +1,10 @@
 package GUI.booking;
 
 import BUS.BookingBUS;
+import BUS.BookingRoomBUS;
+import BUS.InvoiceBUS;
 import DAO.BookingDAO;
+import DAO.BookingRoomDAO;
 import DTO.BookingDTO;
 
 import java.awt.*;
@@ -10,6 +13,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -26,13 +30,18 @@ public class BookingManagement extends javax.swing.JPanel {
     private static final Color WARNING_COLOR = new Color(241, 196, 15);
 
     private BookingBUS bookingBUS;
+    private InvoiceBUS invoiceBUS;
+    private BookingRoomBUS bookingRoomBUS;
     private javax.swing.JDialog jDialog1;
     private JScrollPane scrollPane;
     private JTextField searchField;
     private List<BookingDTO> bookingData;
+    private List<BookingDTO> currentData;
 
     public BookingManagement() {
         bookingBUS = new BookingBUS(new BookingDAO());
+        invoiceBUS = new InvoiceBUS();
+        bookingRoomBUS = new BookingRoomBUS(new BookingRoomDAO());
         bookingData = new java.util.ArrayList<>();
         initComponents();
         loadBookingData();
@@ -79,6 +88,10 @@ public class BookingManagement extends javax.swing.JPanel {
         reloadButton.addActionListener(e -> loadBookingData());
         controlPanel.add(reloadButton);
 
+        JButton checkOutAllButton = new JButton("Check-out");
+        checkOutAllButton.addActionListener(e -> checkOutAllSelected());
+        controlPanel.add(checkOutAllButton);
+
         add(controlPanel, BorderLayout.NORTH);
 
         scrollPane = new JScrollPane();
@@ -117,6 +130,7 @@ public class BookingManagement extends javax.swing.JPanel {
     private void loadBookingData() {
         try {
             bookingData = bookingBUS.getAllBookings();
+            currentData = bookingData;
             updateTableView();
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Lỗi tải dữ liệu: " + e.getMessage(),
@@ -128,6 +142,7 @@ public class BookingManagement extends javax.swing.JPanel {
     private void performSearch() {
         String query = searchField.getText().trim().toLowerCase();
         if (query.isEmpty()) {
+            currentData = bookingData;
             updateTableView();
             return;
         }
@@ -142,8 +157,10 @@ public class BookingManagement extends javax.swing.JPanel {
             if (filtered.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Không tìm thấy kết quả",
                         "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                currentData = bookingData;
                 updateTableView();
             } else {
+                currentData = filtered;
                 updateTableViewWithData(filtered);
             }
         } catch (Exception e) {
@@ -201,10 +218,31 @@ public class BookingManagement extends javax.swing.JPanel {
             } else {
                 results = bookingBUS.getBookingsByStatus(status);
             }
+            currentData = results;
             updateTableViewWithData(results);
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Lỗi lọc: " + e.getMessage(),
                     "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void checkOutAllSelected() {
+        JTable table = (JTable) scrollPane.getViewport().getView();
+        int selectedRow = table.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn đặt phòng!", "Thông báo", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        BookingDTO booking = currentData.get(selectedRow);
+        int bookingId = booking.getBookingId();
+
+        if (bookingRoomBUS.checkOutAllRooms(bookingId, LocalDateTime.now())) {
+            invoiceBUS.createInvoiceOnFullCheckout(bookingId, 1); // Assume createdBy = 1
+            loadBookingData();
+            JOptionPane.showMessageDialog(this, "Check-out tất cả phòng thành công và hóa đơn đã tạo!");
+        } else {
+            JOptionPane.showMessageDialog(this, "Check-out thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -213,11 +251,13 @@ public class BookingManagement extends javax.swing.JPanel {
         if (bookingData == null) {
             bookingData = new java.util.ArrayList<>();
         }
+        currentData = bookingData;
         updateTableViewWithData(bookingData);
     }
 
     // Cập nhật bảng với dữ liệu
     private void updateTableViewWithData(List<BookingDTO> data) {
+        currentData = data;
         if (data == null || data.isEmpty()) {
             String[] columnNames = {"Mã đặt phòng", "Mã khách", "Ngày đặt", "Trạng thái", "Nguồn đặt", "Ghi chú"};
             DefaultTableModel model = new DefaultTableModel(columnNames, 0);

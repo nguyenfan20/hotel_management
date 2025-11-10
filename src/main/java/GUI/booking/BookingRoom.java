@@ -1,6 +1,7 @@
 package GUI.booking;
 
 import BUS.BookingRoomBUS;
+import BUS.InvoiceBUS;
 import BUS.RoomBUS;
 import BUS.RoomTypeBUS;
 import DAO.BookingRoomDAO;
@@ -14,6 +15,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +34,7 @@ public class BookingRoom extends javax.swing.JFrame {
     private static final Color DANGER_COLOR = new Color(239, 68, 68);
 
     private BookingRoomBUS bookingRoomBUS;
+    private InvoiceBUS invoiceBUS;
     private JScrollPane scrollPane;
     private JTextField searchField;
     private List<BookingRoomDTO> bookingRoomData;
@@ -43,6 +46,7 @@ public class BookingRoom extends javax.swing.JFrame {
 
     public BookingRoom(int bookingId) {
         bookingRoomBUS = new BookingRoomBUS(new BookingRoomDAO());
+        invoiceBUS = new InvoiceBUS();
         this.filterByBookingId = bookingId;
         initComponents();
         loadBookingRoomData();
@@ -238,15 +242,15 @@ public class BookingRoom extends javax.swing.JFrame {
         DefaultTableModel model = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false;  // Bỏ tính năng edit table
+                return false;
             }
         };
 
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
         for (BookingRoomDTO br : data) {
             Object[] row = {
-                    "PD00" + br.getBookingRoomId(),
-                    "P00" + br.getRoomId(),
+                    br.getBookingRoomId(),
+                    br.getRoomId(),
                     sdf.format(java.sql.Timestamp.valueOf(br.getCheckInPlan())),
                     sdf.format(java.sql.Timestamp.valueOf(br.getCheckOutPlan())),
                     br.getTaxRate() != null ? br.getTaxRate() + "%" : "0%",
@@ -287,28 +291,49 @@ public class BookingRoom extends javax.swing.JFrame {
             public void mouseReleased(MouseEvent e) {
                 if (e.isPopupTrigger() && table.getSelectedRow() != -1) {
                     int rowIndex = table.getSelectedRow();
-                    BookingRoomDTO br = data.get(rowIndex);
+                    BookingRoomDTO bookingRoom = data.get(rowIndex);
 
-                    JPopupMenu popupMenu = new JPopupMenu();
+                    JPopupMenu contextMenu = new JPopupMenu();
+                    JMenuItem checkInItem = new JMenuItem("Check-in");
+                    JMenuItem checkOutItem = new JMenuItem("Check-out");
                     JMenuItem editItem = new JMenuItem("Sửa");
                     JMenuItem deleteItem = new JMenuItem("Xóa");
-                    JMenuItem guestItem = new JMenuItem("Xem khách hàng");
 
-                    editItem.addActionListener(e1 -> editBookingRoom(br));
-                    deleteItem.addActionListener(e1 -> deleteBookingRoom(br));
-                    guestItem.addActionListener(e1 -> openGuestGUI(br));
+                    checkInItem.addActionListener(e1 -> checkInRoom(bookingRoom));
+                    checkOutItem.addActionListener(e1 -> checkOutRoom(bookingRoom));
+                    editItem.addActionListener(e1 -> editBookingRoom(bookingRoom));
+                    deleteItem.addActionListener(e1 -> deleteBookingRoom(bookingRoom));
 
-                    popupMenu.add(editItem);
-                    popupMenu.add(deleteItem);
-                    popupMenu.addSeparator();
-                    popupMenu.add(guestItem);
+                    contextMenu.add(checkInItem);
+                    contextMenu.add(checkOutItem);
+                    contextMenu.add(editItem);
+                    contextMenu.add(deleteItem);
 
-                    popupMenu.show(e.getComponent(), e.getX(), e.getY());
+                    contextMenu.show(e.getComponent(), e.getX(), e.getY());
                 }
             }
         });
 
         scrollPane.setViewportView(table);
+    }
+
+    private void checkInRoom(BookingRoomDTO bookingRoom) {
+        if (bookingRoomBUS.checkIn(bookingRoom.getBookingRoomId(), LocalDateTime.now())) {
+            JOptionPane.showMessageDialog(this, "Check-in thành công!");
+            loadBookingRoomData();
+        } else {
+            JOptionPane.showMessageDialog(this, "Check-in thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void checkOutRoom(BookingRoomDTO bookingRoom) {
+        if (bookingRoomBUS.checkOut(bookingRoom.getBookingRoomId(), LocalDateTime.now())) {
+            invoiceBUS.createInvoiceOnCheckout(bookingRoom.getBookingRoomId(), 1);
+            JOptionPane.showMessageDialog(this, "Check-out thành công và hóa đơn đã tạo!");
+            loadBookingRoomData();
+        } else {
+            JOptionPane.showMessageDialog(this, "Check-out thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void editBookingRoom(BookingRoomDTO br) {

@@ -229,7 +229,7 @@ public class PaymentDetail extends JDialog {
                         invoice = invoiceBUS.getInvoiceByBookingId(payment.getBookingId());
                     }
                     if (invoice != null) {
-                        invoice.setStatus("Paid");
+                        invoice.setStatus("PAID");
                         invoiceBUS.updateInvoice(invoice);
                     }
                 }
