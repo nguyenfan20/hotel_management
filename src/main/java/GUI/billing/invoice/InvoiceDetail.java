@@ -451,23 +451,26 @@ public class InvoiceDetail extends JDialog {
     private void loadServiceInfo() {
         serviceTableModel.setRowCount(0);
         try {
-            List<ServiceOrderDTO> services = serviceOrderBUS.getServiceOrdersByBooking(invoice.getBookingId());
+            List<BookingRoomDTO> bookingRooms = bookingRoomBUS.getBookingRoomsByBooking(invoice.getBookingId());
 
             int stt = 1;
-            for (ServiceOrderDTO so : services) {
-                ServiceDTO service = serviceBUS.getById(so.getServiceId());
-                if (service != null) {
-                    double total = so.getUnitPrice() * so.getQuantity();
+            for (BookingRoomDTO br : bookingRooms) {
+                List<ServiceOrderDTO> services = serviceOrderBUS.getServiceOrdersByBooking(br.getBookingRoomId());
+                for (ServiceOrderDTO so : services) {
+                    ServiceDTO service = serviceBUS.getById(so.getServiceId());
+                    if (service != null) {
+                        double total = so.getUnitPrice() * so.getQuantity();
 
-                    Object[] row = {
-                            stt++,
-                            service.getName(),
-                            service.getUnit(),
-                            String.format("%.2f VNĐ", so.getUnitPrice()),
-                            so.getQuantity(),
-                            String.format("%.2f VNĐ", total)
-                    };
-                    serviceTableModel.addRow(row);
+                        Object[] row = {
+                                stt++,
+                                service.getName(),
+                                service.getUnit(),
+                                String.format("%.2f VNĐ", so.getUnitPrice()),
+                                so.getQuantity(),
+                                String.format("%.2f VNĐ", total)
+                        };
+                        serviceTableModel.addRow(row);
+                    }
                 }
             }
         } catch (Exception e) {

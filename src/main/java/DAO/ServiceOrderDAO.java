@@ -14,7 +14,7 @@ public class ServiceOrderDAO {
     private static final String UPDATE_SQL = "UPDATE ServiceOrder SET booking_room_id=?, service_id=?, qty=?, unit_price=?, ordered_at=?, ordered_by=?, note=? WHERE service_order_id=?";
     private static final String DELETE_SQL = "DELETE FROM ServiceOrder WHERE service_order_id=?";
     private static final String SEARCH_SERVICE = "SELECT so.* FROM ServiceOrder so JOIN service s ON so.service_id = s.service_id WHERE s.name LIKE ? ORDER BY so.ordered_at DESC";
-    private static final String SELECT_BY_BOOKING = "SELECT * FROM ServiceOrder WHERE booking_room_id = ? ORDER BY ordered_at DESC";
+    private static final String SELECT_BY_BOOKING = "SELECT * FROM ServiceOrder WHERE booking_room_id = ?";
 
     public List<ServiceOrderDTO> getAll() { return DatabaseConnection.executeQueryList(SELECT_ALL, this::mapToDTO); }
     public ServiceOrderDTO getById(int id) { return DatabaseConnection.executeQuerySingle(SELECT_BY_ID, this::mapToDTO, id); }
@@ -41,8 +41,8 @@ public class ServiceOrderDAO {
         return DatabaseConnection.executeQueryList(SEARCH_SERVICE, this::mapToDTO, "%"+kw.trim()+"%");
     }
 
-    public List<ServiceOrderDTO> getByBookingId(int bookingId) {
-        return DatabaseConnection.executeQueryList(SELECT_BY_BOOKING, this::mapToDTO, bookingId);
+    public List<ServiceOrderDTO> getByBookingId(int bookingRoomId) {
+        return DatabaseConnection.executeQueryList(SELECT_BY_BOOKING, this::mapToDTO, bookingRoomId);
     }
 
     private ServiceOrderDTO mapToDTO(java.sql.ResultSet rs) throws java.sql.SQLException {

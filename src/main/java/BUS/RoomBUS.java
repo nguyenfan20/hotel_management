@@ -128,7 +128,7 @@ public class RoomBUS {
 
         // Kiểm tra trạng thái hợp lệ
         String status = room.getStatus();
-        if (!status.equals("Available") && !status.equals("Reserved") && !status.equals("Occupied")) {
+        if (!status.equals("AVAILABLE") && !status.equals("RESERVED") && !status.equals("OCCUPIED")) {
             System.err.println("Trạng thái không hợp lệ. Chỉ chấp nhận: Available, Reserved, Occupied");
             return false;
         }
