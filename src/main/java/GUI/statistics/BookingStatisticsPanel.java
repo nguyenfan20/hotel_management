@@ -373,7 +373,7 @@ public class BookingStatisticsPanel extends JPanel {
         for (Map.Entry<String, Double> entry : bookingData.entrySet()) {
             JPanel itemPanel = new JPanel(new BorderLayout(12, 0));
             itemPanel.setBackground(CARD_BACKGROUND);
-            itemPanel.setMaximumSize(new Dimension(260, 65));
+            itemPanel.setMaximumSize(new Dimension(260, 70));
             itemPanel.setBorder(BorderFactory.createEmptyBorder(8, 0, 8, 0));
 
             // Color indicator
