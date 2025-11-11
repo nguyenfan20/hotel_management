@@ -28,7 +28,7 @@ public class CustomerDTO{
         this.id_card=id_card;
         this.nationality=nationality;
         this.dob=dob;
-        this.gender=genger;
+        this.gender=gender;
         this.note=note;
     }
     public CustomerDTO (String full_name, String phone,
