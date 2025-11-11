@@ -257,7 +257,7 @@ public class CustomGUI extends JPanel {
         dialog.setLocationRelativeTo(this);
 
         // === Content Panel ===
-        JPanel content = new JPanel(new GridLayout(9, 2, 15, 15));
+        JPanel content = new JPanel(new GridLayout(10, 2, 15, 15));
         content.setBackground(PANEL_BG);
         content.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 30));
 
@@ -269,13 +269,17 @@ public class CustomGUI extends JPanel {
         phoneLabel.setFont(new Font("Arial", Font.BOLD, 13));
         JTextField phoneField = new JTextField();
 
+        JLabel emailLabel = new JLabel("Email:");
+        emailLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JTextField emailField = new JTextField();
+
         JLabel idCardLabel = new JLabel("CMND/CCCD:");
         idCardLabel.setFont(new Font("Arial", Font.BOLD, 13));
         JTextField idCardField = new JTextField();
 
-        JLabel emailLabel = new JLabel("Email:");
-        emailLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField emailField = new JTextField();
+        JLabel addressLabel = new JLabel("Địa chỉ:");
+        addressLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JTextField addressField = new JTextField();
 
         JLabel nationalityLabel = new JLabel("Quốc tịch:");
         nationalityLabel.setFont(new Font("Arial", Font.BOLD, 13));
@@ -310,8 +314,9 @@ public class CustomGUI extends JPanel {
 
         content.add(nameLabel); content.add(nameField);
         content.add(phoneLabel); content.add(phoneField);
-        content.add(idCardLabel); content.add(idCardField);
         content.add(emailLabel); content.add(emailField);
+        content.add(idCardLabel); content.add(idCardField);
+        content.add(addressLabel); content.add(addressField);
         content.add(nationalityLabel); content.add(nationalityCombo);
         content.add(dobLabel); content.add(dobChooser);
         content.add(genderLabel); content.add(genderCombo);
@@ -331,8 +336,9 @@ public class CustomGUI extends JPanel {
                 CustomerDTO customer = new CustomerDTO();
                 customer.setFull_name(nameField.getText().trim());
                 customer.setPhone(phoneField.getText().trim());
-                customer.setId_card(idCardField.getText().trim());
                 customer.setEmail(emailField.getText().trim().isEmpty() ? null : emailField.getText().trim());
+                customer.setId_card(idCardField.getText().trim());
+                customer.setAddress(addressField.getText().trim().isEmpty() ? null : addressField.getText().trim());
                 customer.setNationality((String) nationalityCombo.getSelectedItem());
                 String selectedVn = (String) genderCombo.getSelectedItem();
                 customer.setGender(toEnglishGender(selectedVn));
@@ -375,7 +381,7 @@ public class CustomGUI extends JPanel {
         dialog.setSize(450, 500);
         dialog.setLocationRelativeTo(this);
 
-        JPanel panel = new JPanel(new GridLayout(8, 2, 10, 12));
+        JPanel panel = new JPanel(new GridLayout(9, 2, 10, 12));
         panel.setBackground(PANEL_BG);
         panel.setBorder(BorderFactory.createEmptyBorder(20, 25, 20, 25));
 
@@ -384,6 +390,7 @@ public class CustomGUI extends JPanel {
         addDetailRow(panel, "SĐT:", customer.getPhone() != null ? customer.getPhone() : "Chưa có");
         addDetailRow(panel, "Email:", customer.getEmail() != null ? customer.getEmail() : "Chưa có");
         addDetailRow(panel, "CMND/CCCD:", customer.getId_card());
+        addDetailRow(panel, "Địa chỉ:", customer.getAddress());
         addDetailRow(panel, "Quốc tịch:", customer.getNationality());
         addDetailRow(panel, "Ngày sinh:", customer.getDob() != null ? dateFormat.format(customer.getDob()) : "Chưa có");
         addDetailRow(panel, "Giới tính:", toVietnameseGender(customer.getGender()));
@@ -437,13 +444,17 @@ public class CustomGUI extends JPanel {
         phoneLabel.setFont(new Font("Arial", Font.BOLD, 13));
         JTextField phoneField = new JTextField(customer.getPhone());
 
+        JLabel emailLabel = new JLabel("Email:");
+        emailLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JTextField emailField = new JTextField(customer.getEmail() != null ? customer.getEmail() : "");
+
         JLabel idCardLabel = new JLabel("CMND/CCCD:");
         idCardLabel.setFont(new Font("Arial", Font.BOLD, 13));
         JTextField idCardField = new JTextField(customer.getId_card());
 
-        JLabel emailLabel = new JLabel("Email:");
-        emailLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField emailField = new JTextField(customer.getEmail() != null ? customer.getEmail() : "");
+        JLabel addressLabel = new JLabel("Địa chỉ:");
+        addressLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JTextField addressField = new JTextField(customer.getAddress() != null ? customer.getAddress() : "");
 
         JLabel nationalityLabel = new JLabel("Quốc tịch:");
         nationalityLabel.setFont(new Font("Arial", Font.BOLD, 13));
@@ -478,8 +489,9 @@ public class CustomGUI extends JPanel {
 
         content.add(nameLabel); content.add(nameField);
         content.add(phoneLabel); content.add(phoneField);
-        content.add(idCardLabel); content.add(idCardField);
         content.add(emailLabel); content.add(emailField);
+        content.add(idCardLabel); content.add(idCardField);
+        content.add(addressLabel); content.add(addressField);
         content.add(nationalityLabel); content.add(nationalityCombo);
         content.add(dobLabel); content.add(dobChooser);
         content.add(genderLabel); content.add(genderCombo);

@@ -26,12 +26,16 @@ public class Booking extends javax.swing.JPanel {
     private static final Color PANEL_BG = Color.WHITE;
     private static final Color BORDER_COLOR = new Color(224, 224, 224);
     private static final Color TEXT_COLOR = new Color(33, 33, 33);
+    private static final Color DANGER_COLOR = new Color(242, 83, 83);
 
     private BookingBUS bookingBUS;
     private BookingRoomBUS bookingRoomBUS;
     private CustomerBUS customerBUS;
     private RoomBUS roomBUS;
     private RoomTypeBUS roomTypeBUS;
+
+    private JPanel foundCustomerPanel;
+    private JPanel contentPanel;
 
     private Map<Integer, String> roomTypes = new HashMap<>();
     private List<Integer> selectedRoomIds = new ArrayList<>();
@@ -44,6 +48,7 @@ public class Booking extends javax.swing.JPanel {
     private JTextField phoneField;
     private JTextField nameField;
     private JTextField emailField;
+    private JTextField addressField;
     private JTextField idCardField;
     private JTextField nationalityField;
     private JTextField genderField;
@@ -147,13 +152,15 @@ public class Booking extends javax.swing.JPanel {
         titleLabel.setFont(new Font("Arial", Font.BOLD, 14));
         titleLabel.setForeground(PRIMARY_COLOR);
 
-        JPanel contentPanel = new JPanel(new BorderLayout());
+        contentPanel = new JPanel(new CardLayout());
         contentPanel.setBackground(PANEL_BG);
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
 
-        // Search panel
-        JPanel searchPanel = new JPanel(new GridLayout(1, 2, 15, 15));
+        // === PANEL TÌM KIẾM ===
+        JPanel searchPanel = new JPanel(new BorderLayout(10, 10));
         searchPanel.setBackground(PANEL_BG);
+
+        JPanel phoneInputPanel = new JPanel(new BorderLayout(5, 0));
+        phoneInputPanel.setBackground(PANEL_BG);
 
         JLabel phoneLabel = new JLabel("Số điện thoại:");
         phoneLabel.setFont(new Font("Arial", Font.BOLD, 12));
@@ -165,88 +172,215 @@ public class Booking extends javax.swing.JPanel {
                 BorderFactory.createEmptyBorder(5, 10, 5, 10)
         ));
 
-        JButton searchCustomerButton = new JButton("Tìm kiếm");
-        searchCustomerButton.setPreferredSize(new Dimension(100, 35));
-        searchCustomerButton.setBackground(PRIMARY_COLOR);
-        searchCustomerButton.setForeground(Color.WHITE);
-        searchCustomerButton.setFocusPainted(false);
-        searchCustomerButton.setBorderPainted(false);
-        searchCustomerButton.setFont(new Font("Arial", Font.BOLD, 12));
-        searchCustomerButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        JButton searchButton = new JButton("Tìm kiếm");
+        searchButton.setPreferredSize(new Dimension(100, 35));
+        searchButton.setBackground(PRIMARY_COLOR);
+        searchButton.setForeground(Color.WHITE);
+        searchButton.setFocusPainted(false);
+        searchButton.setBorderPainted(false);
+        searchButton.setFont(new Font("Arial", Font.BOLD, 12));
+        searchButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        JPanel phonePanel = new JPanel(new BorderLayout(5, 0));
-        phonePanel.setBackground(PANEL_BG);
-        phonePanel.add(phoneField, BorderLayout.CENTER);
-        phonePanel.add(searchCustomerButton, BorderLayout.EAST);
+        phoneInputPanel.add(phoneLabel, BorderLayout.WEST);
+        phoneInputPanel.add(phoneField, BorderLayout.CENTER);
+        phoneInputPanel.add(searchButton, BorderLayout.EAST);
 
-        searchPanel.add(phoneLabel);
-        searchPanel.add(phonePanel);
+        searchPanel.add(phoneInputPanel, BorderLayout.NORTH);
 
-        contentPanel.add(searchPanel, BorderLayout.NORTH);
-
-        // Customer info panel (initially hidden)
-        JPanel customerDetailsPanel = new JPanel(new GridLayout(6, 2, 15, 15));
-        customerDetailsPanel.setBackground(PANEL_BG);
-        customerDetailsPanel.setBorder(BorderFactory.createEmptyBorder(15, 0, 0, 0));
-        customerDetailsPanel.setVisible(false);
+        // === PANEL HIỂN THỊ KHÁCH HÀNG TÌM THẤY ===
+        foundCustomerPanel = new JPanel(new GridLayout(7, 2, 15, 15)); // +1 dòng cho địa chỉ
+        foundCustomerPanel.setBackground(PANEL_BG);
+        foundCustomerPanel.setBorder(BorderFactory.createEmptyBorder(15, 0, 0, 0));
+        foundCustomerPanel.setVisible(false);
 
         nameField = createReadOnlyTextField("");
         emailField = createReadOnlyTextField("");
         idCardField = createReadOnlyTextField("");
+        addressField = createReadOnlyTextField("");
         nationalityField = createReadOnlyTextField("");
         genderField = createReadOnlyTextField("");
-        JTextField noteField = createReadOnlyTextField("");
+        noteField = createReadOnlyTextField("");
 
-        customerDetailsPanel.add(new JLabel("Họ tên:")).setFont(new Font("Arial", Font.BOLD, 12));
-        customerDetailsPanel.add(nameField);
-        customerDetailsPanel.add(new JLabel("Email:")).setFont(new Font("Arial", Font.BOLD, 12));
-        customerDetailsPanel.add(emailField);
-        customerDetailsPanel.add(new JLabel("CMND/CCCD:")).setFont(new Font("Arial", Font.BOLD, 12));
-        customerDetailsPanel.add(idCardField);
-        customerDetailsPanel.add(new JLabel("Quốc tịch:")).setFont(new Font("Arial", Font.BOLD, 12));
-        customerDetailsPanel.add(nationalityField);
-        customerDetailsPanel.add(new JLabel("Giới tính:")).setFont(new Font("Arial", Font.BOLD, 12));
-        customerDetailsPanel.add(genderField);
-        customerDetailsPanel.add(new JLabel("Ghi chú:")).setFont(new Font("Arial", Font.BOLD, 12));
-        customerDetailsPanel.add(noteField);
+        foundCustomerPanel.add(new JLabel("Họ tên:")).setFont(new Font("Arial", Font.BOLD, 12));
+        foundCustomerPanel.add(nameField);
+        foundCustomerPanel.add(new JLabel("Email:")).setFont(new Font("Arial", Font.BOLD, 12));
+        foundCustomerPanel.add(emailField);
+        foundCustomerPanel.add(new JLabel("CMND/CCCD:")).setFont(new Font("Arial", Font.BOLD, 12));
+        foundCustomerPanel.add(idCardField);
+        foundCustomerPanel.add(new JLabel("Địa chỉ:")).setFont(new Font("Arial", Font.BOLD, 12));
+        foundCustomerPanel.add(addressField);
+        foundCustomerPanel.add(new JLabel("Quốc tịch:")).setFont(new Font("Arial", Font.BOLD, 12));
+        foundCustomerPanel.add(nationalityField);
+        foundCustomerPanel.add(new JLabel("Giới tính:")).setFont(new Font("Arial", Font.BOLD, 12));
+        foundCustomerPanel.add(genderField);
+        foundCustomerPanel.add(new JLabel("Ghi chú:")).setFont(new Font("Arial", Font.BOLD, 12));
+        foundCustomerPanel.add(noteField);
 
-        contentPanel.add(customerDetailsPanel, BorderLayout.CENTER);
+        searchPanel.add(foundCustomerPanel, BorderLayout.CENTER);
 
-        searchCustomerButton.addActionListener(e -> {
+        // === PANEL THÊM KHÁCH HÀNG MỚI ===
+        JPanel addCustomerPanel = new JPanel(new GridLayout(9, 2, 15, 15)); // +1 dòng
+        addCustomerPanel.setBackground(PANEL_BG);
+        addCustomerPanel.setBorder(BorderFactory.createEmptyBorder(15, 0, 0, 0));
+        addCustomerPanel.setVisible(false);
+
+        JTextField newNameField = new JTextField();
+        JTextField newPhoneField = new JTextField();
+        JTextField newEmailField = new JTextField();
+        JTextField newIdCardField = new JTextField();
+        JTextField newAddressField = new JTextField(); // Thêm địa chỉ
+        JTextField newNationalityField = new JTextField();
+        JComboBox<String> newGenderCombo = new JComboBox<>(new String[]{"Male", "Female", "Other"});
+        JTextField newNoteField = new JTextField();
+
+        addCustomerPanel.add(new JLabel("Họ tên *:")); addCustomerPanel.add(newNameField);
+        addCustomerPanel.add(new JLabel("SĐT *:")); addCustomerPanel.add(newPhoneField);
+        addCustomerPanel.add(new JLabel("Email:")); addCustomerPanel.add(newEmailField);
+        addCustomerPanel.add(new JLabel("CMND/CCCD *:")); addCustomerPanel.add(newIdCardField);
+        addCustomerPanel.add(new JLabel("Địa chỉ:")); addCustomerPanel.add(newAddressField);
+        addCustomerPanel.add(new JLabel("Quốc tịch *:")); addCustomerPanel.add(newNationalityField);
+        addCustomerPanel.add(new JLabel("Giới tính *:")); addCustomerPanel.add(newGenderCombo);
+        addCustomerPanel.add(new JLabel("Ghi chú:")); addCustomerPanel.add(newNoteField);
+
+        JPanel addCustomerButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        addCustomerButtonPanel.setBackground(PANEL_BG);
+
+        JButton saveCustomerButton = new JButton("Lưu khách hàng");
+        saveCustomerButton.setBackground(PRIMARY_COLOR);
+        saveCustomerButton.setForeground(Color.WHITE);
+        saveCustomerButton.setPreferredSize(new Dimension(140, 35));
+        saveCustomerButton.setFont(new Font("Arial", Font.BOLD, 12));
+        saveCustomerButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        JButton cancelAddButton = new JButton("Hủy");
+        cancelAddButton.setPreferredSize(new Dimension(80, 35));
+        cancelAddButton.setBackground(DANGER_COLOR);
+        cancelAddButton.setForeground(Color.WHITE);
+
+        addCustomerButtonPanel.add(saveCustomerButton);
+        addCustomerButtonPanel.add(cancelAddButton);
+
+        JPanel addCustomerWrapper = new JPanel(new BorderLayout());
+        addCustomerWrapper.setBackground(PANEL_BG);
+        addCustomerWrapper.add(addCustomerPanel, BorderLayout.CENTER);
+        addCustomerWrapper.add(addCustomerButtonPanel, BorderLayout.SOUTH);
+
+        // === THÊM VÀO CONTENT PANEL ===
+        contentPanel.add(searchPanel, "SEARCH");
+        contentPanel.add(addCustomerWrapper, "ADD_NEW");
+
+        // === XỬ LÝ SỰ KIỆN ===
+        CardLayout cardLayout = (CardLayout) contentPanel.getLayout();
+
+        searchButton.addActionListener(e -> {
             String phone = phoneField.getText().trim();
             if (phone.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Vui lòng nhập số điện thoại!");
+                JOptionPane.showMessageDialog(this, "Vui lòng nhập số điện thoại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
             try {
-
-                CustomerDTO foundCustomer = customerBUS.getCustomerByPhone(phone);
-
-                if (foundCustomer != null) {
-                    currentCustomer = foundCustomer;
-                    nameField.setText(foundCustomer.getFull_name());
-                    emailField.setText(foundCustomer.getEmail() != null ? foundCustomer.getEmail() : "");
-                    idCardField.setText(foundCustomer.getId_card());
-                    nationalityField.setText(foundCustomer.getNationality());
-                    genderField.setText(foundCustomer.getGender());
-                    customerDetailsPanel.setVisible(true);
-                    JOptionPane.showMessageDialog(this, "Tìm thấy khách hàng: " + foundCustomer.getFull_name());
+                CustomerDTO found = customerBUS.getCustomerByPhone(phone);
+                if (found != null) {
+                    currentCustomer = found;
+                    nameField.setText(found.getFull_name());
+                    emailField.setText(found.getEmail() != null ? found.getEmail() : "");
+                    idCardField.setText(found.getId_card());
+                    addressField.setText(found.getAddress() != null ? found.getAddress() : ""); // Hiển thị địa chỉ
+                    nationalityField.setText(found.getNationality());
+                    genderField.setText(found.getGender());
+                    noteField.setText(found.getNote());
+                    foundCustomerPanel.setVisible(true);
+                    cardLayout.show(contentPanel, "SEARCH");
+                    JOptionPane.showMessageDialog(this, "Tìm thấy khách hàng: " + found.getFull_name());
                 } else {
-                    currentCustomer = null;
-                    nameField.setText("");
-                    emailField.setText("");
-                    idCardField.setText("");
-                    nationalityField.setText("");
-                    genderField.setText("");
-                    customerDetailsPanel.setVisible(false);
-                    JOptionPane.showMessageDialog(this, "Không tìm thấy khách hàng. Vui lòng nhập thông tin khách hàng mới bên dưới.");
+                    int choice = JOptionPane.showConfirmDialog(
+                            this,
+                            "Không tìm thấy khách hàng.\nBạn có muốn thêm khách hàng mới với số điện thoại này?",
+                            "Thêm khách hàng mới",
+                            JOptionPane.YES_NO_OPTION
+                    );
+                    if (choice == JOptionPane.YES_OPTION) {
+                        newPhoneField.setText(phone);
+                        cardLayout.show(contentPanel, "ADD_NEW");
+                        addCustomerPanel.setVisible(true);
+                    }
                 }
-                customerInfoPanel.revalidate();
-                customerInfoPanel.repaint();
+                section.revalidate();
+                section.repaint();
             } catch (Exception ex) {
-                ex.printStackTrace();
-                JOptionPane.showMessageDialog(this, "Lỗi: " + ex.getMessage());
+                JOptionPane.showMessageDialog(this, "Lỗi tìm kiếm: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        cancelAddButton.addActionListener(e -> {
+            cardLayout.show(contentPanel, "SEARCH");
+            addCustomerPanel.setVisible(false);
+            newNameField.setText("");
+            newPhoneField.setText("");
+            newEmailField.setText("");
+            newIdCardField.setText("");
+            newAddressField.setText("");
+            newNationalityField.setText("");
+            newGenderCombo.setSelectedIndex(0);
+            newNoteField.setText("");
+        });
+
+        saveCustomerButton.addActionListener(e -> {
+            try {
+                String name = newNameField.getText().trim();
+                String phone = newPhoneField.getText().trim();
+                String email = newEmailField.getText().trim();
+                String idCard = newIdCardField.getText().trim();
+                String address = newAddressField.getText().trim(); // Lấy địa chỉ
+                String nationality = newNationalityField.getText().trim();
+                String gender = (String) newGenderCombo.getSelectedItem();
+                String note = newNoteField.getText().trim();
+
+                if (name.isEmpty() || phone.isEmpty() || idCard.isEmpty() || nationality.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Vui lòng điền đầy đủ các trường bắt buộc (*)", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                CustomerDTO newCustomer = new CustomerDTO();
+                newCustomer.setFull_name(name);
+                newCustomer.setPhone(phone);
+                newCustomer.setEmail(email.isEmpty() ? null : email);
+                newCustomer.setId_card(idCard);
+                newCustomer.setAddress(address.isEmpty() ? null : address);
+                newCustomer.setNationality(nationality);
+                newCustomer.setGender(gender);
+                newCustomer.setNote(note.isEmpty() ? null : note);
+
+                if (customerBUS.addCustomer(newCustomer)) {
+                    CustomerDTO added = customerBUS.getCustomerByPhone(phone);
+                    if (added != null) {
+                        currentCustomer = added;
+                        nameField.setText(added.getFull_name());
+                        emailField.setText(added.getEmail() != null ? added.getEmail() : "");
+                        idCardField.setText(added.getId_card());
+                        addressField.setText(added.getAddress() != null ? added.getAddress() : "");
+                        nationalityField.setText(added.getNationality());
+                        genderField.setText(added.getGender());
+                        noteField.setText(added.getNote());
+                        foundCustomerPanel.setVisible(true);
+                        cardLayout.show(contentPanel, "SEARCH");
+                        JOptionPane.showMessageDialog(this, "Thêm khách hàng thành công!");
+                        // Xóa form
+                        newNameField.setText("");
+                        newPhoneField.setText("");
+                        newEmailField.setText("");
+                        newIdCardField.setText("");
+                        newAddressField.setText("");
+                        newNationalityField.setText("");
+                        newGenderCombo.setSelectedIndex(0);
+                        newNoteField.setText("");
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(this, "Thêm khách hàng thất bại! Vui lòng kiểm tra lại thông tin.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         });
 
@@ -516,12 +650,30 @@ public class Booking extends javax.swing.JPanel {
 
     private void resetForm() {
         currentCustomer = null;
+
+        // --- RESET PHẦN THÔNG TIN KHÁCH HÀNG ---
         phoneField.setText("");
         nameField.setText("");
         emailField.setText("");
         idCardField.setText("");
+        addressField.setText("");
         nationalityField.setText("");
         genderField.setText("");
+
+        if (contentPanel != null) {
+            CardLayout cardLayout = (CardLayout) contentPanel.getLayout();
+            cardLayout.show(contentPanel, "SEARCH"); // Chuyển về view Tìm kiếm
+
+            if (foundCustomerPanel != null) {
+                // Ẩn panel hiển thị chi tiết khách hàng đã tìm thấy
+                foundCustomerPanel.setVisible(false);
+                foundCustomerPanel.getParent().revalidate();
+                foundCustomerPanel.getParent().repaint();
+            }
+        }
+        // ------------------------------------------
+
+        // --- RESET CÁC PHẦN KHÁC ---
         dateCheckinChooser.setDate(new Date());
         dateCheckoutChooser.setDate(new Date(System.currentTimeMillis() + 24 * 60 * 60 * 1000));
         guestAdultsSpinner.setValue(1);

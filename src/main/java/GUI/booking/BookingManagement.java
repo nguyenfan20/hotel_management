@@ -237,7 +237,9 @@ public class BookingManagement extends javax.swing.JPanel {
         BookingDTO booking = currentData.get(selectedRow);
         int bookingId = booking.getBookingId();
 
-        if (bookingRoomBUS.checkOutAllRooms(bookingId, LocalDateTime.now())) {
+        if (bookingRoomBUS.areAllRoomsCheckedOut(bookingId)) {
+            JOptionPane.showMessageDialog(this, "Đơn đặt phòng này đã được check-out hết!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+        } else if (bookingRoomBUS.checkOutAllRooms(bookingId, LocalDateTime.now())) {
             invoiceBUS.createInvoiceOnFullCheckout(bookingId, 1); // Assume createdBy = 1
             loadBookingData();
             JOptionPane.showMessageDialog(this, "Check-out tất cả phòng thành công và hóa đơn đã tạo!");
@@ -371,13 +373,13 @@ public class BookingManagement extends javax.swing.JPanel {
         contentPanel.add(codeLabel);
         contentPanel.add(codeField);
 
-//        JLabel statusLabel = new JLabel("Trạng thái:");
-//        statusLabel.setFont(new Font("Arial", Font.BOLD, 13));
-//        JComboBox<String> statusCombo = new JComboBox<>(new String[]{"BOOKED", "CHECKED_IN", "CANCELED"});
-//        statusCombo.setSelectedItem(booking.getStatus());
-//        statusCombo.setFont(new Font("Arial", Font.PLAIN, 13));
-//        contentPanel.add(statusLabel);
-//        contentPanel.add(statusCombo);
+        JLabel statusLabel = new JLabel("Trạng thái:");
+        statusLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        JComboBox<String> statusCombo = new JComboBox<>(new String[]{"PENDING", "CANCELED"});
+        statusCombo.setSelectedItem(booking.getStatus());
+        statusCombo.setFont(new Font("Arial", Font.PLAIN, 13));
+        contentPanel.add(statusLabel);
+        contentPanel.add(statusCombo);
 
         JLabel noteLabel = new JLabel("Ghi chú:");
         noteLabel.setFont(new Font("Arial", Font.BOLD, 13));
@@ -398,7 +400,7 @@ public class BookingManagement extends javax.swing.JPanel {
         saveButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
         saveButton.addActionListener(e -> {
             try {
-//                booking.setStatus((String) statusCombo.getSelectedItem());
+                booking.setStatus((String) statusCombo.getSelectedItem());
                 booking.setNote(noteField.getText());
                 if (bookingBUS.updateBooking(booking)) {
                     JOptionPane.showMessageDialog(editDialog, "Cập nhật thành công!");

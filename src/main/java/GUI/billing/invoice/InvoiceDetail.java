@@ -23,6 +23,25 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
 
+import com.itextpdf.kernel.colors.DeviceRgb;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.kernel.font.PdfFont;
+import com.itextpdf.kernel.font.PdfFontFactory;
+import com.itextpdf.kernel.colors.ColorConstants;
+import com.itextpdf.layout.Document;
+import com.itextpdf.layout.element.Paragraph;
+import com.itextpdf.layout.element.Table;
+import com.itextpdf.layout.element.Cell;
+import com.itextpdf.layout.properties.TextAlignment;
+import com.itextpdf.layout.properties.UnitValue;
+import com.itextpdf.layout.borders.Border;
+import com.itextpdf.layout.borders.SolidBorder;
+import com.itextpdf.kernel.geom.PageSize;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+
 public class InvoiceDetail extends JDialog {
     private InvoiceDTO invoice;
     private InvoiceBUS invoiceBUS;
@@ -61,6 +80,13 @@ public class InvoiceDetail extends JDialog {
     // Service info fields
     private JTable serviceTable;
     private DefaultTableModel serviceTableModel;
+
+    private static final com.itextpdf.kernel.colors.Color PRIMARY_COLOR_ITEXT =
+            DeviceRgb.WHITE;
+    private static final com.itextpdf.kernel.colors.Color DANGER_COLOR_ITEXT =
+            DeviceRgb.WHITE;
+    private static final com.itextpdf.kernel.colors.Color LIGHT_GRAY_ITEXT =
+            DeviceRgb.WHITE;
 
     private static final Color PRIMARY_COLOR = new Color(41, 98, 255);
     private static final Color SUCCESS_COLOR = new Color(46, 204, 113);
@@ -497,4 +523,199 @@ public class InvoiceDetail extends JDialog {
             JOptionPane.showMessageDialog(this, "Lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
+
+//    private void createPdf(String dest) throws IOException {
+//        // 1. Khởi tạo PDF và Document
+//        PdfWriter writer = new PdfWriter(dest);
+//        PdfDocument pdf = new PdfDocument(writer);
+//        // Sử dụng PageSize.A4 và đặt lề
+//        Document document = new Document(pdf, PageSize.A4);
+//        document.setMargins(40, 40, 40, 40);
+//
+//        // 2. Load Font cho Tiếng Việt (Quan trọng!)
+//        // Cần đảm bảo file font Arial Unicode MS (hoặc Times New Roman) có sẵn trên hệ thống
+//        // Hoặc sử dụng font bạn đã tải về và đặt trong thư mục resources
+//        String FONT_PATH = "c:\\windows\\fonts\\arial.ttf"; // Sử dụng Arial phổ biến
+//        PdfFont vietnameseFont;
+//        try {
+//            vietnameseFont = PdfFontFactory.createFont(FONT_PATH, "Identity-H", PdfFontFactory.EmbeddingStrategy.PREFER_EMBEDDED);
+//        } catch (IOException e) {
+//            System.err.println("Không tìm thấy font Tiếng Việt. Sử dụng font mặc định.");
+//            vietnameseFont = PdfFontFactory.createFont();
+//        }
+//
+//        // 3. Định nghĩa Font Styles (Sử dụng phương thức setFont/setFontSize)
+//        float titleSize = 18f;
+//        float headerSize = 12f;
+//        float normalSize = 11f;
+//        float summarySize = 14f;
+//
+//        // Lấy thông tin phụ trợ (Giả định BookingBUS/CustomerBUS đã được khởi tạo)
+//        BookingDTO booking = bookingBUS.getBookingById(invoice.getBookingId());
+//        CustomerDTO customer = (booking != null) ? customerBUS.getCustomerById(booking.getCustomerId()) : null;
+//
+//        // --- 1. TIÊU ĐỀ HÓA ĐƠN ---
+//        Paragraph title = new Paragraph("HÓA ĐƠN THANH TOÁN")
+//                .setFont(vietnameseFont)
+//                .setFontSize(titleSize)
+//                .setBold()
+//                .setFontColor(PRIMARY_COLOR_ITEXT)
+//                .setTextAlignment(TextAlignment.CENTER)
+//                .setMarginBottom(25);
+//        document.add(title);
+//
+//        // --- 2. THÔNG TIN HÓA ĐƠN & KHÁCH HÀNG ---
+//
+//        // **SỬA LỖI:** Dùng mảng float trong hàm tạo Table
+//        Table infoTable = new Table(new float[]{1.5f, 2.5f, 1.5f, 2.5f})
+//                .setWidth(UnitValue.createPercentValue(100))
+//                .setMarginBottom(15)
+//                .setFont(vietnameseFont)
+//                .setFontSize(normalSize);
+//
+//        // Header Khách hàng
+//        Cell customerHeader = new Cell(1, 4)
+//                .add(new Paragraph("THÔNG TIN KHÁCH HÀNG").setBold().setFontSize(13f).setFontColor(PRIMARY_COLOR_ITEXT))
+//                .setBackgroundColor(LIGHT_GRAY_ITEXT)
+//                .setBorder(Border.NO_BORDER)
+//                .setPadding(6);
+//        infoTable.addCell(customerHeader);
+//
+//        // Dữ liệu Khách hàng
+//        addCell(infoTable, "Tên khách hàng:", headerSize, true, false);
+//        addCell(infoTable, customer != null ? customer.getFull_name() : "N/A", normalSize, false, false);
+//        addCell(infoTable, "SĐT:", headerSize, true, false);
+//        addCell(infoTable, customer != null ? customer.getPhone() : "N/A", normalSize, false, false);
+//
+//        addCell(infoTable, "CMND/CCCD:", headerSize, true, false);
+//        addCell(infoTable, customer != null ? customer.getId_card() : "N/A", normalSize, false, false);
+//        addCell(infoTable, "Mã Booking:", headerSize, true, false);
+//        addCell(infoTable, booking != null ? booking.getCode() : "N/A", normalSize, false, false);
+//
+//        // Header Hóa đơn
+//        Cell invoiceHeader = new Cell(1, 4)
+//                .add(new Paragraph("CHI TIẾT HÓA ĐƠN").setBold().setFontSize(13f).setFontColor(PRIMARY_COLOR_ITEXT))
+//                .setBackgroundColor(LIGHT_GRAY_ITEXT)
+//                .setBorder(Border.NO_BORDER)
+//                .setPadding(6);
+//        infoTable.addCell(invoiceHeader);
+//
+//        // Dữ liệu Hóa đơn
+//        addCell(infoTable, "Số HĐ:", headerSize, true, false);
+//        addCell(infoTable, invoice.getInvoiceNo(), normalSize, false, false);
+//        addCell(infoTable, "Ngày tạo:", headerSize, true, false);
+//        addCell(infoTable, invoice.getCreatedAt().toString(), normalSize, false, false);
+//
+//        addCell(infoTable, "Trạng thái:", headerSize, true, false);
+//        addCell(infoTable, invoice.getStatus(), normalSize, false, false);
+//        addCell(infoTable, "", normalSize, false, false);
+//        addCell(infoTable, "", normalSize, false, false);
+//
+//        document.add(infoTable);
+//
+//        // --- 3. BẢNG CHI TIẾT PHÒNG ---
+//        document.add(new Paragraph("CHI TIẾT PHÒNG ĐẶT").setFont(vietnameseFont).setBold().setFontSize(13f).setFontColor(PRIMARY_COLOR_ITEXT).setMarginBottom(10));
+//
+//        Table roomTablePdf = new Table(new float[]{0.5f, 1.5f, 1.5f, 1.5f, 1.5f, 2.0f})
+//                .setWidth(UnitValue.createPercentValue(100))
+//                .setFont(vietnameseFont)
+//                .setMarginBottom(15);
+//
+//        // Header bảng Phòng
+//        addCell(roomTablePdf, "STT", headerSize, true, true);
+//        addCell(roomTablePdf, "Số phòng", headerSize, true, true);
+//        addCell(roomTablePdf, "Ngày nhận", headerSize, true, true);
+//        addCell(roomTablePdf, "Ngày trả", headerSize, true, true);
+//        addCell(roomTablePdf, "Giá/đêm", headerSize, true, true);
+//        addCell(roomTablePdf, "Tổng tiền", headerSize, true, true);
+//
+//        // Dữ liệu từ roomTableModel
+//        for (int i = 0; i < roomTableModel.getRowCount(); i++) {
+//            addCell(roomTablePdf, roomTableModel.getValueAt(i, 0).toString(), normalSize, false, true);
+//            addCell(roomTablePdf, roomTableModel.getValueAt(i, 1).toString(), normalSize, false, true);
+//            addCell(roomTablePdf, roomTableModel.getValueAt(i, 2).toString(), normalSize, false, true);
+//            addCell(roomTablePdf, roomTableModel.getValueAt(i, 3).toString(), normalSize, false, true);
+//            addCell(roomTablePdf, roomTableModel.getValueAt(i, 4).toString(), normalSize, false, true, TextAlignment.RIGHT);
+//            addCell(roomTablePdf, roomTableModel.getValueAt(i, 5).toString(), normalSize, false, true, TextAlignment.RIGHT);
+//        }
+//        document.add(roomTablePdf);
+//
+//        // --- 5. TỔNG KẾT ---
+//        Table summaryTable = new Table(new float[]{1.5f, 2.0f})
+//                .setWidth(UnitValue.createPercentValue(40))
+//                .setHorizontalAlignment(com.itextpdf.layout.properties.HorizontalAlignment.RIGHT)
+//                .setMarginTop(20)
+//                .setFont(vietnameseFont);
+//
+//        addSummaryRow(summaryTable, "Tổng phụ:", String.format("%.2f VNĐ", invoice.getSubtotal()), normalSize, false);
+//        addSummaryRow(summaryTable, "Chiết khấu:", String.format("%.2f VNĐ", invoice.getDiscountTotal()), normalSize, false);
+//        addSummaryRow(summaryTable, "Thuế:", String.format("%.2f VNĐ", invoice.getTaxTotal()), normalSize, false);
+//
+//        // Dòng Tổng thanh toán
+//        Cell totalLabel = new Cell()
+//                .add(new Paragraph("TỔNG THANH TOÁN:")
+//                        .setBold()
+//                        .setFontSize(summarySize)
+//                        .setFontColor(DANGER_COLOR_ITEXT))
+//                .setBorder(Border.NO_BORDER)
+//                .setPaddingTop(8);
+//        summaryTable.addCell(totalLabel);
+//
+//        Cell totalValue = new Cell()
+//                .add(new Paragraph(String.format("%.2f VNĐ", invoice.getGrandTotal()))
+//                        .setBold()
+//                        .setFontSize(summarySize)
+//                        .setFontColor(DANGER_COLOR_ITEXT))
+//                .setBorder(Border.NO_BORDER)
+//                .setPaddingTop(8)
+//                .setTextAlignment(TextAlignment.RIGHT);
+//        summaryTable.addCell(totalValue);
+//
+//        document.add(summaryTable);
+//
+//        // Ký tên
+//        document.add(new Paragraph("\n\nChữ ký Khách hàng").setFont(vietnameseFont).setFontSize(normalSize).setTextAlignment(TextAlignment.RIGHT));
+//        document.add(new Paragraph("____________________").setFont(vietnameseFont).setFontSize(normalSize).setTextAlignment(TextAlignment.RIGHT));
+//
+//        document.close();
+//    }
+//
+//    // Hàm hỗ trợ tạo Cell cho các bảng thông thường
+//    private void addCell(Table table, String text, float fontSize, boolean isBold, boolean showBorder) {
+//        addCell(table, text, fontSize, isBold, showBorder, TextAlignment.LEFT);
+//    }
+//
+//    private void addCell(Table table, String text, float fontSize, boolean isBold, boolean showBorder, TextAlignment alignment) {
+//        Paragraph p = new Paragraph(text)
+//                .setFontSize(fontSize)
+//                .setBold();
+//
+//        Cell cell = new Cell()
+//                .add(p)
+//                .setPadding(8)
+//                .setTextAlignment(alignment);
+//
+//        if (!showBorder) {
+//            cell.setBorder(Border.NO_BORDER);
+//        } else {
+//            cell.setBorder(new SolidBorder(ColorConstants.LIGHT_GRAY, 1));
+//        }
+//        table.addCell(cell);
+//    }
+//
+//    // Hàm hỗ trợ tạo hàng cho bảng tóm tắt
+//    private void addSummaryRow(Table table, String label, String value, float fontSize, boolean isBold) {
+//        Cell labelCell = new Cell()
+//                .add(new Paragraph(label).setFontSize(fontSize).setBold())
+//                .setBorder(Border.NO_BORDER)
+//                .setPaddingTop(4);
+//        table.addCell(labelCell);
+//
+//        Cell valueCell = new Cell()
+//                .add(new Paragraph(value).setFontSize(fontSize).setBold())
+//                .setBorder(Border.NO_BORDER)
+//                .setPaddingTop(4)
+//                .setTextAlignment(TextAlignment.RIGHT);
+//        table.addCell(valueCell);
+//    }
 }

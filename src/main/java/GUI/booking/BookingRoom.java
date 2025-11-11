@@ -14,6 +14,7 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -294,20 +295,25 @@ public class BookingRoom extends javax.swing.JFrame {
                     BookingRoomDTO bookingRoom = data.get(rowIndex);
 
                     JPopupMenu contextMenu = new JPopupMenu();
-                    JMenuItem checkInItem = new JMenuItem("Check-in");
-                    JMenuItem checkOutItem = new JMenuItem("Check-out");
-                    JMenuItem editItem = new JMenuItem("Sửa");
-                    JMenuItem deleteItem = new JMenuItem("Xóa");
+                    JMenuItem editMenuItem = new JMenuItem("Sửa");
+                    JMenuItem deleteMenuItem = new JMenuItem("Xóa");
+                    JMenuItem checkInMenuItem = new JMenuItem("Check-in");
+                    JMenuItem checkOutMenuItem = new JMenuItem("Check-out");
+                    JMenuItem guestMenuItem = new JMenuItem("Khách lưu trú");
 
-                    checkInItem.addActionListener(e1 -> checkInRoom(bookingRoom));
-                    checkOutItem.addActionListener(e1 -> checkOutRoom(bookingRoom));
-                    editItem.addActionListener(e1 -> editBookingRoom(bookingRoom));
-                    deleteItem.addActionListener(e1 -> deleteBookingRoom(bookingRoom));
+                    editMenuItem.addActionListener(e1 -> editBookingRoom(bookingRoom));
+                    deleteMenuItem.addActionListener(e1 -> deleteBookingRoom(bookingRoom));
+                    checkInMenuItem.addActionListener(e1 -> checkInBookingRoom(bookingRoom));
+                    checkOutMenuItem.addActionListener(e1 -> checkOutBookingRoom(bookingRoom));
+                    guestMenuItem.addActionListener(e1 -> openGuestGUI(bookingRoom));
 
-                    contextMenu.add(checkInItem);
-                    contextMenu.add(checkOutItem);
-                    contextMenu.add(editItem);
-                    contextMenu.add(deleteItem);
+                    contextMenu.add(editMenuItem);
+                    contextMenu.add(deleteMenuItem);
+                    contextMenu.addSeparator();
+                    contextMenu.add(checkInMenuItem);
+                    contextMenu.add(checkOutMenuItem);
+                    contextMenu.addSeparator();
+                    contextMenu.add(guestMenuItem);
 
                     contextMenu.show(e.getComponent(), e.getX(), e.getY());
                 }
@@ -317,22 +323,65 @@ public class BookingRoom extends javax.swing.JFrame {
         scrollPane.setViewportView(table);
     }
 
-    private void checkInRoom(BookingRoomDTO bookingRoom) {
-        if (bookingRoomBUS.checkIn(bookingRoom.getBookingRoomId(), LocalDateTime.now())) {
-            JOptionPane.showMessageDialog(this, "Check-in thành công!");
-            loadBookingRoomData();
-        } else {
-            JOptionPane.showMessageDialog(this, "Check-in thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+    private void checkInBookingRoom(BookingRoomDTO bookingRoom) {
+        if (!"BOOKED".equals(bookingRoom.getStatus())) {
+            JOptionPane.showMessageDialog(this, "Phòng này không ở trạng thái BOOKED!",
+                    "Lỗi", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Xác nhận check-in phòng " + bookingRoom.getRoomId() + "?",
+                "Xác nhận check-in", JOptionPane.YES_NO_OPTION);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                if (bookingRoomBUS.checkIn(bookingRoom.getBookingRoomId(), LocalDateTime.now())) {
+                    JOptionPane.showMessageDialog(this, "Check-in thành công!");
+                    loadBookingRoomData();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Check-in thất bại!",
+                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Lỗi: " + e.getMessage(),
+                        "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 
-    private void checkOutRoom(BookingRoomDTO bookingRoom) {
-        if (bookingRoomBUS.checkOut(bookingRoom.getBookingRoomId(), LocalDateTime.now())) {
-            invoiceBUS.createInvoiceOnCheckout(bookingRoom.getBookingRoomId(), 1);
-            JOptionPane.showMessageDialog(this, "Check-out thành công và hóa đơn đã tạo!");
-            loadBookingRoomData();
-        } else {
-            JOptionPane.showMessageDialog(this, "Check-out thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+    private void checkOutBookingRoom(BookingRoomDTO bookingRoom) {
+        if (!"CHECKED_IN".equals(bookingRoom.getStatus())) {
+            JOptionPane.showMessageDialog(this, "Phòng này chưa check-in!",
+                    "Lỗi", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Xác nhận check-out phòng " + bookingRoom.getRoomId() + "?",
+                "Xác nhận check-out", JOptionPane.YES_NO_OPTION);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                LocalDateTime checkOutTime = LocalDateTime.now();
+                if (bookingRoomBUS.checkOut(bookingRoom.getBookingRoomId(), checkOutTime)) {
+                    // Kiểm tra nếu đây là phòng cuối cùng trong booking
+                    if (bookingRoomBUS.areAllRoomsCheckedOut(bookingRoom.getBookingId())) {
+                        // Tạo hóa đơn
+                        invoiceBUS.createInvoiceOnFullCheckout(bookingRoom.getBookingId(), 1); // Giả sử createdBy = 1
+                        JOptionPane.showMessageDialog(this, "Check-out thành công và hóa đơn đã tạo!");
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Check-out thành công!");
+                    }
+                    loadBookingRoomData();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Check-out thất bại!",
+                            "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Lỗi: " + e.getMessage(),
+                        "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 
@@ -445,6 +494,10 @@ public class BookingRoom extends javax.swing.JFrame {
     }
 
     private void addNewBookingRoom() {
+        if (filterByBookingId > 0 && bookingRoomBUS.areAllRoomsCheckedOut(filterByBookingId)) {
+            JOptionPane.showMessageDialog(this, "Đơn đặt phòng này đã được checkout hoàn tất, không thể thêm phòng mới!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
         JDialog addDialog = new JDialog(this, "Chọn phòng để thêm", true);
         addDialog.setLayout(new BorderLayout());
         addDialog.setSize(900, 600);
@@ -695,8 +748,12 @@ public class BookingRoom extends javax.swing.JFrame {
                 java.time.LocalDateTime checkIn = java.time.LocalDateTime.now();
                 java.time.LocalDateTime checkOut = checkIn.plusDays(1);
 
+                RoomTypeBUS roomTypeBUS = new RoomTypeBUS();
+                RoomTypeDTO roomType = roomTypeBUS.getRoomTypeById(room.getRoomTypeId());
+                BigDecimal ratePerNight = roomType.getBasePrice() != null ? roomType.getBasePrice() : BigDecimal.ZERO;
+
                 BookingRoomDTO newBookingRoom = new BookingRoomDTO(0, filterByBookingId, room.getRoomId(),
-                        checkIn, checkOut, null, null, 1, 0, java.math.BigDecimal.ZERO, null, null, "BOOKED");
+                        checkIn, checkOut, null, null, 1, 0, ratePerNight, null, new BigDecimal(10), "BOOKED");
 
                 if (bookingRoomBUS.addBookingRoom(newBookingRoom)) {
                     JOptionPane.showMessageDialog(detailDialog, "Thêm phòng thành công!");

@@ -32,7 +32,7 @@ public class CustomerDAO {
                 customer.getPhone(),
                 customer.getEmail(),
                 customer.getId_card(),
-                null, // address
+                customer.getAddress(),
                 customer.getNationality(),
                 customer.getDob() != null ? new Date(customer.getDob().getTime()) : null,
                 customer.getGender(),
@@ -46,7 +46,7 @@ public class CustomerDAO {
                 customer.getPhone(),
                 customer.getEmail(),
                 customer.getId_card(),
-                null, // address
+                customer.getAddress(), // address
                 customer.getNationality(),
                 customer.getDob() != null ? new Date(customer.getDob().getTime()) : null,
                 customer.getGender(),
@@ -76,6 +76,7 @@ public class CustomerDAO {
         customer.setPhone(phoneStr != null && !phoneStr.isEmpty() ? phoneStr : null);
         customer.setEmail(rs.getString("email"));
         customer.setId_card(rs.getString("id_card"));
+        customer.setAddress(rs.getString("address"));
         customer.setNationality(rs.getString("nationality"));
         Date dob = rs.getDate("dob");
         customer.setDob(dob != null ? new java.util.Date(dob.getTime()) : null);

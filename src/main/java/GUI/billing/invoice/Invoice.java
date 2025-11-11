@@ -9,13 +9,15 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
+import com.toedter.calendar.JDateChooser;
+import java.util.Date;
+import java.util.stream.Collectors;
 
 public class Invoice extends JPanel {
     private JTable invoiceTable;
     private DefaultTableModel tableModel;
     private InvoiceBUS invoiceBUS;
     private JTextField searchField;
-    private JComboBox<String> statusFilterCombo;
 
     public Invoice() {
         invoiceBUS = new InvoiceBUS();
@@ -37,8 +39,10 @@ public class Invoice extends JPanel {
         searchButton.setForeground(Color.WHITE);
         searchButton.addActionListener(e -> searchInvoices());
 
-        statusFilterCombo = new JComboBox<>(new String[]{"Tất cả", "Draft", "Issued", "Paid", "Cancelled"});
-        statusFilterCombo.addActionListener(e -> filterByStatus());
+        JButton filterButton = new JButton("Lọc");
+        filterButton.setBackground(new Color(46, 204, 113)); // Màu xanh lá cây cho lọc
+        filterButton.setForeground(Color.WHITE);
+        filterButton.addActionListener(e -> showFilterDialog());
 
         JButton refreshButton = new JButton("Làm mới");
         refreshButton.setBackground(new Color(149, 165, 166));
@@ -48,8 +52,7 @@ public class Invoice extends JPanel {
         topPanel.add(new JLabel("Tìm kiếm:"));
         topPanel.add(searchField);
         topPanel.add(searchButton);
-        topPanel.add(new JLabel("Trạng thái:"));
-        topPanel.add(statusFilterCombo);
+        topPanel.add(filterButton);
         topPanel.add(refreshButton);
 
         add(topPanel, BorderLayout.NORTH);
@@ -144,17 +147,99 @@ public class Invoice extends JPanel {
         }
     }
 
-    private void filterByStatus() {
-        String status = (String) statusFilterCombo.getSelectedItem();
-        if (status.equals("Tất cả")) {
-            loadInvoiceData();
-            return;
-        }
+    private void showFilterDialog() {
+        JDialog filterDialog = new JDialog(
+                (Frame) SwingUtilities.getWindowAncestor(this),
+                "Tiêu chí Lọc Hóa đơn",
+                true
+        );
+        filterDialog.setLayout(new BorderLayout(10, 10));
+        filterDialog.setSize(400, 250);
+        filterDialog.setLocationRelativeTo(this);
 
+        JPanel inputPanel = new JPanel(new GridBagLayout());
+        inputPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // 1. Lọc theo Trạng thái
+        JComboBox<String> statusCombo = new JComboBox<>(new String[]{"Tất cả", "Draft", "Issued", "Paid", "Cancelled"});
+
+        gbc.gridx = 0; gbc.gridy = 0; inputPanel.add(new JLabel("Trạng thái:"), gbc);
+        gbc.gridx = 1; gbc.gridy = 0; inputPanel.add(statusCombo, gbc);
+
+        // 2. Lọc theo Khoảng thời gian (Ngày tạo hóa đơn)
+        JDateChooser dateFromChooser = new JDateChooser();
+        dateFromChooser.setDateFormatString("dd/MM/yyyy");
+
+        JDateChooser dateToChooser = new JDateChooser();
+        dateToChooser.setDateFormatString("dd/MM/yyyy");
+
+        gbc.gridx = 0; gbc.gridy = 1; inputPanel.add(new JLabel("Từ ngày:"), gbc);
+        gbc.gridx = 1; gbc.gridy = 1; inputPanel.add(dateFromChooser, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 2; inputPanel.add(new JLabel("Đến ngày:"), gbc);
+        gbc.gridx = 1; gbc.gridy = 2; inputPanel.add(dateToChooser, gbc);
+
+        filterDialog.add(inputPanel, BorderLayout.CENTER);
+
+        // Nút Áp dụng và Hủy
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        JButton applyButton = new JButton("Áp dụng");
+        applyButton.setBackground(new Color(52, 152, 219));
+        applyButton.setForeground(Color.WHITE);
+
+        JButton cancelButton = new JButton("Hủy");
+
+        // --- LOGIC KHI ÁP DỤNG LỌC ---
+        applyButton.addActionListener(e -> {
+            String selectedStatus = (String) statusCombo.getSelectedItem();
+            Date dateFrom = dateFromChooser.getDate();
+            Date dateTo = dateToChooser.getDate();
+
+            filterInvoices(selectedStatus, dateFrom, dateTo);
+            filterDialog.dispose();
+        });
+
+        cancelButton.addActionListener(e -> filterDialog.dispose());
+
+        buttonPanel.add(applyButton);
+        buttonPanel.add(cancelButton);
+        filterDialog.add(buttonPanel, BorderLayout.SOUTH);
+
+        filterDialog.setVisible(true);
+    }
+
+    private void filterInvoices(String status, Date dateFrom, Date dateTo) {
         tableModel.setRowCount(0);
-        List<InvoiceDTO> invoices = invoiceBUS.filterInvoicesByStatus(status);
+        List<InvoiceDTO> allInvoices = invoiceBUS.getAllInvoices();
 
-        for (InvoiceDTO invoice : invoices) {
+        // Lọc theo Status và Date Range
+        List<InvoiceDTO> filteredInvoices = allInvoices.stream()
+                .filter(invoice -> {
+                    boolean statusMatch = status.equals("Tất cả") || invoice.getStatus().equalsIgnoreCase(status);
+
+                    // Chuyển đổi LocalDateTime (invoice.getCreatedAt()) sang Date để so sánh
+                    Date createdAtDate = Date.from(invoice.getCreatedAt().toInstant());
+
+                    boolean dateFromMatch = (dateFrom == null) || createdAtDate.after(dateFrom);
+                    boolean dateToMatch = (dateTo == null) || createdAtDate.before(dateTo);
+
+                    // Do DateChooser trả về 00:00:00 của ngày, cần xử lý để bao gồm cả ngày cuối
+                    if (dateTo != null) {
+                        // Tăng ngày "Đến" lên 1 ngày để bao gồm tất cả hóa đơn trong ngày đó
+                        java.util.Calendar cal = java.util.Calendar.getInstance();
+                        cal.setTime(dateTo);
+                        cal.add(java.util.Calendar.DAY_OF_MONTH, 1);
+                        dateToMatch = createdAtDate.before(cal.getTime());
+                    }
+
+                    return statusMatch && dateFromMatch && dateToMatch;
+                })
+                .collect(Collectors.toList());
+
+        for (InvoiceDTO invoice : filteredInvoices) {
             Object[] row = {
                     invoice.getInvoiceId(),
                     invoice.getInvoiceNo(),
