@@ -9,7 +9,7 @@ import java.util.*;
 import java.util.List;
 
 /**
- * Panel thống kê doanh thu theo quý/tháng hoặc năm
+ * Panel thống kê doanh thu với giao diện hiện đại
  */
 public class RevenueStatisticsPanel extends JPanel {
     private StatisticsBUS statisticsBUS;
@@ -20,61 +20,60 @@ public class RevenueStatisticsPanel extends JPanel {
     private JLabel totalLabel;
 
     private Map<String, Double> revenueData;
+    private Map<String, Color> colorMap; // Lưu màu cho từng mục
+
+    // Modern color palette
+    private static final Color BACKGROUND_COLOR = new Color(248, 249, 250);
+    private static final Color CARD_BACKGROUND = Color.WHITE;
+    private static final Color PRIMARY_COLOR = new Color(59, 130, 246);
+    private static final Color BORDER_COLOR = new Color(229, 231, 235);
+    private static final Color TEXT_PRIMARY = new Color(31, 41, 55);
+    private static final Color TEXT_SECONDARY = new Color(107, 114, 128);
+
     private List<Color> chartColors = Arrays.asList(
-            new Color(52, 152, 219), new Color(46, 204, 113), new Color(241, 196, 15), new Color(231, 76, 60),
-            new Color(155, 89, 182), new Color(26, 188, 156), new Color(230, 126, 34), new Color(149, 165, 166),
-            new Color(52, 73, 94), new Color(192, 57, 43), new Color(142, 68, 173), new Color(39, 174, 96)
+            new Color(59, 130, 246),   // Blue
+            new Color(16, 185, 129),   // Green
+            new Color(249, 115, 22),   // Orange
+            new Color(239, 68, 68),    // Red
+            new Color(139, 92, 246),   // Purple
+            new Color(236, 72, 153),   // Pink
+            new Color(14, 165, 233),   // Sky
+            new Color(34, 197, 94),    // Emerald
+            new Color(251, 146, 60),   // Amber
+            new Color(168, 85, 247),   // Violet
+            new Color(244, 63, 94),    // Rose
+            new Color(6, 182, 212)     // Cyan
     );
 
     public RevenueStatisticsPanel(StatisticsBUS statisticsBUS) {
         this.statisticsBUS = statisticsBUS;
         this.revenueData = new LinkedHashMap<>();
+        this.colorMap = new LinkedHashMap<>();
         initComponents();
         loadStatistics();
     }
 
     private void initComponents() {
-        setLayout(new BorderLayout(10, 10));
-        setBackground(new Color(240, 240, 245));
+        setLayout(new BorderLayout(0, 0));
+        setBackground(BACKGROUND_COLOR);
 
         // Top Panel - Filter Options
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        topPanel.setBackground(Color.WHITE);
-
-        periodTypeCombo = new JComboBox<>(new String[]{"Theo Quý", "Theo Tháng", "Theo Năm"});
-        periodTypeCombo.addActionListener(e -> {
-            updateYearComboState();
-            loadStatistics();
-        });
-
-        // Year ComboBox
-        int currentYear = Calendar.getInstance().get(Calendar.YEAR);
-        Integer[] years = new Integer[5];
-        for (int i = 0; i < 5; i++) {
-            years[i] = currentYear - i;
-        }
-        yearCombo = new JComboBox<>(years);
-        yearCombo.addActionListener(e -> loadStatistics());
-
-        JButton refreshButton = new JButton("Làm mới");
-        refreshButton.setBackground(new Color(149, 165, 166));
-        refreshButton.setForeground(Color.WHITE);
-        refreshButton.addActionListener(e -> loadStatistics());
-
-        topPanel.add(new JLabel("Loại thống kê:"));
-        topPanel.add(periodTypeCombo);
-        topPanel.add(new JLabel("Năm:"));
-        topPanel.add(yearCombo);
-        topPanel.add(refreshButton);
-
+        JPanel topPanel = createFilterPanel();
         add(topPanel, BorderLayout.NORTH);
 
         // Center Panel
-        JPanel centerPanel = new JPanel(new BorderLayout(20, 20));
-        centerPanel.setBackground(Color.WHITE);
-        centerPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        JPanel centerPanel = new JPanel(new BorderLayout(20, 0));
+        centerPanel.setBackground(BACKGROUND_COLOR);
+        centerPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
 
-        // Chart Panel
+        // Chart Container
+        JPanel chartContainer = createCardPanel();
+        chartContainer.setLayout(new BorderLayout());
+        chartContainer.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
+
         chartPanel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -82,35 +81,134 @@ public class RevenueStatisticsPanel extends JPanel {
                 drawPieChart(g);
             }
         };
-        chartPanel.setBackground(Color.WHITE);
+        chartPanel.setBackground(CARD_BACKGROUND);
         chartPanel.setPreferredSize(new Dimension(500, 400));
 
-        // Legend Panel
+        chartContainer.add(chartPanel, BorderLayout.CENTER);
+
+        // Legend Container
+        JPanel legendContainer = createCardPanel();
+        legendContainer.setLayout(new BorderLayout());
+        legendContainer.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
+
+        JLabel legendTitle = new JLabel("Chi tiết doanh thu");
+        legendTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        legendTitle.setForeground(TEXT_PRIMARY);
+        legendTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
+
         legendPanel = new JPanel();
         legendPanel.setLayout(new BoxLayout(legendPanel, BoxLayout.Y_AXIS));
-        legendPanel.setBackground(Color.WHITE);
-        legendPanel.setBorder(BorderFactory.createTitledBorder("Chi tiết"));
+        legendPanel.setBackground(CARD_BACKGROUND);
 
         JScrollPane legendScroll = new JScrollPane(legendPanel);
         legendScroll.setBorder(BorderFactory.createEmptyBorder());
         legendScroll.setPreferredSize(new Dimension(300, 400));
+        legendScroll.getVerticalScrollBar().setUnitIncrement(16);
 
-        centerPanel.add(chartPanel, BorderLayout.CENTER);
-        centerPanel.add(legendScroll, BorderLayout.EAST);
+        legendContainer.add(legendTitle, BorderLayout.NORTH);
+        legendContainer.add(legendScroll, BorderLayout.CENTER);
+
+        centerPanel.add(chartContainer, BorderLayout.CENTER);
+        centerPanel.add(legendContainer, BorderLayout.EAST);
 
         add(centerPanel, BorderLayout.CENTER);
 
         // Bottom Panel - Summary
-        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 15));
-        bottomPanel.setBackground(Color.WHITE);
-        bottomPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, Color.LIGHT_GRAY));
+        JPanel bottomPanel = createSummaryPanel();
+        add(bottomPanel, BorderLayout.SOUTH);
+    }
+
+    private JPanel createFilterPanel() {
+        JPanel panel = createCardPanel();
+        panel.setLayout(new FlowLayout(FlowLayout.LEFT, 15, 15));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_COLOR),
+                BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+
+        periodTypeCombo = new JComboBox<>(new String[]{"Theo Quý", "Theo Tháng", "Theo Năm"});
+        periodTypeCombo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        periodTypeCombo.setPreferredSize(new Dimension(140, 35));
+        periodTypeCombo.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        periodTypeCombo.addActionListener(e -> {
+            updateYearComboState();
+            loadStatistics();
+        });
+
+        int currentYear = Calendar.getInstance().get(Calendar.YEAR);
+        Integer[] years = new Integer[5];
+        for (int i = 0; i < 5; i++) {
+            years[i] = currentYear - i;
+        }
+        yearCombo = new JComboBox<>(years);
+        yearCombo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        yearCombo.setPreferredSize(new Dimension(100, 35));
+        yearCombo.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        yearCombo.addActionListener(e -> loadStatistics());
+
+        JButton refreshButton = createModernButton("Làm mới");
+        refreshButton.addActionListener(e -> loadStatistics());
+        refreshButton.setIcon(new ImageIcon(getClass().getResource("/icon/refresh.png")));
+
+
+        panel.add(createLabel("Loại thống kê:"));
+        panel.add(periodTypeCombo);
+        panel.add(createLabel("Năm:"));
+        panel.add(yearCombo);
+        panel.add(refreshButton);
+
+        return panel;
+    }
+
+    private JPanel createSummaryPanel() {
+        JPanel panel = createCardPanel();
+        panel.setLayout(new FlowLayout(FlowLayout.CENTER, 20, 20));
+        panel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, BORDER_COLOR));
 
         totalLabel = new JLabel("Tổng doanh thu: 0 VNĐ");
-        totalLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        totalLabel.setForeground(new Color(52, 152, 219));
+        totalLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        totalLabel.setForeground(PRIMARY_COLOR);
 
-        bottomPanel.add(totalLabel);
-        add(bottomPanel, BorderLayout.SOUTH);
+        panel.add(totalLabel);
+        return panel;
+    }
+
+    private JPanel createCardPanel() {
+        JPanel panel = new JPanel();
+        panel.setBackground(CARD_BACKGROUND);
+        return panel;
+    }
+
+    private JLabel createLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        label.setForeground(TEXT_SECONDARY);
+        return label;
+    }
+
+    private JButton createModernButton(String text) {
+        JButton button = new JButton(text);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        button.setForeground(Color.WHITE);
+        button.setBackground(PRIMARY_COLOR);
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setPreferredSize(new Dimension(120, 35));
+
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(PRIMARY_COLOR.darker());
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(PRIMARY_COLOR);
+            }
+        });
+
+        return button;
     }
 
     private void updateYearComboState() {
@@ -120,6 +218,8 @@ public class RevenueStatisticsPanel extends JPanel {
 
     private void loadStatistics() {
         revenueData.clear();
+        colorMap.clear();
+
         String periodType = (String) periodTypeCombo.getSelectedItem();
 
         if (periodType.equals("Theo Quý")) {
@@ -130,6 +230,13 @@ public class RevenueStatisticsPanel extends JPanel {
             revenueData = statisticsBUS.getRevenueByMonth(year);
         } else {
             revenueData = statisticsBUS.getRevenueByYear();
+        }
+
+        // Gán màu cho từng mục
+        int colorIndex = 0;
+        for (String key : revenueData.keySet()) {
+            colorMap.put(key, chartColors.get(colorIndex % chartColors.size()));
+            colorIndex++;
         }
 
         updateTotalLabel();
@@ -145,6 +252,7 @@ public class RevenueStatisticsPanel extends JPanel {
     private void drawPieChart(Graphics g) {
         Graphics2D g2d = (Graphics2D) g;
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
         int width = chartPanel.getWidth();
         int height = chartPanel.getHeight();
@@ -155,46 +263,61 @@ public class RevenueStatisticsPanel extends JPanel {
         double total = statisticsBUS.calculateTotal(revenueData);
 
         if (total == 0) {
-            g2d.setColor(Color.GRAY);
-            g2d.setFont(new Font("Arial", Font.BOLD, 16));
+            g2d.setColor(TEXT_SECONDARY);
+            g2d.setFont(new Font("Segoe UI", Font.PLAIN, 16));
             String message = "Không có dữ liệu";
             FontMetrics fm = g2d.getFontMetrics();
             g2d.drawString(message, (width - fm.stringWidth(message)) / 2, height / 2);
             return;
         }
 
+        // Draw chart title
+        g2d.setColor(TEXT_PRIMARY);
+        g2d.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        String title = "Biểu đồ doanh thu";
+        FontMetrics fm = g2d.getFontMetrics();
+        g2d.drawString(title, (width - fm.stringWidth(title)) / 2, 30);
+
         double startAngle = 0;
-        int colorIndex = 0;
 
         for (Map.Entry<String, Double> entry : revenueData.entrySet()) {
             double percentage = statisticsBUS.calculatePercentage(entry.getValue(), total);
             double arcAngle = (entry.getValue() / total) * 360;
 
             if (arcAngle > 0) {
-                Color color = chartColors.get(colorIndex % chartColors.size());
+                Color color = colorMap.get(entry.getKey());
                 g2d.setColor(color);
 
                 Arc2D.Double arc = new Arc2D.Double(x, y, diameter, diameter, startAngle, arcAngle, Arc2D.PIE);
                 g2d.fill(arc);
 
                 g2d.setColor(Color.WHITE);
-                g2d.setStroke(new BasicStroke(2));
+                g2d.setStroke(new BasicStroke(3));
                 g2d.draw(arc);
 
-                if (percentage > 3) {
+                // Draw percentage label
+                if (percentage > 5) {
                     double midAngle = Math.toRadians(startAngle + arcAngle / 2);
                     int labelX = x + diameter / 2 + (int) (diameter / 3 * Math.cos(midAngle));
                     int labelY = y + diameter / 2 - (int) (diameter / 3 * Math.sin(midAngle));
 
                     g2d.setColor(Color.WHITE);
-                    g2d.setFont(new Font("Arial", Font.BOLD, 12));
+                    g2d.setFont(new Font("Segoe UI", Font.BOLD, 14));
                     String label = String.format("%.1f%%", percentage);
-                    FontMetrics fm = g2d.getFontMetrics();
-                    g2d.drawString(label, labelX - fm.stringWidth(label) / 2, labelY + fm.getHeight() / 4);
+                    FontMetrics labelFm = g2d.getFontMetrics();
+
+                    // Draw background for better readability
+                    int labelWidth = labelFm.stringWidth(label);
+                    int labelHeight = labelFm.getHeight();
+                    g2d.setColor(new Color(0, 0, 0, 100));
+                    g2d.fillRoundRect(labelX - labelWidth/2 - 4, labelY - labelHeight/2 - 2,
+                            labelWidth + 8, labelHeight + 4, 6, 6);
+
+                    g2d.setColor(Color.WHITE);
+                    g2d.drawString(label, labelX - labelWidth / 2, labelY + labelFm.getHeight() / 4);
                 }
 
                 startAngle += arcAngle;
-                colorIndex++;
             }
         }
     }
@@ -203,28 +326,56 @@ public class RevenueStatisticsPanel extends JPanel {
         legendPanel.removeAll();
         double total = statisticsBUS.calculateTotal(revenueData);
 
-        int colorIndex = 0;
         for (Map.Entry<String, Double> entry : revenueData.entrySet()) {
-            JPanel itemPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
-            itemPanel.setBackground(Color.WHITE);
-            itemPanel.setMaximumSize(new Dimension(300, 50));
+            JPanel itemPanel = new JPanel(new BorderLayout(12, 0));
+            itemPanel.setBackground(CARD_BACKGROUND);
+            itemPanel.setMaximumSize(new Dimension(280, 65));
+            itemPanel.setBorder(BorderFactory.createEmptyBorder(8, 0, 8, 0));
 
-            JPanel colorBox = new JPanel();
-            colorBox.setPreferredSize(new Dimension(20, 20));
-            colorBox.setBackground(chartColors.get(colorIndex % chartColors.size()));
-            colorBox.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+            // Color indicator
+            JPanel colorBox = new JPanel() {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    super.paintComponent(g);
+                    Graphics2D g2d = (Graphics2D) g;
+                    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2d.setColor(colorMap.get(entry.getKey()));
+                    g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 6, 6);
+                }
+            };
+            colorBox.setPreferredSize(new Dimension(8, 45));
+            colorBox.setOpaque(false);
+
+            // Info panel
+            JPanel infoPanel = new JPanel();
+            infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
+            infoPanel.setBackground(CARD_BACKGROUND);
 
             double percentage = statisticsBUS.calculatePercentage(entry.getValue(), total);
-            JLabel label = new JLabel(String.format(
-                    "<html><b>%s</b><br/>%,.0f VNĐ (%.1f%%)</html>",
-                    entry.getKey(), entry.getValue(), percentage
-            ));
-            label.setFont(new Font("Arial", Font.PLAIN, 11));
 
-            itemPanel.add(colorBox);
-            itemPanel.add(label);
+            JLabel nameLabel = new JLabel(entry.getKey());
+            nameLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            nameLabel.setForeground(TEXT_PRIMARY);
+
+            JLabel valueLabel = new JLabel(String.format("%,.0f VNĐ", entry.getValue()));
+            valueLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            valueLabel.setForeground(TEXT_SECONDARY);
+
+            JLabel percentLabel = new JLabel(String.format("%.1f%%", percentage));
+            percentLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            percentLabel.setForeground(colorMap.get(entry.getKey()));
+
+            infoPanel.add(nameLabel);
+            infoPanel.add(Box.createVerticalStrut(3));
+            infoPanel.add(valueLabel);
+            infoPanel.add(Box.createVerticalStrut(2));
+            infoPanel.add(percentLabel);
+
+            itemPanel.add(colorBox, BorderLayout.WEST);
+            itemPanel.add(infoPanel, BorderLayout.CENTER);
+
             legendPanel.add(itemPanel);
-            colorIndex++;
+            legendPanel.add(Box.createVerticalStrut(5));
         }
 
         legendPanel.revalidate();

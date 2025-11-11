@@ -8,7 +8,7 @@ import java.util.*;
 import java.util.List;
 
 /**
- * Panel thống kê doanh thu dịch vụ theo loại dịch vụ - Biểu đồ đường
+ * Panel thống kê dịch vụ với giao diện hiện đại - Biểu đồ đường
  */
 public class ServiceStatisticsPanel extends JPanel {
     private StatisticsBUS statisticsBUS;
@@ -19,62 +19,60 @@ public class ServiceStatisticsPanel extends JPanel {
     private JLabel totalLabel;
 
     private Map<String, Double> serviceData;
+    private Map<String, Color> colorMap; // Lưu màu cho từng dịch vụ
+
+    // Modern color palette
+    private static final Color BACKGROUND_COLOR = new Color(248, 249, 250);
+    private static final Color CARD_BACKGROUND = Color.WHITE;
+    private static final Color PRIMARY_COLOR = new Color(59, 130, 246);
+    private static final Color BORDER_COLOR = new Color(229, 231, 235);
+    private static final Color TEXT_PRIMARY = new Color(31, 41, 55);
+    private static final Color TEXT_SECONDARY = new Color(107, 114, 128);
+
     private List<Color> chartColors = Arrays.asList(
-            new Color(52, 152, 219), new Color(46, 204, 113), new Color(241, 196, 15), new Color(231, 76, 60),
-            new Color(155, 89, 182), new Color(26, 188, 156), new Color(230, 126, 34), new Color(149, 165, 166),
-            new Color(52, 73, 94), new Color(192, 57, 43), new Color(142, 68, 173), new Color(39, 174, 96)
+            new Color(59, 130, 246),   // Blue
+            new Color(16, 185, 129),   // Green
+            new Color(249, 115, 22),   // Orange
+            new Color(239, 68, 68),    // Red
+            new Color(139, 92, 246),   // Purple
+            new Color(236, 72, 153),   // Pink
+            new Color(14, 165, 233),   // Sky
+            new Color(34, 197, 94),    // Emerald
+            new Color(251, 146, 60),   // Amber
+            new Color(168, 85, 247),   // Violet
+            new Color(244, 63, 94),    // Rose
+            new Color(6, 182, 212)     // Cyan
     );
 
     public ServiceStatisticsPanel(StatisticsBUS statisticsBUS) {
         this.statisticsBUS = statisticsBUS;
         this.serviceData = new LinkedHashMap<>();
+        this.colorMap = new LinkedHashMap<>();
         initComponents();
         loadStatistics();
     }
 
     private void initComponents() {
-        setLayout(new BorderLayout(10, 10));
-        setBackground(new Color(240, 240, 245));
+        setLayout(new BorderLayout(0, 0));
+        setBackground(BACKGROUND_COLOR);
 
         // Top Panel - Filter Options
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        topPanel.setBackground(Color.WHITE);
-
-        periodTypeCombo = new JComboBox<>(new String[]{"Tất cả thời gian", "Theo năm"});
-        periodTypeCombo.addActionListener(e -> {
-            updateYearComboState();
-            loadStatistics();
-        });
-
-        // Year ComboBox
-        int currentYear = Calendar.getInstance().get(Calendar.YEAR);
-        Integer[] years = new Integer[5];
-        for (int i = 0; i < 5; i++) {
-            years[i] = currentYear - i;
-        }
-        yearCombo = new JComboBox<>(years);
-        yearCombo.setEnabled(false);
-        yearCombo.addActionListener(e -> loadStatistics());
-
-        JButton refreshButton = new JButton("Làm mới");
-        refreshButton.setBackground(new Color(149, 165, 166));
-        refreshButton.setForeground(Color.WHITE);
-        refreshButton.addActionListener(e -> loadStatistics());
-
-        topPanel.add(new JLabel("Loại thống kê:"));
-        topPanel.add(periodTypeCombo);
-        topPanel.add(new JLabel("Năm:"));
-        topPanel.add(yearCombo);
-        topPanel.add(refreshButton);
-
+        JPanel topPanel = createFilterPanel();
         add(topPanel, BorderLayout.NORTH);
 
         // Center Panel
-        JPanel centerPanel = new JPanel(new BorderLayout(20, 20));
-        centerPanel.setBackground(Color.WHITE);
-        centerPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        JPanel centerPanel = new JPanel(new BorderLayout(20, 0));
+        centerPanel.setBackground(BACKGROUND_COLOR);
+        centerPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
 
-        // Chart Panel
+        // Chart Container
+        JPanel chartContainer = createCardPanel();
+        chartContainer.setLayout(new BorderLayout());
+        chartContainer.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
+
         chartPanel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -82,35 +80,135 @@ public class ServiceStatisticsPanel extends JPanel {
                 drawLineChart(g);
             }
         };
-        chartPanel.setBackground(Color.WHITE);
-        chartPanel.setPreferredSize(new Dimension(600, 400));
+        chartPanel.setBackground(CARD_BACKGROUND);
+        chartPanel.setPreferredSize(new Dimension(650, 400));
 
-        // Legend Panel
+        chartContainer.add(chartPanel, BorderLayout.CENTER);
+
+        // Legend Container
+        JPanel legendContainer = createCardPanel();
+        legendContainer.setLayout(new BorderLayout());
+        legendContainer.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
+
+        JLabel legendTitle = new JLabel("Chi tiết theo dịch vụ");
+        legendTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        legendTitle.setForeground(TEXT_PRIMARY);
+        legendTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
+
         legendPanel = new JPanel();
         legendPanel.setLayout(new BoxLayout(legendPanel, BoxLayout.Y_AXIS));
-        legendPanel.setBackground(Color.WHITE);
-        legendPanel.setBorder(BorderFactory.createTitledBorder("Chi tiết theo dịch vụ"));
+        legendPanel.setBackground(CARD_BACKGROUND);
 
         JScrollPane legendScroll = new JScrollPane(legendPanel);
         legendScroll.setBorder(BorderFactory.createEmptyBorder());
-        legendScroll.setPreferredSize(new Dimension(250, 400));
+        legendScroll.setPreferredSize(new Dimension(280, 400));
+        legendScroll.getVerticalScrollBar().setUnitIncrement(16);
 
-        centerPanel.add(chartPanel, BorderLayout.CENTER);
-        centerPanel.add(legendScroll, BorderLayout.EAST);
+        legendContainer.add(legendTitle, BorderLayout.NORTH);
+        legendContainer.add(legendScroll, BorderLayout.CENTER);
+
+        centerPanel.add(chartContainer, BorderLayout.CENTER);
+        centerPanel.add(legendContainer, BorderLayout.EAST);
 
         add(centerPanel, BorderLayout.CENTER);
 
         // Bottom Panel - Summary
-        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 15));
-        bottomPanel.setBackground(Color.WHITE);
-        bottomPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, Color.LIGHT_GRAY));
+        JPanel bottomPanel = createSummaryPanel();
+        add(bottomPanel, BorderLayout.SOUTH);
+    }
+
+    private JPanel createFilterPanel() {
+        JPanel panel = createCardPanel();
+        panel.setLayout(new FlowLayout(FlowLayout.LEFT, 15, 15));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_COLOR),
+                BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+
+        periodTypeCombo = new JComboBox<>(new String[]{"Tất cả thời gian", "Theo năm"});
+        periodTypeCombo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        periodTypeCombo.setPreferredSize(new Dimension(150, 35));
+        periodTypeCombo.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        periodTypeCombo.addActionListener(e -> {
+            updateYearComboState();
+            loadStatistics();
+        });
+
+        int currentYear = Calendar.getInstance().get(Calendar.YEAR);
+        Integer[] years = new Integer[5];
+        for (int i = 0; i < 5; i++) {
+            years[i] = currentYear - i;
+        }
+        yearCombo = new JComboBox<>(years);
+        yearCombo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        yearCombo.setPreferredSize(new Dimension(100, 35));
+        yearCombo.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        yearCombo.setEnabled(false);
+        yearCombo.addActionListener(e -> loadStatistics());
+
+        JButton refreshButton = createModernButton("Làm mới");
+        refreshButton.addActionListener(e -> loadStatistics());
+        refreshButton.setIcon(new ImageIcon(getClass().getResource("/icon/refresh.png")));
+
+
+        panel.add(createLabel("Loại thống kê:"));
+        panel.add(periodTypeCombo);
+        panel.add(createLabel("Năm:"));
+        panel.add(yearCombo);
+        panel.add(refreshButton);
+
+        return panel;
+    }
+
+    private JPanel createSummaryPanel() {
+        JPanel panel = createCardPanel();
+        panel.setLayout(new FlowLayout(FlowLayout.CENTER, 20, 20));
+        panel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, BORDER_COLOR));
 
         totalLabel = new JLabel("Tổng doanh thu dịch vụ: 0 VNĐ");
-        totalLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        totalLabel.setForeground(new Color(52, 152, 219));
+        totalLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        totalLabel.setForeground(PRIMARY_COLOR);
 
-        bottomPanel.add(totalLabel);
-        add(bottomPanel, BorderLayout.SOUTH);
+        panel.add(totalLabel);
+        return panel;
+    }
+
+    private JPanel createCardPanel() {
+        JPanel panel = new JPanel();
+        panel.setBackground(CARD_BACKGROUND);
+        return panel;
+    }
+
+    private JLabel createLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        label.setForeground(TEXT_SECONDARY);
+        return label;
+    }
+
+    private JButton createModernButton(String text) {
+        JButton button = new JButton(text);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        button.setForeground(Color.WHITE);
+        button.setBackground(PRIMARY_COLOR);
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setPreferredSize(new Dimension(120, 35));
+
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(PRIMARY_COLOR.darker());
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(PRIMARY_COLOR);
+            }
+        });
+
+        return button;
     }
 
     private void updateYearComboState() {
@@ -120,6 +218,8 @@ public class ServiceStatisticsPanel extends JPanel {
 
     private void loadStatistics() {
         serviceData.clear();
+        colorMap.clear();
+
         String periodType = (String) periodTypeCombo.getSelectedItem();
 
         if (periodType.equals("Tất cả thời gian")) {
@@ -127,6 +227,13 @@ public class ServiceStatisticsPanel extends JPanel {
         } else {
             int year = (int) yearCombo.getSelectedItem();
             serviceData = statisticsBUS.getRevenueByService(year);
+        }
+
+        // Gán màu cho từng dịch vụ
+        int colorIndex = 0;
+        for (String key : serviceData.keySet()) {
+            colorMap.put(key, chartColors.get(colorIndex % chartColors.size()));
+            colorIndex++;
         }
 
         updateTotalLabel();
@@ -142,6 +249,7 @@ public class ServiceStatisticsPanel extends JPanel {
     private void drawLineChart(Graphics g) {
         Graphics2D g2d = (Graphics2D) g;
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
         int width = chartPanel.getWidth();
         int height = chartPanel.getHeight();
@@ -149,78 +257,91 @@ public class ServiceStatisticsPanel extends JPanel {
         // Margins
         int marginLeft = 80;
         int marginRight = 40;
-        int marginTop = 40;
+        int marginTop = 60;
         int marginBottom = 100;
 
         int chartWidth = width - marginLeft - marginRight;
         int chartHeight = height - marginTop - marginBottom;
 
         if (serviceData.isEmpty()) {
-            g2d.setColor(Color.GRAY);
-            g2d.setFont(new Font("Arial", Font.BOLD, 16));
+            g2d.setColor(TEXT_SECONDARY);
+            g2d.setFont(new Font("Segoe UI", Font.PLAIN, 16));
             String message = "Không có dữ liệu";
             FontMetrics fm = g2d.getFontMetrics();
             g2d.drawString(message, (width - fm.stringWidth(message)) / 2, height / 2);
             return;
         }
 
+        // Draw chart title
+        g2d.setColor(TEXT_PRIMARY);
+        g2d.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        String title = "Doanh thu dịch vụ";
+        FontMetrics titleFm = g2d.getFontMetrics();
+        g2d.drawString(title, (width - titleFm.stringWidth(title)) / 2, 30);
+
         // Find max value
         double maxValue = serviceData.values().stream().mapToDouble(Double::doubleValue).max().orElse(0);
         if (maxValue == 0) maxValue = 1;
-
-        // Add some padding to max value for better visualization
-        maxValue = maxValue * 1.1;
+        maxValue = maxValue * 1.15; // Add 15% padding
 
         // Draw axes
-        g2d.setColor(Color.GRAY);
+        g2d.setColor(BORDER_COLOR);
         g2d.setStroke(new BasicStroke(2));
         g2d.drawLine(marginLeft, marginTop, marginLeft, marginTop + chartHeight); // Y-axis
         g2d.drawLine(marginLeft, marginTop + chartHeight, marginLeft + chartWidth, marginTop + chartHeight); // X-axis
 
         // Draw grid lines and Y-axis labels
-        g2d.setColor(new Color(220, 220, 220));
-        g2d.setStroke(new BasicStroke(1));
-        g2d.setFont(new Font("Arial", Font.PLAIN, 10));
-
+        g2d.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         int gridLines = 5;
         for (int i = 0; i <= gridLines; i++) {
             int y = marginTop + (chartHeight * i / gridLines);
+
+            // Grid line
+            g2d.setColor(new Color(229, 231, 235, 150));
+            g2d.setStroke(new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{5}, 0));
             g2d.drawLine(marginLeft, y, marginLeft + chartWidth, y);
 
             // Y-axis label
             double value = maxValue * (gridLines - i) / gridLines;
             String label = String.format("%,.0f", value);
             FontMetrics fm = g2d.getFontMetrics();
-            g2d.setColor(Color.BLACK);
-            g2d.drawString(label, marginLeft - fm.stringWidth(label) - 5, y + 5);
-            g2d.setColor(new Color(220, 220, 220));
+            g2d.setColor(TEXT_SECONDARY);
+            g2d.drawString(label, marginLeft - fm.stringWidth(label) - 10, y + 5);
         }
 
         // Calculate points
         int dataCount = serviceData.size();
-        if (dataCount < 2) {
-            // If only one data point, draw as a single point with marker
-            if (dataCount == 1) {
-                Map.Entry<String, Double> entry = serviceData.entrySet().iterator().next();
-                int x = marginLeft + chartWidth / 2;
-                int y = marginTop + chartHeight - (int) ((entry.getValue() / maxValue) * chartHeight);
+        if (dataCount < 1) return;
 
-                g2d.setColor(chartColors.get(0));
-                g2d.fillOval(x - 6, y - 6, 12, 12);
-                g2d.setColor(chartColors.get(0).darker());
-                g2d.setStroke(new BasicStroke(2));
-                g2d.drawOval(x - 6, y - 6, 12, 12);
+        if (dataCount == 1) {
+            // Draw single point
+            Map.Entry<String, Double> entry = serviceData.entrySet().iterator().next();
+            int x = marginLeft + chartWidth / 2;
+            int y = marginTop + chartHeight - (int) ((entry.getValue() / maxValue) * chartHeight);
 
-                // Draw label
-                g2d.setColor(Color.BLACK);
-                g2d.setFont(new Font("Arial", Font.PLAIN, 10));
-                String label = entry.getKey();
-                Graphics2D g2dRotated = (Graphics2D) g2d.create();
-                g2dRotated.translate(x, marginTop + chartHeight + 15);
-                g2dRotated.rotate(Math.toRadians(-45));
-                g2dRotated.drawString(label, 0, 0);
-                g2dRotated.dispose();
-            }
+            Color pointColor = colorMap.get(entry.getKey());
+
+            // Draw shadow
+            g2d.setColor(new Color(0, 0, 0, 30));
+            g2d.fillOval(x - 7, y - 5, 14, 14);
+
+            // Draw point
+            g2d.setColor(pointColor);
+            g2d.fillOval(x - 8, y - 8, 16, 16);
+            g2d.setColor(Color.WHITE);
+            g2d.setStroke(new BasicStroke(3));
+            g2d.drawOval(x - 8, y - 8, 16, 16);
+
+            // Draw label
+            g2d.setColor(TEXT_SECONDARY);
+            g2d.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+            String label = entry.getKey();
+            Graphics2D g2dRotated = (Graphics2D) g2d.create();
+            g2dRotated.translate(x, marginTop + chartHeight + 20);
+            g2dRotated.rotate(Math.toRadians(-45));
+            g2dRotated.drawString(label, 0, 0);
+            g2dRotated.dispose();
+
             return;
         }
 
@@ -230,23 +351,15 @@ public class ServiceStatisticsPanel extends JPanel {
         int segmentWidth = chartWidth / (dataCount - 1);
         int index = 0;
 
-        for (Map.Entry<String, Double> entry : serviceData.entrySet()) {
+        List<Map.Entry<String, Double>> entries = new ArrayList<>(serviceData.entrySet());
+        for (Map.Entry<String, Double> entry : entries) {
             double value = entry.getValue();
-
             xPoints[index] = marginLeft + (index * segmentWidth);
             yPoints[index] = marginTop + chartHeight - (int) ((value / maxValue) * chartHeight);
-
             index++;
         }
 
-        // Draw line
-        g2d.setColor(new Color(52, 152, 219));
-        g2d.setStroke(new BasicStroke(3));
-        for (int i = 0; i < dataCount - 1; i++) {
-            g2d.drawLine(xPoints[i], yPoints[i], xPoints[i + 1], yPoints[i + 1]);
-        }
-
-        // Draw area under the line (gradient fill)
+        // Draw area under line with gradient
         int[] areaXPoints = new int[dataCount + 2];
         int[] areaYPoints = new int[dataCount + 2];
 
@@ -258,79 +371,129 @@ public class ServiceStatisticsPanel extends JPanel {
         areaYPoints[dataCount + 1] = marginTop + chartHeight;
 
         GradientPaint gradient = new GradientPaint(
-                0, marginTop, new Color(52, 152, 219, 100),
-                0, marginTop + chartHeight, new Color(52, 152, 219, 20)
+                0, marginTop, new Color(59, 130, 246, 100),
+                0, marginTop + chartHeight, new Color(59, 130, 246, 10)
         );
         g2d.setPaint(gradient);
         g2d.fillPolygon(areaXPoints, areaYPoints, dataCount + 2);
 
+        // Draw lines between points
+        g2d.setStroke(new BasicStroke(3, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        for (int i = 0; i < dataCount - 1; i++) {
+            Color lineColor = colorMap.get(entries.get(i).getKey());
+            g2d.setColor(lineColor);
+            g2d.drawLine(xPoints[i], yPoints[i], xPoints[i + 1], yPoints[i + 1]);
+        }
+
         // Draw points and labels
         index = 0;
-        for (Map.Entry<String, Double> entry : serviceData.entrySet()) {
+        for (Map.Entry<String, Double> entry : entries) {
             int x = xPoints[index];
             int y = yPoints[index];
+            Color pointColor = colorMap.get(entry.getKey());
+
+            // Draw point shadow
+            g2d.setColor(new Color(0, 0, 0, 30));
+            g2d.fillOval(x - 7, y - 5, 14, 14);
 
             // Draw point
-            g2d.setColor(new Color(52, 152, 219));
-            g2d.fillOval(x - 6, y - 6, 12, 12);
-            g2d.setColor(new Color(41, 128, 185));
-            g2d.setStroke(new BasicStroke(2));
-            g2d.drawOval(x - 6, y - 6, 12, 12);
+            g2d.setColor(pointColor);
+            g2d.fillOval(x - 8, y - 8, 16, 16);
+            g2d.setColor(Color.WHITE);
+            g2d.setStroke(new BasicStroke(3));
+            g2d.drawOval(x - 8, y - 8, 16, 16);
 
             // Draw value label above point
-            g2d.setColor(Color.BLACK);
-            g2d.setFont(new Font("Arial", Font.BOLD, 10));
-            String valueLabel = String.format("%,.0f", entry.getValue());
-            FontMetrics fm = g2d.getFontMetrics();
-            g2d.drawString(valueLabel, x - fm.stringWidth(valueLabel) / 2, y - 10);
+            if (entry.getValue() > 0) {
+                g2d.setColor(TEXT_PRIMARY);
+                g2d.setFont(new Font("Segoe UI", Font.BOLD, 11));
+                String valueLabel = String.format("%,.0f", entry.getValue());
+                FontMetrics fm = g2d.getFontMetrics();
+
+                // Background for value
+                int labelWidth = fm.stringWidth(valueLabel);
+                int labelHeight = fm.getHeight();
+                g2d.setColor(new Color(255, 255, 255, 230));
+                g2d.fillRoundRect(x - labelWidth/2 - 4, y - labelHeight - 8,
+                        labelWidth + 8, labelHeight + 4, 6, 6);
+                g2d.setColor(BORDER_COLOR);
+                g2d.setStroke(new BasicStroke(1));
+                g2d.drawRoundRect(x - labelWidth/2 - 4, y - labelHeight - 8,
+                        labelWidth + 8, labelHeight + 4, 6, 6);
+
+                g2d.setColor(TEXT_PRIMARY);
+                g2d.drawString(valueLabel, x - labelWidth / 2, y - 10);
+            }
 
             // Draw X-axis label (service name)
-            g2d.setFont(new Font("Arial", Font.PLAIN, 10));
+            g2d.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+            g2d.setColor(TEXT_SECONDARY);
             String label = entry.getKey();
 
             Graphics2D g2dRotated = (Graphics2D) g2d.create();
-            g2dRotated.translate(x, marginTop + chartHeight + 15);
+            g2dRotated.translate(x, marginTop + chartHeight + 20);
             g2dRotated.rotate(Math.toRadians(-45));
             g2dRotated.drawString(label, 0, 0);
             g2dRotated.dispose();
 
             index++;
         }
-
-        // Draw chart title
-        g2d.setColor(new Color(52, 152, 219));
-        g2d.setFont(new Font("Arial", Font.BOLD, 14));
-        String title = "Biểu đồ doanh thu dịch vụ";
-        FontMetrics fm = g2d.getFontMetrics();
-        g2d.drawString(title, (width - fm.stringWidth(title)) / 2, 25);
     }
 
     private void updateLegend() {
         legendPanel.removeAll();
         double total = statisticsBUS.calculateTotal(serviceData);
 
-        int colorIndex = 0;
         for (Map.Entry<String, Double> entry : serviceData.entrySet()) {
-            JPanel itemPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
-            itemPanel.setBackground(Color.WHITE);
-            itemPanel.setMaximumSize(new Dimension(250, 50));
+            JPanel itemPanel = new JPanel(new BorderLayout(12, 0));
+            itemPanel.setBackground(CARD_BACKGROUND);
+            itemPanel.setMaximumSize(new Dimension(260, 65));
+            itemPanel.setBorder(BorderFactory.createEmptyBorder(8, 0, 8, 0));
 
-            JPanel colorBox = new JPanel();
-            colorBox.setPreferredSize(new Dimension(20, 20));
-            colorBox.setBackground(chartColors.get(colorIndex % chartColors.size()));
-            colorBox.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+            // Color indicator
+            JPanel colorBox = new JPanel() {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    super.paintComponent(g);
+                    Graphics2D g2d = (Graphics2D) g;
+                    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2d.setColor(colorMap.get(entry.getKey()));
+                    g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 6, 6);
+                }
+            };
+            colorBox.setPreferredSize(new Dimension(8, 45));
+            colorBox.setOpaque(false);
+
+            // Info panel
+            JPanel infoPanel = new JPanel();
+            infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
+            infoPanel.setBackground(CARD_BACKGROUND);
 
             double percentage = statisticsBUS.calculatePercentage(entry.getValue(), total);
-            JLabel label = new JLabel(String.format(
-                    "<html><b>%s</b><br/>%,.0f VNĐ (%.1f%%)</html>",
-                    entry.getKey(), entry.getValue(), percentage
-            ));
-            label.setFont(new Font("Arial", Font.PLAIN, 11));
 
-            itemPanel.add(colorBox);
-            itemPanel.add(label);
+            JLabel nameLabel = new JLabel(entry.getKey());
+            nameLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            nameLabel.setForeground(TEXT_PRIMARY);
+
+            JLabel valueLabel = new JLabel(String.format("%,.0f VNĐ", entry.getValue()));
+            valueLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            valueLabel.setForeground(TEXT_SECONDARY);
+
+            JLabel percentLabel = new JLabel(String.format("%.1f%%", percentage));
+            percentLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            percentLabel.setForeground(colorMap.get(entry.getKey()));
+
+            infoPanel.add(nameLabel);
+            infoPanel.add(Box.createVerticalStrut(3));
+            infoPanel.add(valueLabel);
+            infoPanel.add(Box.createVerticalStrut(2));
+            infoPanel.add(percentLabel);
+
+            itemPanel.add(colorBox, BorderLayout.WEST);
+            itemPanel.add(infoPanel, BorderLayout.CENTER);
+
             legendPanel.add(itemPanel);
-            colorIndex++;
+            legendPanel.add(Box.createVerticalStrut(5));
         }
 
         legendPanel.revalidate();

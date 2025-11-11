@@ -6,7 +6,7 @@ import javax.swing.*;
 import java.awt.*;
 
 /**
- * Panel chính cho thống kê với JMenuBar để chuyển đổi giữa các loại thống kê
+ * Panel chính cho thống kê với giao diện hiện đại
  */
 public class Statistics extends JPanel {
     private StatisticsBUS statisticsBUS;
@@ -23,6 +23,12 @@ public class Statistics extends JPanel {
     private static final String BOOKING_CARD = "BOOKING";
     private static final String SERVICE_CARD = "SERVICE";
 
+    // Modern color palette
+    private static final Color BACKGROUND_COLOR = new Color(248, 249, 250);
+    private static final Color PRIMARY_COLOR = new Color(59, 130, 246);
+    private static final Color CARD_BACKGROUND = Color.WHITE;
+    private static final Color BORDER_COLOR = new Color(229, 231, 235);
+
     public Statistics() {
         statisticsBUS = new StatisticsBUS();
         initComponents();
@@ -30,16 +36,17 @@ public class Statistics extends JPanel {
 
     private void initComponents() {
         setLayout(new BorderLayout());
-        setBackground(new Color(240, 240, 245));
+        setBackground(BACKGROUND_COLOR);
 
-        // Tạo Menu Bar
-        JMenuBar menuBar = createMenuBar();
-        add(menuBar, BorderLayout.NORTH);
+        // Tạo Header Panel
+        JPanel headerPanel = createHeaderPanel();
+        add(headerPanel, BorderLayout.NORTH);
 
         // Tạo Content Panel với CardLayout
         cardLayout = new CardLayout();
         contentPanel = new JPanel(cardLayout);
-        contentPanel.setBackground(new Color(240, 240, 245));
+        contentPanel.setBackground(BACKGROUND_COLOR);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         // Khởi tạo các panel thống kê
         revenuePanel = new RevenueStatisticsPanel(statisticsBUS);
@@ -57,52 +64,91 @@ public class Statistics extends JPanel {
         cardLayout.show(contentPanel, REVENUE_CARD);
     }
 
-    private JMenuBar createMenuBar() {
-        JMenuBar menuBar = new JMenuBar();
-        menuBar.setBackground(Color.WHITE);
-        menuBar.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(52, 152, 219)));
+    private JPanel createHeaderPanel() {
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(CARD_BACKGROUND);
+        headerPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_COLOR),
+                BorderFactory.createEmptyBorder(15, 20, 15, 20)
+        ));
 
-        // Menu Thống kê
-        JMenu statisticsMenu = new JMenu("Loại thống kê");
-        statisticsMenu.setFont(new Font("Arial", Font.BOLD, 14));
-        statisticsMenu.setForeground(new Color(52, 152, 219));
+        // Title
+        JLabel titleLabel = new JLabel("Dashboard Thống Kê");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        titleLabel.setForeground(new Color(31, 41, 55));
+        titleLabel.setIcon(new ImageIcon(getClass().getResource("/icon/graph.png")));
 
-        // Menu items
-        JMenuItem revenueItem = createMenuItem("Doanh thu", REVENUE_CARD);
-        JMenuItem bookingItem = createMenuItem("Đặt phòng theo loại", BOOKING_CARD);
-        JMenuItem serviceItem = createMenuItem("Doanh thu dịch vụ", SERVICE_CARD);
+        // Tab Panel
+        JPanel tabPanel = createTabPanel();
 
-        statisticsMenu.add(revenueItem);
-        statisticsMenu.add(bookingItem);
-        statisticsMenu.add(serviceItem);
+        headerPanel.add(titleLabel, BorderLayout.WEST);
+        headerPanel.add(tabPanel, BorderLayout.CENTER);
 
-        menuBar.add(statisticsMenu);
-
-        // Thêm label hiển thị panel hiện tại
-        JLabel currentPanelLabel = new JLabel("Thống kê: Doanh thu");
-        currentPanelLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        currentPanelLabel.setForeground(new Color(52, 152, 219));
-        currentPanelLabel.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 0));
-        menuBar.add(Box.createHorizontalStrut(50));
-        menuBar.add(currentPanelLabel);
-
-        // Cập nhật label khi chuyển panel
-        revenueItem.addActionListener(e -> currentPanelLabel.setText("Thống kê: Doanh thu"));
-        bookingItem.addActionListener(e -> currentPanelLabel.setText("Thống kê: Đặt phòng theo loại"));
-        serviceItem.addActionListener(e -> currentPanelLabel.setText("Thống kê: Doanh thu dịch vụ"));
-
-        return menuBar;
+        return headerPanel;
     }
 
-    private JMenuItem createMenuItem(String text, String cardName) {
-        JMenuItem menuItem = new JMenuItem(text);
-        menuItem.setFont(new Font("Arial", Font.PLAIN, 13));
-        menuItem.addActionListener(e -> {
+    private JPanel createTabPanel() {
+        JPanel tabPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        tabPanel.setBackground(CARD_BACKGROUND);
+
+        String[] tabs = {"Doanh thu", "Đặt phòng", "Dịch vụ"};
+        String[] cards = {REVENUE_CARD, BOOKING_CARD, SERVICE_CARD};
+        String[] iconPaths = {
+                "/icon/money.png",
+                "/icon/comp.png",
+                "/icon/hotelbell.png"
+        };
+
+        ButtonGroup buttonGroup = new ButtonGroup();
+
+        for (int i = 0; i < tabs.length; i++) {
+            JToggleButton tabButton = createTabButton(tabs[i], iconPaths[i], cards[i]);
+            buttonGroup.add(tabButton);
+            tabPanel.add(tabButton);
+
+            if (i == 0) {
+                tabButton.setSelected(true);
+            }
+        }
+
+        return tabPanel;
+    }
+
+    private JToggleButton createTabButton(String text, String iconPath, String cardName) {
+        JToggleButton button = new JToggleButton(text);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setContentAreaFilled(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
+
+        try {
+            ImageIcon icons = new ImageIcon(getClass().getResource(iconPath));
+            Image img = icons.getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH);
+            button.setIcon(new ImageIcon(img));
+        } catch (Exception e) {
+            System.err.println("Không tìm thấy icon: " + iconPath);
+        }
+
+        button.addActionListener(e -> {
             cardLayout.show(contentPanel, cardName);
-            // Refresh data khi chuyển panel
             refreshCurrentPanel(cardName);
         });
-        return menuItem;
+
+        button.addChangeListener(e -> {
+            if (button.isSelected()) {
+                button.setForeground(PRIMARY_COLOR);
+                button.setOpaque(true);
+                button.setBackground(new Color(219, 234, 254));
+            } else {
+                button.setForeground(new Color(107, 114, 128));
+                button.setOpaque(false);
+                button.setBackground(null);
+            }
+        });
+
+        return button;
     }
 
     private void refreshCurrentPanel(String cardName) {
@@ -119,9 +165,6 @@ public class Statistics extends JPanel {
         }
     }
 
-    /**
-     * Refresh tất cả dữ liệu thống kê
-     */
     public void refreshAll() {
         revenuePanel.refreshData();
         bookingPanel.refreshData();
