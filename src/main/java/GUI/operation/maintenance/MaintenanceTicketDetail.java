@@ -4,6 +4,7 @@ import BUS.MaintenanceTicketBUS;
 import BUS.UserAccountBUS;
 import DTO.MaintenanceTicketDTO;
 import DTO.UserAccountDTO;
+import com.toedter.calendar.JDateChooser;
 
 import javax.swing.*;
 import java.awt.*;
@@ -12,6 +13,7 @@ import java.awt.event.ActionListener;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.List;
 
 public class MaintenanceTicketDetail extends JDialog {
@@ -33,8 +35,8 @@ public class MaintenanceTicketDetail extends JDialog {
     private JComboBox<String> cboPriority;
     private JComboBox<String> cboStatus;
     private JComboBox<UserItem> cboAssignedTo;
-    private JTextField txtOpenedAt;
-    private JTextField txtClosedAt;
+    private JDateChooser openedAtChooser;
+    private JDateChooser closedAtChooser;
 
     private JButton btnSave;
     private JButton btnCancel;
@@ -99,6 +101,7 @@ public class MaintenanceTicketDetail extends JDialog {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(8, 8, 8, 8);
         gbc.fill = GridBagConstraints.HORIZONTAL;
+
 
         // Room ID
         gbc.gridx = 0;
@@ -210,7 +213,7 @@ public class MaintenanceTicketDetail extends JDialog {
         cboAssignedTo.setFont(new Font("Arial", Font.PLAIN, 13));
         formPanel.add(cboAssignedTo, gbc);
 
-        // Opened At
+        // Opened At - Replace with JDateChooser
         gbc.gridx = 0;
         gbc.gridy = 6;
         gbc.weightx = 0.3;
@@ -220,19 +223,13 @@ public class MaintenanceTicketDetail extends JDialog {
 
         gbc.gridx = 1;
         gbc.weightx = 0.7;
-        txtOpenedAt = new JTextField(20);
-        txtOpenedAt.setText(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        txtOpenedAt.setEditable(false);
-        txtOpenedAt.setPreferredSize(new Dimension(200, 35));
-        txtOpenedAt.setFont(new Font("Arial", Font.PLAIN, 13));
-        txtOpenedAt.setBackground(new Color(240, 240, 240));
-        txtOpenedAt.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                BorderFactory.createEmptyBorder(5, 10, 5, 10)
-        ));
-        formPanel.add(txtOpenedAt, gbc);
+        openedAtChooser = new JDateChooser();
+        openedAtChooser.setDateFormatString("yyyy-MM-dd HH:mm:ss");
+        openedAtChooser.setDate(new Date());
+        openedAtChooser.setPreferredSize(new Dimension(200, 35));
+        formPanel.add(openedAtChooser, gbc);
 
-        // Closed At
+        // Closed At - Replace with JDateChooser and make editable
         gbc.gridx = 0;
         gbc.gridy = 7;
         gbc.weightx = 0.3;
@@ -242,16 +239,10 @@ public class MaintenanceTicketDetail extends JDialog {
 
         gbc.gridx = 1;
         gbc.weightx = 0.7;
-        txtClosedAt = new JTextField(20);
-        txtClosedAt.setEditable(false);
-        txtClosedAt.setPreferredSize(new Dimension(200, 35));
-        txtClosedAt.setFont(new Font("Arial", Font.PLAIN, 13));
-        txtClosedAt.setBackground(new Color(240, 240, 240));
-        txtClosedAt.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                BorderFactory.createEmptyBorder(5, 10, 5, 10)
-        ));
-        formPanel.add(txtClosedAt, gbc);
+        closedAtChooser = new JDateChooser();
+        closedAtChooser.setDateFormatString("yyyy-MM-dd HH:mm:ss");
+        closedAtChooser.setPreferredSize(new Dimension(200, 35));
+        formPanel.add(closedAtChooser, gbc);
 
         mainPanel.add(formPanel, BorderLayout.CENTER);
 
@@ -328,10 +319,10 @@ public class MaintenanceTicketDetail extends JDialog {
         }
 
         if (ticket.getOpenedAt() != null) {
-            txtOpenedAt.setText(ticket.getOpenedAt().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            openedAtChooser.setDate(new Date(ticket.getOpenedAt().getTime()));
         }
         if (ticket.getClosedAt() != null) {
-            txtClosedAt.setText(ticket.getClosedAt().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            closedAtChooser.setDate(new Date(ticket.getClosedAt().getTime()));
         }
     }
 
@@ -348,10 +339,15 @@ public class MaintenanceTicketDetail extends JDialog {
                 return;
             }
 
+            // Validate opened date
+            if (openedAtChooser.getDate() == null) {
+                JOptionPane.showMessageDialog(this, "Vui lòng chọn ngày mở!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
             // Create or update ticket
             if (ticket == null) {
                 ticket = new MaintenanceTicketDTO();
-                ticket.setOpenedAt(Timestamp.valueOf(LocalDateTime.now()));
             }
 
             ticket.setRoomId(Integer.parseInt(txtRoomId.getText().trim()));
@@ -363,9 +359,20 @@ public class MaintenanceTicketDetail extends JDialog {
             UserItem selectedUser = (UserItem) cboAssignedTo.getSelectedItem();
             ticket.setAssignedTo(selectedUser.getUserId() > 0 ? selectedUser.getUserId() : null);
 
-            // Auto set closed_at when status is Closed
-            if ("Closed".equals(ticket.getStatus()) && ticket.getClosedAt() == null) {
-                ticket.setClosedAt(Timestamp.valueOf(LocalDateTime.now()));
+            if (openedAtChooser.getDate() != null) {
+                ticket.setOpenedAt(new Timestamp(openedAtChooser.getDate().getTime()));
+            }
+
+            // Set closed_at when status is Closed
+            if ("Closed".equals(ticket.getStatus())) {
+                if (closedAtChooser.getDate() != null) {
+                    ticket.setClosedAt(new Timestamp(closedAtChooser.getDate().getTime()));
+                } else {
+                    ticket.setClosedAt(new Timestamp(System.currentTimeMillis()));
+                }
+            } else {
+                ticket.setClosedAt(closedAtChooser.getDate() != null ?
+                        new Timestamp(closedAtChooser.getDate().getTime()) : null);
             }
 
             boolean success;

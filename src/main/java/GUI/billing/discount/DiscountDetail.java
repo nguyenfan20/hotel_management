@@ -2,10 +2,12 @@ package GUI.billing.discount;
 
 import BUS.DiscountBUS;
 import DTO.DiscountDTO;
+import com.toedter.calendar.JDateChooser;
 
 import javax.swing.*;
 import java.awt.*;
 import java.sql.Date;
+import java.util.Calendar;
 
 public class DiscountDetail extends JDialog {
     private DiscountDTO discount;
@@ -15,8 +17,8 @@ public class DiscountDetail extends JDialog {
     private JTextField valueField;
     private JTextField minSpendField;
     private JTextField maxDiscountField;
-    private JTextField startDateField;
-    private JTextField expiryDateField;
+    private JDateChooser startDateChooser;
+    private JDateChooser expiryDateChooser;
     private JTextField usageLimitField;
     private JTextField perUserLimitField;
     private JComboBox<String> statusCombo;
@@ -107,29 +109,29 @@ public class DiscountDetail extends JDialog {
         gbc.weightx = 0.7;
         mainPanel.add(maxDiscountField, gbc);
 
-        // Ngày bắt đầu
         gbc.gridx = 0;
         gbc.gridy = 5;
         gbc.weightx = 0.3;
-        mainPanel.add(new JLabel("Ngày bắt đầu (yyyy-MM-dd):"), gbc);
+        mainPanel.add(new JLabel("Ngày bắt đầu:"), gbc);
 
-        startDateField = new JTextField();
-        startDateField.setPreferredSize(new Dimension(300, 30));
+        startDateChooser = new JDateChooser();
+        startDateChooser.setPreferredSize(new Dimension(300, 30));
+        startDateChooser.setDateFormatString("yyyy-MM-dd");
         gbc.gridx = 1;
         gbc.weightx = 0.7;
-        mainPanel.add(startDateField, gbc);
+        mainPanel.add(startDateChooser, gbc);
 
-        // Ngày kết thúc
         gbc.gridx = 0;
         gbc.gridy = 6;
         gbc.weightx = 0.3;
-        mainPanel.add(new JLabel("Ngày kết thúc (yyyy-MM-dd):"), gbc);
+        mainPanel.add(new JLabel("Ngày kết thúc:"), gbc);
 
-        expiryDateField = new JTextField();
-        expiryDateField.setPreferredSize(new Dimension(300, 30));
+        expiryDateChooser = new JDateChooser();
+        expiryDateChooser.setPreferredSize(new Dimension(300, 30));
+        expiryDateChooser.setDateFormatString("yyyy-MM-dd");
         gbc.gridx = 1;
         gbc.weightx = 0.7;
-        mainPanel.add(expiryDateField, gbc);
+        mainPanel.add(expiryDateChooser, gbc);
 
         // Giới hạn sử dụng
         gbc.gridx = 0;
@@ -197,9 +199,11 @@ public class DiscountDetail extends JDialog {
         maxDiscountField.setText("0");
         usageLimitField.setText("0");
         perUserLimitField.setText("0");
+
         long currentTime = System.currentTimeMillis();
-        startDateField.setText(new Date(currentTime).toString());
-        expiryDateField.setText(new Date(currentTime + 30L * 24 * 60 * 60 * 1000).toString());
+        startDateChooser.setDate(new java.util.Date(currentTime));
+        expiryDateChooser.setDate(new java.util.Date(currentTime + 30L * 24 * 60 * 60 * 1000));
+
         typeCombo.setSelectedIndex(0);
         statusCombo.setSelectedIndex(0);
     }
@@ -210,8 +214,14 @@ public class DiscountDetail extends JDialog {
         valueField.setText(String.valueOf(discount.getDiscountValue()));
         minSpendField.setText(String.valueOf(discount.getMinSpend()));
         maxDiscountField.setText(String.valueOf(discount.getMaxDiscountAmount()));
-        startDateField.setText(discount.getStartDate() != null ? discount.getStartDate().toString() : "");
-        expiryDateField.setText(discount.getExpiryDate() != null ? discount.getExpiryDate().toString() : "");
+
+        if (discount.getStartDate() != null) {
+            startDateChooser.setDate(new java.util.Date(discount.getStartDate().getTime()));
+        }
+        if (discount.getExpiryDate() != null) {
+            expiryDateChooser.setDate(new java.util.Date(discount.getExpiryDate().getTime()));
+        }
+
         usageLimitField.setText(String.valueOf(discount.getUsageLimit()));
         perUserLimitField.setText(String.valueOf(discount.getPerUserLimit()));
         statusCombo.setSelectedItem(discount.getStatus() != null ? discount.getStatus() : "ACTIVE");
@@ -223,8 +233,6 @@ public class DiscountDetail extends JDialog {
             String valueStr = valueField.getText().trim();
             String minSpendStr = minSpendField.getText().trim();
             String maxDiscountStr = maxDiscountField.getText().trim();
-            String startDateStr = startDateField.getText().trim();
-            String expiryDateStr = expiryDateField.getText().trim();
             String usageLimitStr = usageLimitField.getText().trim();
             String perUserLimitStr = perUserLimitField.getText().trim();
 
@@ -248,12 +256,12 @@ public class DiscountDetail extends JDialog {
                 return;
             }
 
-            if (startDateStr.isEmpty()) {
+            if (startDateChooser.getDate() == null) {
                 JOptionPane.showMessageDialog(this, "Ngày bắt đầu không được để trống!", "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            if (expiryDateStr.isEmpty()) {
+            if (expiryDateChooser.getDate() == null) {
                 JOptionPane.showMessageDialog(this, "Ngày kết thúc không được để trống!", "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
             }
@@ -268,8 +276,8 @@ public class DiscountDetail extends JDialog {
                 return;
             }
 
-            Date startDate = Date.valueOf(startDateStr);
-            Date expiryDate = Date.valueOf(expiryDateStr);
+            Date startDate = new Date(startDateChooser.getDate().getTime());
+            Date expiryDate = new Date(expiryDateChooser.getDate().getTime());
 
             if (startDate.after(expiryDate)) {
                 JOptionPane.showMessageDialog(this, "Ngày bắt đầu phải trước hoặc bằng ngày kết thúc!", "Lỗi", JOptionPane.ERROR_MESSAGE);
@@ -304,8 +312,6 @@ public class DiscountDetail extends JDialog {
             } else {
                 JOptionPane.showMessageDialog(this, "Lưu chiết khấu thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
-        } catch (IllegalArgumentException ex) {
-            JOptionPane.showMessageDialog(this, "Định dạng ngày tháng không hợp lệ! Vui lòng nhập theo định dạng yyyy-MM-dd.", "Lỗi", JOptionPane.ERROR_MESSAGE);
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Đã xảy ra lỗi không mong muốn: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }

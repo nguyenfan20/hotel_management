@@ -1,5 +1,7 @@
+GUI\billing\payment\Payment$3.class
 GUI\booking\BookingRoom$2.class
 GUI\booking\BookingRoom$3.class
+GUI\room\Room$5.class
 config\SqlServerConfig.class
 test\test.class
 util\ImagePanel.class

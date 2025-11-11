@@ -4,6 +4,7 @@ import BUS.HousekeepingTaskBUS;
 import BUS.UserAccountBUS;
 import DTO.HousekeepingTaskDTO;
 import DTO.UserAccountDTO;
+import com.toedter.calendar.JDateChooser;
 
 import javax.swing.*;
 import java.awt.*;
@@ -11,6 +12,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.List;
 
 public class HousekeepingTaskDetail extends JDialog {
@@ -27,7 +29,7 @@ public class HousekeepingTaskDetail extends JDialog {
     private boolean isEditMode;
 
     private JTextField txtRoomId;
-    private JTextField txtTaskDate;
+    private JDateChooser taskDateChooser;
     private JTextField txtTaskType;
     private JComboBox<UserItem> cboAssignedTo;
     private JComboBox<String> cboStatus;
@@ -116,7 +118,7 @@ public class HousekeepingTaskDetail extends JDialog {
         ));
         formPanel.add(txtRoomId, gbc);
 
-        // Task Date
+        // Task Date - Using JDateChooser
         gbc.gridx = 0;
         gbc.gridy = 1;
         gbc.weightx = 0.3;
@@ -126,15 +128,15 @@ public class HousekeepingTaskDetail extends JDialog {
 
         gbc.gridx = 1;
         gbc.weightx = 0.7;
-        txtTaskDate = new JTextField(20);
-        txtTaskDate.setText(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
-        txtTaskDate.setPreferredSize(new Dimension(200, 35));
-        txtTaskDate.setFont(new Font("Arial", Font.PLAIN, 13));
-        txtTaskDate.setBorder(BorderFactory.createCompoundBorder(
+        taskDateChooser = new JDateChooser();
+        taskDateChooser.setDate(new Date());
+        taskDateChooser.setDateFormatString("yyyy-MM-dd");
+        taskDateChooser.setPreferredSize(new Dimension(200, 35));
+        taskDateChooser.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER_COLOR, 1),
                 BorderFactory.createEmptyBorder(5, 10, 5, 10)
         ));
-        formPanel.add(txtTaskDate, gbc);
+        formPanel.add(taskDateChooser, gbc);
 
         // Task Type
         gbc.gridx = 0;
@@ -268,7 +270,7 @@ public class HousekeepingTaskDetail extends JDialog {
 
     private void loadTaskData() {
         txtRoomId.setText(String.valueOf(task.getRoomId()));
-        txtTaskDate.setText(task.getTaskDate().toLocalDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+        taskDateChooser.setDate(new java.util.Date(task.getTaskDate().getTime()));
         txtTaskType.setText(task.getTaskType());
 
         if (task.getAssignedTo() != null && task.getAssignedTo() > 0) {
@@ -293,8 +295,8 @@ public class HousekeepingTaskDetail extends JDialog {
                 return;
             }
 
-            if (txtTaskDate.getText().trim().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Vui lòng nhập ngày nhiệm vụ!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+            if (taskDateChooser.getDate() == null) {
+                JOptionPane.showMessageDialog(this, "Vui lòng chọn ngày nhiệm vụ!", "Cảnh báo", JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
@@ -309,8 +311,8 @@ public class HousekeepingTaskDetail extends JDialog {
             }
 
             task.setRoomId(Integer.parseInt(txtRoomId.getText().trim()));
-            LocalDate taskDate = LocalDate.parse(txtTaskDate.getText().trim(), DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-            task.setTaskDate(java.sql.Date.valueOf(taskDate));
+            Date selectedDate = taskDateChooser.getDate();
+            task.setTaskDate(new java.sql.Date(selectedDate.getTime()));
             task.setTaskType(txtTaskType.getText().trim());
 
             UserItem selectedUser = (UserItem) cboAssignedTo.getSelectedItem();

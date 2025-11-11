@@ -38,12 +38,13 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 
+import com.toedter.calendar.JDateChooser;
+
 import BUS.CustomerBUS;
 import DTO.CustomerDTO;
 
 public class CustomGUI extends JPanel {
 
-    // === MÀU SẮC NHẤT QUÁN VỚI USERACCOUNT ===
     private static final Color PRIMARY_COLOR = new Color(41, 98, 255);
     private static final Color BACKGROUND_COLOR = new Color(245, 245, 245);
     private static final Color PANEL_BG = Color.WHITE;
@@ -177,7 +178,7 @@ public class CustomGUI extends JPanel {
                         String nationality = c.getNationality() != null ? c.getNationality().toLowerCase() : "";
                         String genderVn = c.getGender() != null ? toVietnameseGender(c.getGender()).toLowerCase() : "";
                         return name.contains(query) || phone.contains(query) ||
-                               idCard.contains(query) || nationality.contains(query) || genderVn.contains(query);
+                                idCard.contains(query) || nationality.contains(query) || genderVn.contains(query);
                     })
                     .collect(Collectors.toList());
         }
@@ -291,10 +292,11 @@ public class CustomGUI extends JPanel {
             System.err.println("Lỗi tải quốc tịch: " + ex.getMessage());
         }
 
-        JLabel dobLabel = new JLabel("Ngày sinh (dd/MM/yyyy):");
+        JLabel dobLabel = new JLabel("Ngày sinh:");
         dobLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField dobField = new JTextField();
-        dobField.setToolTipText("Ví dụ: 15/05/1990");
+        JDateChooser dobChooser = new JDateChooser();
+        dobChooser.setDateFormatString("dd/MM/yyyy");
+        dobChooser.setPreferredSize(new Dimension(200, 30));
 
         JLabel genderLabel = new JLabel("Giới tính:");
         genderLabel.setFont(new Font("Arial", Font.BOLD, 13));
@@ -311,7 +313,7 @@ public class CustomGUI extends JPanel {
         content.add(idCardLabel); content.add(idCardField);
         content.add(emailLabel); content.add(emailField);
         content.add(nationalityLabel); content.add(nationalityCombo);
-        content.add(dobLabel); content.add(dobField);
+        content.add(dobLabel); content.add(dobChooser);
         content.add(genderLabel); content.add(genderCombo);
         content.add(noteLabel); content.add(noteScroll);
 
@@ -336,15 +338,8 @@ public class CustomGUI extends JPanel {
                 customer.setGender(toEnglishGender(selectedVn));
                 customer.setNote(noteArea.getText().trim().isEmpty() ? null : noteArea.getText().trim());
 
-                String dobStr = dobField.getText().trim();
-                if (!dobStr.isEmpty()) {
-                    try {
-                        java.util.Date dob = dateFormat.parse(dobStr);
-                        customer.setDob(dob);
-                    } catch (Exception ex) {
-                        JOptionPane.showMessageDialog(dialog, "Ngày sinh không hợp lệ! Vui lòng nhập theo định dạng dd/MM/yyyy", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
+                if (dobChooser.getDate() != null) {
+                    customer.setDob(dobChooser.getDate());
                 }
 
                 boolean success = customerBUS.addCustomer(customer);
@@ -463,9 +458,12 @@ public class CustomGUI extends JPanel {
             nationalityCombo.addItem(customer.getNationality());
         }
 
-        JLabel dobLabel = new JLabel("Ngày sinh (dd/MM/yyyy):");
+        JLabel dobLabel = new JLabel("Ngày sinh:");
         dobLabel.setFont(new Font("Arial", Font.BOLD, 13));
-        JTextField dobField = new JTextField(customer.getDob() != null ? dateFormat.format(customer.getDob()) : "");
+        JDateChooser dobChooser = new JDateChooser();
+        dobChooser.setDateFormatString("dd/MM/yyyy");
+        dobChooser.setDate(customer.getDob());
+        dobChooser.setPreferredSize(new Dimension(200, 30));
 
         JLabel genderLabel = new JLabel("Giới tính:");
         genderLabel.setFont(new Font("Arial", Font.BOLD, 13));
@@ -483,7 +481,7 @@ public class CustomGUI extends JPanel {
         content.add(idCardLabel); content.add(idCardField);
         content.add(emailLabel); content.add(emailField);
         content.add(nationalityLabel); content.add(nationalityCombo);
-        content.add(dobLabel); content.add(dobField);
+        content.add(dobLabel); content.add(dobChooser);
         content.add(genderLabel); content.add(genderCombo);
         content.add(noteLabel); content.add(noteScroll);
 
@@ -506,15 +504,8 @@ public class CustomGUI extends JPanel {
                 customer.setGender(toEnglishGender(selectedVn));
                 customer.setNote(noteArea.getText().trim().isEmpty() ? null : noteArea.getText().trim());
 
-                String dobStr = dobField.getText().trim();
-                if (!dobStr.isEmpty()) {
-                    try {
-                        java.util.Date dob = dateFormat.parse(dobStr);
-                        customer.setDob(dob);
-                    } catch (Exception ex) {
-                        JOptionPane.showMessageDialog(dialog, "Ngày sinh không hợp lệ! Vui lòng nhập theo định dạng dd/MM/yyyy", "Lỗi", JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
+                if (dobChooser.getDate() != null) {
+                    customer.setDob(dobChooser.getDate());
                 } else {
                     customer.setDob(null);
                 }
@@ -548,8 +539,8 @@ public class CustomGUI extends JPanel {
 
     private void deleteCustomer(int customerId, String name) {
         int confirm = JOptionPane.showConfirmDialog(this,
-            "Xóa khách hàng:\n" + name + " (ID: " + customerId + ")",
-            "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+                "Xóa khách hàng:\n" + name + " (ID: " + customerId + ")",
+                "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 
         if (confirm == JOptionPane.YES_OPTION) {
             boolean success = customerBUS.deleteCustomer(customerId);
@@ -558,8 +549,8 @@ public class CustomGUI extends JPanel {
                 loadData();
             } else {
                 JOptionPane.showMessageDialog(this,
-                    "Xóa thất bại!\nKhách hàng có thể đã đặt phòng hoặc lỗi hệ thống.",
-                    "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        "Xóa thất bại!\nKhách hàng có thể đã đặt phòng hoặc lỗi hệ thống.",
+                        "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
@@ -575,12 +566,12 @@ public class CustomGUI extends JPanel {
 
         for (CustomerDTO c : filteredCustomerData) {
             Object[] row = {
-                c.getCustomer_id(),
-                c.getFull_name(),
-                c.getDob() != null ? dateFormat.format(c.getDob()) : "Chưa có",
-                c.getPhone() != null ? c.getPhone() : "Chưa có",
-                toVietnameseGender(c.getGender()),
-                c.getNationality() != null ? c.getNationality() : "Chưa có"
+                    c.getCustomer_id(),
+                    c.getFull_name(),
+                    c.getDob() != null ? dateFormat.format(c.getDob()) : "Chưa có",
+                    c.getPhone() != null ? c.getPhone() : "Chưa có",
+                    toVietnameseGender(c.getGender()),
+                    c.getNationality() != null ? c.getNationality() : "Chưa có"
             };
             tableModel.addRow(row);
         }
