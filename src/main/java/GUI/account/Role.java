@@ -84,6 +84,10 @@ public class Role extends JPanel {
         filterButton.addActionListener(e -> showFilterDialog());
         controlPanel.add(filterButton);
 
+        JButton refreshButton = createIconButton("/icon/reload.png");
+        refreshButton.addActionListener(e -> loadData());
+        controlPanel.add(refreshButton);
+
         add(controlPanel, BorderLayout.NORTH);
 
         scrollPane = new JScrollPane();

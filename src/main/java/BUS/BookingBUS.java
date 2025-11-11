@@ -44,7 +44,7 @@ public class BookingBUS {
 
         // Đặt trạng thái mặc định
         if (booking.getStatus() == null || booking.getStatus().trim().isEmpty()) {
-            booking.setStatus("Đã đặt");
+            booking.setStatus("BOOKED");
         }
 
         return bookingDAO.insert(booking);

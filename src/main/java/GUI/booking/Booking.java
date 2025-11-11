@@ -117,7 +117,7 @@ public class Booking extends javax.swing.JPanel {
         submitButton.addActionListener(e -> submitBooking());
         buttonPanel.add(submitButton);
 
-        JButton resetButton = new JButton("Xóa trắng");
+        JButton resetButton = new JButton("Đặt lại");
         resetButton.setPreferredSize(new Dimension(100, 35));
         resetButton.setBackground(BORDER_COLOR);
         resetButton.setForeground(TEXT_COLOR);
@@ -613,6 +613,7 @@ public class Booking extends javax.swing.JPanel {
                 bookingRoom.setAdults(adultsCount);
                 bookingRoom.setChildren(childrenCount);
                 bookingRoom.setRatePerNight(ratePerNight);
+                bookingRoom.setTaxRate(new BigDecimal(10));
                 bookingRoom.setStatus("BOOKED");
 
                 boolean roomAdded = bookingRoomBUS.addBookingRoom(bookingRoom);

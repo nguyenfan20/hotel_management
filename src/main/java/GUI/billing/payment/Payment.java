@@ -495,6 +495,8 @@ public class Payment extends JPanel {
                 selectedInvoice.setStatus("PAID");
                 invoiceBUS.updateInvoice(selectedInvoice);
 
+                distributeDiscountToBookingRooms(selectedInvoice);
+
                 double change = paidAmount - invoiceAmount;
                 String message = "Thanh toán thành công!\n";
                 if (change > 0) {
@@ -513,6 +515,77 @@ public class Payment extends JPanel {
             JOptionPane.showMessageDialog(this, "Vui lòng nhập đúng định dạng số!", "Lỗi", JOptionPane.ERROR_MESSAGE);
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Phân bổ discount từ Invoice về các BookingRoom theo tỷ lệ
+     */
+    private void distributeDiscountToBookingRooms(InvoiceDTO invoice) {
+        if (invoice.getDiscountTotal() <= 0) {
+            return; // Không có discount thì không cần phân bổ
+        }
+
+        try {
+            // Lấy tất cả BookingRoom của booking này
+            BookingRoomBUS bookingRoomBUS = new BookingRoomBUS();
+            List<BookingRoomDTO> bookingRooms = bookingRoomBUS.getBookingRoomsByBooking(invoice.getBookingId());
+
+            if (bookingRooms == null || bookingRooms.isEmpty()) {
+                return;
+            }
+
+            // Tính tổng giá trị các phòng (trước discount và tax)
+            double totalRoomPrice = 0.0;
+            for (BookingRoomDTO room : bookingRooms) {
+                // Tính số đêm
+                LocalDateTime checkIn = room.getCheckInActual() != null ?
+                        room.getCheckInActual() : room.getCheckInPlan();
+                LocalDateTime checkOut = room.getCheckOutActual() != null ?
+                        room.getCheckOutActual() : room.getCheckOutPlan();
+
+                long nights = java.time.temporal.ChronoUnit.DAYS.between(checkIn, checkOut);
+                if (nights < 1) nights = 1;
+
+                double roomPrice = room.getRatePerNight().doubleValue() * nights;
+                totalRoomPrice += roomPrice;
+            }
+
+            // Phân bổ discount theo tỷ lệ giá phòng
+            double totalDiscountApplied = 0.0;
+            for (int i = 0; i < bookingRooms.size(); i++) {
+                BookingRoomDTO room = bookingRooms.get(i);
+
+                // Tính số đêm
+                LocalDateTime checkIn = room.getCheckInActual() != null ?
+                        room.getCheckInActual() : room.getCheckInPlan();
+                LocalDateTime checkOut = room.getCheckOutActual() != null ?
+                        room.getCheckOutActual() : room.getCheckOutPlan();
+
+                long nights = java.time.temporal.ChronoUnit.DAYS.between(checkIn, checkOut);
+                if (nights < 1) nights = 1;
+
+                double roomPrice = room.getRatePerNight().doubleValue() * nights;
+
+                // Tính discount cho phòng này
+                double roomDiscount;
+                if (i == bookingRooms.size() - 1) {
+                    // Phòng cuối cùng: lấy phần discount còn lại để tránh sai số làm tròn
+                    roomDiscount = invoice.getDiscountTotal() - totalDiscountApplied;
+                } else {
+                    // Tính theo tỷ lệ
+                    roomDiscount = (roomPrice / totalRoomPrice) * invoice.getDiscountTotal();
+                    totalDiscountApplied += roomDiscount;
+                }
+
+                // Cập nhật discount_amount cho BookingRoom
+                room.setDiscountAmount(java.math.BigDecimal.valueOf(roomDiscount));
+                bookingRoomBUS.updateBookingRoom(room);
+            }
+
+        } catch (Exception e) {
+            System.err.println("Lỗi khi phân bổ discount: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 

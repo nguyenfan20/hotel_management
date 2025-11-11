@@ -123,6 +123,10 @@ public class Room extends javax.swing.JPanel {
         filterButton.addActionListener(e -> showFilterDialog());
         controlPanel.add(filterButton);
 
+        JButton refreshButton = createIconButton("/icon/reload.png");
+        refreshButton.addActionListener(e -> loadData());
+        controlPanel.add(refreshButton);
+
         toggleButton = createIconButton("/images/grid.png");
         toggleButton.setToolTipText("Chuyển đổi giữa lưới và bảng");
         toggleButton.addActionListener(e -> {

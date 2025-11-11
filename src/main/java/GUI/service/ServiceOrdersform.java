@@ -74,17 +74,17 @@ public class ServiceOrdersform extends javax.swing.JPanel {
         });
 
         // Search button
-        JButton btnSearch = createIconButton("Tìm");
+        JButton btnSearch = createIconButton("/images/search.png");
         btnSearch.setPreferredSize(new Dimension(35, 35));
         btnSearch.addActionListener(e -> searchServiceOrder());
 
         // Filter button
-        JButton btnFilter = createIconButton("Lọc");
+        JButton btnFilter = createIconButton("/images/filter.png");
         btnFilter.setPreferredSize(new Dimension(35, 35));
         btnFilter.addActionListener(e -> showFilterDialog());
 
         // Refresh button
-        JButton btnRefresh = createIconButton("⟳");
+        JButton btnRefresh = createIconButton("/icon/reload.png");
         btnRefresh.setPreferredSize(new Dimension(35, 35));
         btnRefresh.addActionListener(e -> loadTableData());
 
@@ -117,12 +117,11 @@ public class ServiceOrdersform extends javax.swing.JPanel {
         updateTableView(new java.util.ArrayList<>());
     }
 
-    private JButton createIconButton(String text) {
-        JButton button = new JButton(text);
-        button.setPreferredSize(new Dimension(90, 35));
+    private JButton createIconButton(String iconPath) {
+        JButton button = new JButton();
+        button.setPreferredSize(new Dimension(35, 35));
+        button.setIcon(new ImageIcon(getClass().getResource(iconPath)));
         button.setBackground(PANEL_BG);
-        button.setForeground(TEXT_COLOR);
-        button.setFont(new Font("Arial", Font.PLAIN, 12));
         button.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
         button.setFocusPainted(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
