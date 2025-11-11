@@ -65,7 +65,7 @@ public class ListMenu extends JScrollPane {
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        GradientPaint gradient = new GradientPaint(0, 0, Color.decode("#1c92d2"), 0, getHeight(), Color.decode("#f2fcfe"));
+        GradientPaint gradient = new GradientPaint(0, 0, Color.decode("#2193b0"), 0, getHeight(), Color.decode("#6dd5ed"));
         g2.setPaint(gradient);
         g2.fillRect(0, 0, getWidth(), getHeight()); // Nền phẳng, không bo góc
 
