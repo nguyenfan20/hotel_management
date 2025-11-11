@@ -4,13 +4,16 @@ import BUS.*;
 import DTO.*;
 import GUI.dashboard.Form_Home;
 import util.SimpleDocumentListener;
+import com.toedter.calendar.JDateChooser;
 
 import javax.swing.*;
 import java.awt.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,8 +48,8 @@ public class Booking extends javax.swing.JPanel {
     private JTextField nationalityField;
     private JTextField genderField;
 
-    private JTextField dateCheckinField;
-    private JTextField dateCheckoutField;
+    private JDateChooser dateCheckinChooser;
+    private JDateChooser dateCheckoutChooser;
     private JSpinner guestAdultsSpinner;
     private JSpinner guestChildrenSpinner;
     private JTextField noteField;
@@ -281,35 +284,32 @@ public class Booking extends javax.swing.JPanel {
         contentPanel.setBackground(PANEL_BG);
         contentPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
 
-        JLabel checkinLabel = new JLabel("Ngày nhận phòng (yyyy-MM-dd):");
+        JLabel checkinLabel = new JLabel("Ngày nhận phòng:");
         checkinLabel.setFont(new Font("Arial", Font.BOLD, 12));
-        dateCheckinField = new JTextField();
-        dateCheckinField.setText(LocalDate.now().toString());
-        dateCheckinField.setFont(new Font("Arial", Font.PLAIN, 12));
-        dateCheckinField.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                BorderFactory.createEmptyBorder(5, 10, 5, 10)
-        ));
+        dateCheckinChooser = new JDateChooser();
+        dateCheckinChooser.setDate(new Date());
+        dateCheckinChooser.setMinSelectableDate(new Date());
+        dateCheckinChooser.setDateFormatString("dd/MM/yyyy");
+        dateCheckinChooser.setPreferredSize(new Dimension(200, 35));
 
         JPanel checkinPanel = new JPanel(new BorderLayout(0, 5));
         checkinPanel.setBackground(PANEL_BG);
         checkinPanel.add(checkinLabel, BorderLayout.NORTH);
-        checkinPanel.add(dateCheckinField, BorderLayout.CENTER);
+        checkinPanel.add(dateCheckinChooser, BorderLayout.CENTER);
 
-        JLabel checkoutLabel = new JLabel("Ngày trả phòng (yyyy-MM-dd):");
+        JLabel checkoutLabel = new JLabel("Ngày trả phòng:");
         checkoutLabel.setFont(new Font("Arial", Font.BOLD, 12));
-        dateCheckoutField = new JTextField();
-        dateCheckoutField.setText(LocalDate.now().plusDays(1).toString());
-        dateCheckoutField.setFont(new Font("Arial", Font.PLAIN, 12));
-        dateCheckoutField.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                BorderFactory.createEmptyBorder(5, 10, 5, 10)
-        ));
+        dateCheckoutChooser = new JDateChooser();
+        Date tomorrowDate = new Date(System.currentTimeMillis() + 24 * 60 * 60 * 1000);
+        dateCheckoutChooser.setDate(tomorrowDate);
+        dateCheckoutChooser.setMinSelectableDate(new Date());
+        dateCheckoutChooser.setDateFormatString("dd/MM/yyyy");
+        dateCheckoutChooser.setPreferredSize(new Dimension(200, 35));
 
         JPanel checkoutPanel = new JPanel(new BorderLayout(0, 5));
         checkoutPanel.setBackground(PANEL_BG);
         checkoutPanel.add(checkoutLabel, BorderLayout.NORTH);
-        checkoutPanel.add(dateCheckoutField, BorderLayout.CENTER);
+        checkoutPanel.add(dateCheckoutChooser, BorderLayout.CENTER);
 
         contentPanel.add(checkinPanel);
         contentPanel.add(checkoutPanel);
@@ -384,9 +384,8 @@ public class Booking extends javax.swing.JPanel {
         // Load phòng trống theo ngày đã chọn
         loadAvailableRoomsByDateRange(roomsPanel);
 
-        // Lắng nghe thay đổi ngày để tự động refresh phòng
-        dateCheckinField.getDocument().addDocumentListener((SimpleDocumentListener) e -> loadAvailableRoomsByDateRange(roomsPanel));
-        dateCheckoutField.getDocument().addDocumentListener((SimpleDocumentListener) e -> loadAvailableRoomsByDateRange(roomsPanel));
+        dateCheckinChooser.addPropertyChangeListener("date", e -> loadAvailableRoomsByDateRange(roomsPanel));
+        dateCheckoutChooser.addPropertyChangeListener("date", e -> loadAvailableRoomsByDateRange(roomsPanel));
 
         section.add(titleLabel, BorderLayout.NORTH);
         section.add(roomsScroll, BorderLayout.CENTER);
@@ -418,8 +417,6 @@ public class Booking extends javax.swing.JPanel {
         return section;
     }
 
-
-
     private void loadRoomTypes() {
         try {
             List<RoomTypeDTO> roomTypeList = roomTypeBUS.getAllRoomTypes();
@@ -444,16 +441,16 @@ public class Booking extends javax.swing.JPanel {
                 return;
             }
 
-            // Validate and parse dates
-            LocalDate checkInDate;
-            LocalDate checkOutDate;
-            try {
-                checkInDate = LocalDate.parse(dateCheckinField.getText().trim());
-                checkOutDate = LocalDate.parse(dateCheckoutField.getText().trim());
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(this, "Ngày không hợp lệ! Định dạng: yyyy-MM-dd");
+            Date checkinDate = dateCheckinChooser.getDate();
+            Date checkoutDate = dateCheckoutChooser.getDate();
+
+            if (checkinDate == null || checkoutDate == null) {
+                JOptionPane.showMessageDialog(this, "Vui lòng chọn ngày nhận và trả phòng!");
                 return;
             }
+
+            LocalDate checkInDate = checkinDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+            LocalDate checkOutDate = checkoutDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 
             if (checkInDate.isAfter(checkOutDate) || checkInDate.isEqual(checkOutDate)) {
                 JOptionPane.showMessageDialog(this, "Ngày trả phòng phải sau ngày nhận phòng!");
@@ -525,15 +522,14 @@ public class Booking extends javax.swing.JPanel {
         idCardField.setText("");
         nationalityField.setText("");
         genderField.setText("");
-        dateCheckinField.setText(LocalDate.now().toString());
-        dateCheckoutField.setText(LocalDate.now().plusDays(1).toString());
+        dateCheckinChooser.setDate(new Date());
+        dateCheckoutChooser.setDate(new Date(System.currentTimeMillis() + 24 * 60 * 60 * 1000));
         guestAdultsSpinner.setValue(1);
         guestChildrenSpinner.setValue(0);
         noteField.setText("");
         selectedRoomIds.clear();
 
-        // Reload danh sách phòng (DocumentListener sẽ tự động trigger khi đổi ngày)
-        // Hoặc gọi trực tiếp:
+        // Reload danh sách phòng
         if (roomsPanel != null) {
             loadAvailableRoomsByDateRange(roomsPanel);
         }
@@ -548,10 +544,19 @@ public class Booking extends javax.swing.JPanel {
         LocalDateTime checkOut = null;
 
         try {
-            checkIn = LocalDate.parse(dateCheckinField.getText().trim()).atStartOfDay();
-            checkOut = LocalDate.parse(dateCheckoutField.getText().trim()).atStartOfDay();
+            Date checkinDate = dateCheckinChooser.getDate();
+            Date checkoutDate = dateCheckoutChooser.getDate();
+
+            if (checkinDate == null || checkoutDate == null) {
+                roomsPanel.revalidate();
+                roomsPanel.repaint();
+                return;
+            }
+
+            checkIn = checkinDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+            checkOut = checkoutDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
         } catch (Exception ex) {
-            // Nếu ngày sai định dạng → không load gì cả
+            ex.printStackTrace();
             roomsPanel.revalidate();
             roomsPanel.repaint();
             return;
