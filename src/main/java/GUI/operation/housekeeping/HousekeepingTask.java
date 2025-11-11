@@ -68,7 +68,7 @@ public class HousekeepingTask extends JPanel {
         searchButton.addActionListener(e -> searchTasks());
 
         // Status filter
-        statusFilterCombo = new JComboBox<>(new String[]{"Tất cả", "Pending", "In Progress", "Completed"});
+        statusFilterCombo = new JComboBox<>(new String[]{"Tất cả", "Pending", "In_Progress", "Completed"});
         statusFilterCombo.setPreferredSize(new Dimension(130, 35));
         statusFilterCombo.setFont(new Font("Arial", Font.PLAIN, 13));
         statusFilterCombo.addActionListener(e -> filterByStatus());

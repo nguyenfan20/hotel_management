@@ -459,13 +459,42 @@ public class BookingRoom extends javax.swing.JFrame {
         scrollPane.getViewport().setBackground(BACKGROUND_COLOR);
 
         try {
-            // Get all rooms with AVAILABLE status and not currently booked
             RoomBUS roomBUS = new RoomBUS();
             RoomTypeBUS roomTypeBUS = new RoomTypeBUS();
 
-            List<RoomDTO> availableRooms = roomBUS.getAllRooms().stream()
-                    .filter(room -> "AVAILABLE".equals(room.getStatus()) &&
-                            !bookingRoomBUS.isRoomCurrentlyBooked(room.getRoomId()))
+            // Lấy tất cả phòng và booking rooms
+            List<RoomDTO> allRooms = roomBUS.getAllRooms();
+            List<BookingRoomDTO> allBookingRooms = bookingRoomBUS.getAllBookingRooms();
+
+            // Logic giống Room.java: Tìm các phòng đang bận
+            java.util.Set<Integer> busyRoomIds = new java.util.HashSet<>();
+            LocalDateTime now = LocalDateTime.now();
+
+            for (BookingRoomDTO br : allBookingRooms) {
+                // Bỏ qua nếu đã checkout thực tế
+                if (br.getCheckOutActual() != null) {
+                    continue;
+                }
+
+                // Kiểm tra booking có bị hủy không
+                try {
+                    BUS.BookingBUS bookingBUS = new BUS.BookingBUS(new DAO.BookingDAO());
+                    DTO.BookingDTO booking = bookingBUS.getBookingById(br.getBookingId());
+
+                    if (booking != null && !"CANCELED".equals(booking.getStatus())) {
+                        // Nếu còn trong khoảng thời gian đặt
+                        if (br.getCheckOutPlan() != null && now.isBefore(br.getCheckOutPlan())) {
+                            busyRoomIds.add(br.getRoomId());
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("Lỗi kiểm tra booking: " + e.getMessage());
+                }
+            }
+
+            // Lọc ra chỉ những phòng KHÔNG nằm trong busyRoomIds
+            List<RoomDTO> availableRooms = allRooms.stream()
+                    .filter(room -> !busyRoomIds.contains(room.getRoomId()))
                     .toList();
 
             Map<Integer, String> roomTypes = new HashMap<>();
@@ -474,7 +503,7 @@ public class BookingRoom extends javax.swing.JFrame {
                 roomTypes.put(roomType.getRoomTypeId(), roomType.getName());
             }
 
-            // Group rooms by floor and display in grid
+            // Hiển thị theo tầng
             int currentFloor = -1;
             JPanel rowPanel = null;
             Color AVAILABLE_COLOR = new Color(232, 245, 233);

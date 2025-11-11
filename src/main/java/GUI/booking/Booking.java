@@ -36,6 +36,7 @@ public class Booking extends javax.swing.JPanel {
 
     private CustomerDTO currentCustomer;
     private JPanel customerInfoPanel;
+    private JPanel roomsPanel;
     private JComboBox<String> customerCombo;
     private JTextField phoneField;
     private JTextField nameField;
@@ -370,7 +371,8 @@ public class Booking extends javax.swing.JPanel {
         titleLabel.setFont(new Font("Arial", Font.BOLD, 15));
         titleLabel.setForeground(PRIMARY_COLOR);
 
-        JPanel roomsPanel = new JPanel();
+        // LƯU REFERENCE CỦA roomsPanel
+        roomsPanel = new JPanel();
         roomsPanel.setLayout(new BoxLayout(roomsPanel, BoxLayout.Y_AXIS));
         roomsPanel.setBackground(BACKGROUND_COLOR);
 
@@ -389,123 +391,6 @@ public class Booking extends javax.swing.JPanel {
         section.add(titleLabel, BorderLayout.NORTH);
         section.add(roomsScroll, BorderLayout.CENTER);
         return section;
-    }
-
-    private void reloadAvailableRoomsOnly(JPanel roomsPanel) {
-        roomsPanel.removeAll();
-        roomButtonMap.clear();
-        selectedRoomIds.clear();
-
-        try {
-            List<RoomDTO> allRooms = roomBUS.getAllRooms();
-            List<BookingRoomDTO> allBookingRooms = bookingRoomBUS.getAllBookingRooms();
-            LocalDateTime now = LocalDateTime.now();
-
-            // Lấy danh sách phòng đang bận (RESERVED hoặc OCCUPIED)
-            java.util.Set<Integer> busyRoomIds = new java.util.HashSet<>();
-            for (BookingRoomDTO br : allBookingRooms) {
-                if (br.getCheckOutPlan() != null && now.isBefore(br.getCheckOutPlan())) {
-                    BookingDTO booking = bookingBUS.getBookingById(br.getBookingId());
-                    if (booking != null && !"CANCELED".equals(booking.getStatus())) {
-                        busyRoomIds.add(br.getRoomId());
-                    }
-                }
-            }
-
-            int currentFloor = -1;
-            JPanel rowPanel = null;
-
-            for (RoomDTO room : allRooms) {
-                // === CHỈ HIỆN PHÒNG TRỐNG ===
-                if (busyRoomIds.contains(room.getRoomId())) {
-                    continue;
-                }
-
-                int floorNo = room.getFloorNo();
-
-                // Tạo tiêu đề tầng
-                if (floorNo != currentFloor) {
-                    currentFloor = floorNo;
-
-                    JPanel floorHeader = new JPanel(new FlowLayout(FlowLayout.CENTER));
-                    floorHeader.setBackground(BACKGROUND_COLOR);
-                    JLabel floorLabel = new JLabel("Tầng " + floorNo, SwingConstants.CENTER);
-                    floorLabel.setFont(new Font("Arial", Font.BOLD, 18));
-                    floorLabel.setForeground(TEXT_COLOR);
-                    floorLabel.setOpaque(true);
-                    floorLabel.setBackground(PANEL_BG);
-                    floorLabel.setBorder(BorderFactory.createCompoundBorder(
-                            BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                            BorderFactory.createEmptyBorder(12, 60, 12, 60)
-                    ));
-                    floorHeader.add(floorLabel);
-                    roomsPanel.add(floorHeader);
-
-                    rowPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 22, 18));
-                    rowPanel.setBackground(BACKGROUND_COLOR);
-                    roomsPanel.add(rowPanel);
-                }
-
-                // Tạo nút phòng
-                JButton roomBtn = new JButton();
-                roomBtn.setLayout(new BorderLayout(0, 6));
-                roomBtn.setPreferredSize(new Dimension(140, 150));
-                roomBtn.setBackground(AVAILABLE_COLOR);
-                roomBtn.setOpaque(true);
-                roomBtn.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(BORDER_COLOR, 2),
-                        BorderFactory.createEmptyBorder(14, 14, 14, 14)
-                ));
-                roomBtn.setFocusPainted(false);
-                roomBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-                // Icon nhà
-                ImageIcon icon = new ImageIcon(getClass().getResource("/images/house.png"));
-                JLabel iconLabel = new JLabel(icon, SwingConstants.CENTER);
-                roomBtn.add(iconLabel, BorderLayout.CENTER);
-
-                // Tên + loại phòng
-                JPanel textPanel = new JPanel(new BorderLayout());
-                textPanel.setOpaque(false);
-                JLabel nameLbl = new JLabel("Phòng " + room.getRoomNo(), SwingConstants.CENTER);
-                nameLbl.setFont(new Font("Arial", Font.BOLD, 14));
-                JLabel typeLbl = new JLabel(roomTypes.getOrDefault(room.getRoomTypeId(), ""), SwingConstants.CENTER);
-                typeLbl.setFont(new Font("Arial", Font.ITALIC, 11));
-                typeLbl.setForeground(new Color(80, 80, 80));
-                textPanel.add(nameLbl, BorderLayout.NORTH);
-                textPanel.add(typeLbl, BorderLayout.SOUTH);
-                roomBtn.add(textPanel, BorderLayout.SOUTH);
-
-                // Xử lý chọn phòng
-                int roomId = room.getRoomId();
-                roomBtn.addActionListener(e -> {
-                    if (selectedRoomIds.contains(roomId)) {
-                        selectedRoomIds.remove(Integer.valueOf(roomId));
-                        roomBtn.setBackground(AVAILABLE_COLOR);
-                    } else {
-                        selectedRoomIds.add(roomId);
-                        roomBtn.setBackground(SELECTED_COLOR);
-                    }
-                });
-
-                roomButtonMap.put(roomId, roomBtn);
-                rowPanel.add(roomBtn);
-
-                // Xuống dòng sau 4 phòng
-                if (rowPanel.getComponentCount() == 4) {
-                    rowPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 22, 18));
-                    rowPanel.setBackground(BACKGROUND_COLOR);
-                    roomsPanel.add(rowPanel);
-                }
-            }
-
-            roomsPanel.revalidate();
-            roomsPanel.repaint();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi tải phòng: " + e.getMessage());
-        }
     }
 
     private JPanel createNoteSection() {
@@ -647,43 +532,11 @@ public class Booking extends javax.swing.JPanel {
         noteField.setText("");
         selectedRoomIds.clear();
 
-        // Refresh lại danh sách phòng trống
-        Container parent = this;
-        while (parent != null && !(parent instanceof JScrollPane)) {
-            parent = parent.getParent();
+        // Reload danh sách phòng (DocumentListener sẽ tự động trigger khi đổi ngày)
+        // Hoặc gọi trực tiếp:
+        if (roomsPanel != null) {
+            loadAvailableRoomsByDateRange(roomsPanel);
         }
-        if (parent instanceof JScrollPane) {
-            Component view = ((JScrollPane) parent).getViewport().getView();
-            if (view instanceof JPanel) {
-                reloadAvailableRoomsOnly((JPanel) view);
-            }
-        }
-    }
-
-    private boolean isRoomAvailableInDateRange(int roomId, LocalDateTime checkIn, LocalDateTime checkOut) {
-        try {
-            List<BookingRoomDTO> allBookings = bookingRoomBUS.getAllBookingRooms();
-            for (BookingRoomDTO br : allBookings) {
-                if (br.getRoomId() != roomId) continue;
-
-                // Bỏ qua các booking đã hủy hoặc đã trả phòng
-                BookingDTO booking = bookingBUS.getBookingById(br.getBookingId());
-                if (booking == null || "CANCELED".equals(booking.getStatus())) continue;
-                if (br.getCheckOutActual() != null) continue; // đã trả phòng
-
-                LocalDateTime inPlan = br.getCheckInPlan();
-                LocalDateTime outPlan = br.getCheckOutPlan();
-
-                // Kiểm tra trùng lịch: [checkIn - checkOut] vs [inPlan - outPlan]
-                boolean overlap = !checkOut.isBefore(inPlan) && !outPlan.isBefore(checkIn);
-                if (overlap) {
-                    return false; // có khách đặt rồi
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return true; // trống
     }
 
     private void loadAvailableRoomsByDateRange(JPanel roomsPanel) {
@@ -712,14 +565,35 @@ public class Booking extends javax.swing.JPanel {
 
         try {
             List<RoomDTO> allRooms = roomBUS.getAllRooms();
+            List<BookingRoomDTO> allBookingRooms = bookingRoomBUS.getAllBookingRooms();
+
+            // Lấy danh sách phòng đang bận (logic giống Room.java)
+            java.util.Set<Integer> busyRoomIds = new java.util.HashSet<>();
+            for (BookingRoomDTO br : allBookingRooms) {
+                // Kiểm tra phòng có đang được đặt không
+                BookingDTO booking = bookingBUS.getBookingById(br.getBookingId());
+                if (booking != null && !"CANCELED".equals(booking.getStatus())) {
+                    // Kiểm tra trùng lịch với khoảng thời gian check-in/check-out
+                    LocalDateTime inPlan = br.getCheckInPlan();
+                    LocalDateTime outPlan = br.getCheckOutPlan();
+
+                    // Nếu chưa checkout thực tế, kiểm tra overlap
+                    if (br.getCheckOutActual() == null) {
+                        boolean overlap = !checkOut.isBefore(inPlan) && !outPlan.isBefore(checkIn);
+                        if (overlap) {
+                            busyRoomIds.add(br.getRoomId());
+                        }
+                    }
+                }
+            }
 
             int currentFloor = -1;
             JPanel rowPanel = null;
 
             for (RoomDTO room : allRooms) {
-                // KIỂM TRA XEM PHÒNG CÓ TRỐNG TRONG KHOẢNG THỜI GIAN KHÔNG
-                if (!isRoomAvailableInDateRange(room.getRoomId(), checkIn, checkOut)) {
-                    continue; // bỏ qua nếu đã có người đặt
+                // BỎ QUA PHÒNG ĐANG BẬN
+                if (busyRoomIds.contains(room.getRoomId())) {
+                    continue;
                 }
 
                 int floorNo = room.getFloorNo();
