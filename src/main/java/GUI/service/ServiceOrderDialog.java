@@ -1,13 +1,11 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
- */
 package GUI.service;
 
 import javax.swing.DefaultComboBoxModel;
 import BUS.ServiceBUS;
+import BUS.BookingRoomBUS;
 import DTO.ServiceDTO;
 import DTO.ServiceOrderDTO;
+import DTO.BookingRoomDTO;
 
 import java.awt.*;
 import java.util.HashMap;
@@ -15,15 +13,17 @@ import java.util.List;
 import java.util.Map;
 import javax.swing.JOptionPane;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 public class ServiceOrderDialog extends javax.swing.JDialog {
-    
+
     private boolean editMode = false;
     private ServiceOrderDTO currentOrder;
     private ServiceOrderDTO resultOrder;
     private ServiceBUS serviceBUS = new ServiceBUS();
+    private BookingRoomBUS bookingRoomBUS = new BookingRoomBUS();
     private List<ServiceDTO> services;
-    private Map<String, Integer> serviceNameToId = new HashMap<>();
-    private Map<Integer, String> serviceIdToName = new HashMap<>();
+    private List<BookingRoomDTO> checkedInRooms;
 
     public ServiceOrderDialog(Frame parent, boolean modal) {
         super(parent, modal);
@@ -31,6 +31,7 @@ public class ServiceOrderDialog extends javax.swing.JDialog {
         setLocationRelativeTo(parent);
         setTitle("Thông tin Đơn Dịch vụ");
         loadServicesToComboBox();
+        loadCheckedInRoomsToComboBox();
     }
 
     public ServiceOrderDialog(Window owner, boolean modal) {
@@ -39,6 +40,7 @@ public class ServiceOrderDialog extends javax.swing.JDialog {
         setLocationRelativeTo(owner);
         setTitle("Thông tin Đơn Dịch vụ");
         loadServicesToComboBox();
+        loadCheckedInRoomsToComboBox();
     }
 
     public ServiceOrderDTO openForCreate() {
@@ -60,38 +62,98 @@ public class ServiceOrderDialog extends javax.swing.JDialog {
     }
 
     private void clearForm() {
-        txtBookingId.setText("");
+        cbBookingRoom.setSelectedIndex(-1);
         cbServiceorder.setSelectedIndex(-1);
         spnQuantityorder.setValue(1);
         txtNote.setText("");
     }
 
     private void fillForm(ServiceOrderDTO order) {
-        txtBookingId.setText(order.getBookingRoomId() + "");
+        // Tìm và chọn booking room tương ứng
+        for (int i = 0; i < cbBookingRoom.getItemCount(); i++) {
+            BookingRoomDTO br = cbBookingRoom.getItemAt(i);
+            if (br.getBookingRoomId() == order.getBookingRoomId()) {
+                cbBookingRoom.setSelectedIndex(i);
+                break;
+            }
+        }
+
         spnQuantityorder.setValue(order.getQuantity());
         txtNote.setText(order.getNote());
-        String serviceName = serviceIdToName.get(order.getServiceId());
-        cbServiceorder.setSelectedItem(serviceName);
+
+        // Tìm và chọn service tương ứng
+        for (int i = 0; i < cbServiceorder.getItemCount(); i++) {
+            ServiceDTO s = cbServiceorder.getItemAt(i);
+            if (s.getServiceId() == order.getServiceId()) {
+                cbServiceorder.setSelectedIndex(i);
+                break;
+            }
+        }
+    }
+
+    private void loadCheckedInRoomsToComboBox() {
+        cbBookingRoom.removeAllItems();
+
+        // Lấy danh sách phòng đã check-in
+        checkedInRooms = bookingRoomBUS.getBookingRoomsByStatus("CHECKED_IN");
+
+        DefaultComboBoxModel<BookingRoomDTO> model = new DefaultComboBoxModel<>();
+
+        if (checkedInRooms != null && !checkedInRooms.isEmpty()) {
+            for (BookingRoomDTO br : checkedInRooms) {
+                model.addElement(br);
+            }
+        }
+
+        cbBookingRoom.setModel(model);
+
+        // Tùy chỉnh hiển thị trong ComboBox
+        cbBookingRoom.setRenderer(new javax.swing.DefaultListCellRenderer() {
+            private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+            @Override
+            public java.awt.Component getListCellRendererComponent(
+                    javax.swing.JList<?> list,
+                    Object value,
+                    int index,
+                    boolean isSelected,
+                    boolean cellHasFocus) {
+
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+
+                if (value != null && value instanceof BookingRoomDTO) {
+                    BookingRoomDTO br = (BookingRoomDTO) value;
+                    String checkInTime = br.getCheckInActual() != null ?
+                            br.getCheckInActual().format(formatter) : "N/A";
+                    setText(String.format("ID: %d - Phòng: %d - Check-in: %s",
+                            br.getBookingRoomId(),
+                            br.getRoomId(),
+                            checkInTime));
+                } else {
+                    setText("");
+                }
+
+                return this;
+            }
+        });
     }
 
     private void loadServicesToComboBox() {
         cbServiceorder.removeAllItems();
 
-        ServiceBUS serviceBUS = new ServiceBUS();
         services = serviceBUS.getAll();
 
-         DefaultComboBoxModel<ServiceDTO> model = new DefaultComboBoxModel<>();
+        DefaultComboBoxModel<ServiceDTO> model = new DefaultComboBoxModel<>();
 
-
-        for (ServiceDTO s : services) {
-            if (s != null && s.isActive()) {
-                model.addElement(s);
+        if (services != null) {
+            for (ServiceDTO s : services) {
+                if (s != null && s.isActive()) {
+                    model.addElement(s);
+                }
             }
         }
 
-
         cbServiceorder.setModel(model);
-
 
         cbServiceorder.setRenderer(new javax.swing.DefaultListCellRenderer() {
             @Override
@@ -106,7 +168,7 @@ public class ServiceOrderDialog extends javax.swing.JDialog {
 
                 if (value != null && value instanceof ServiceDTO) {
                     ServiceDTO s = (ServiceDTO) value;
-                    setText(s.getName());
+                    setText(String.format("%s - %.0f VNĐ", s.getName(), s.getUnitPrice()));
                 } else {
                     setText("");
                 }
@@ -117,12 +179,17 @@ public class ServiceOrderDialog extends javax.swing.JDialog {
     }
 
     private boolean validateForm() {
-        if (txtBookingId.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập mã đặt phòng!");
+        if (cbBookingRoom.getSelectedItem() == null) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn phòng đã check-in!");
             return false;
         }
         if (cbServiceorder.getSelectedItem() == null) {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn dịch vụ!");
+            return false;
+        }
+        int quantity = (Integer) spnQuantityorder.getValue();
+        if (quantity <= 0) {
+            JOptionPane.showMessageDialog(this, "Số lượng phải lớn hơn 0!");
             return false;
         }
         return true;
@@ -135,18 +202,17 @@ public class ServiceOrderDialog extends javax.swing.JDialog {
 
     public ServiceOrderDTO getResult() {
         return resultOrder;
-    }/**
+    }
+
+    /**
      * This method is called from within the constructor to initialize the form.
-     * WARNING: Do NOT modify this code. The content of this method is always
-     * regenerated by the Form Editor.
      */
     @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">
     private void initComponents() {
 
         Panel = new javax.swing.JPanel();
         jLabel7 = new javax.swing.JLabel();
-        txtBookingId = new javax.swing.JTextField();
         jLabel8 = new javax.swing.JLabel();
         jLabel5 = new javax.swing.JLabel();
         jLabel6 = new javax.swing.JLabel();
@@ -155,20 +221,15 @@ public class ServiceOrderDialog extends javax.swing.JDialog {
         txtNote = new javax.swing.JTextField();
         cbServiceorder = new javax.swing.JComboBox<>();
         spnQuantityorder = new javax.swing.JSpinner();
+        cbBookingRoom = new javax.swing.JComboBox<>();
         ordertitle = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
 
-        Panel.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "Thông tin", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.TOP, new java.awt.Font("Arial", 1, 14))); // NOI18N
+        Panel.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "Thông tin", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.TOP, new java.awt.Font("Arial", 1, 14)));
 
-        jLabel7.setText("Mã đặt phòng");
-
-        txtBookingId.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                txtBookingIdActionPerformed(evt);
-            }
-        });
+        jLabel7.setText("Phòng đã check-in");
 
         jLabel8.setText("Số lượng");
 
@@ -177,7 +238,6 @@ public class ServiceOrderDialog extends javax.swing.JDialog {
         jLabel6.setText("Ghi chú");
 
         btnSaveorder.setText("Lưu");
-        btnSaveorder.setActionCommand("Sửa");
         btnSaveorder.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btnSaveorderActionPerformed(evt);
@@ -191,206 +251,146 @@ public class ServiceOrderDialog extends javax.swing.JDialog {
             }
         });
 
-        txtNote.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                txtNoteActionPerformed(evt);
-            }
-        });
-
-        cbServiceorder.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                cbServiceorderActionPerformed(evt);
-            }
-        });
+        spnQuantityorder.setModel(new javax.swing.SpinnerNumberModel(1, 1, 100, 1));
 
         javax.swing.GroupLayout PanelLayout = new javax.swing.GroupLayout(Panel);
         Panel.setLayout(PanelLayout);
         PanelLayout.setHorizontalGroup(
-            PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(PanelLayout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addGroup(PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, PanelLayout.createSequentialGroup()
-                        .addComponent(jLabel7)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(txtBookingId, javax.swing.GroupLayout.PREFERRED_SIZE, 174, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, PanelLayout.createSequentialGroup()
-                        .addComponent(jLabel8)
-                        .addGap(18, 18, 18)
-                        .addComponent(spnQuantityorder, javax.swing.GroupLayout.PREFERRED_SIZE, 76, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(98, 98, 98)))
-                .addGap(49, 49, 49)
-                .addGroup(PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, PanelLayout.createSequentialGroup()
-                        .addComponent(btnSaveorder, javax.swing.GroupLayout.PREFERRED_SIZE, 72, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(29, 29, 29)
-                        .addComponent(btnCancelorder))
-                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, PanelLayout.createSequentialGroup()
-                        .addGroup(PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLabel5))
-                        .addGap(25, 25, 25)
-                        .addGroup(PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(txtNote)
-                            .addComponent(cbServiceorder, 0, 174, Short.MAX_VALUE))))
-                .addContainerGap(39, Short.MAX_VALUE))
+                PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(PanelLayout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addGroup(PanelLayout.createSequentialGroup()
+                                                .addComponent(jLabel7)
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                                .addComponent(cbBookingRoom, javax.swing.GroupLayout.PREFERRED_SIZE, 250, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addGroup(PanelLayout.createSequentialGroup()
+                                                .addComponent(jLabel8)
+                                                .addGap(18, 18, 18)
+                                                .addComponent(spnQuantityorder, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 49, Short.MAX_VALUE)
+                                .addGroup(PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addGroup(PanelLayout.createSequentialGroup()
+                                                .addComponent(btnSaveorder, javax.swing.GroupLayout.PREFERRED_SIZE, 72, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addGap(29, 29, 29)
+                                                .addComponent(btnCancelorder))
+                                        .addGroup(PanelLayout.createSequentialGroup()
+                                                .addGroup(PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                        .addComponent(jLabel6)
+                                                        .addComponent(jLabel5))
+                                                .addGap(25, 25, 25)
+                                                .addGroup(PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                                        .addComponent(txtNote)
+                                                        .addComponent(cbServiceorder, 0, 250, Short.MAX_VALUE))))
+                                .addContainerGap())
         );
         PanelLayout.setVerticalGroup(
-            PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(PanelLayout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel7)
-                    .addComponent(txtBookingId, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel6)
-                    .addComponent(txtNote, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(32, 32, 32)
-                .addGroup(PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel8, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel5)
-                    .addComponent(cbServiceorder, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(spnQuantityorder, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 101, Short.MAX_VALUE)
-                .addGroup(PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(btnSaveorder)
-                    .addComponent(btnCancelorder))
-                .addGap(39, 39, 39))
+                PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(PanelLayout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel7)
+                                        .addComponent(cbBookingRoom, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jLabel6)
+                                        .addComponent(txtNote, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(32, 32, 32)
+                                .addGroup(PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel8)
+                                        .addComponent(spnQuantityorder, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jLabel5)
+                                        .addComponent(cbServiceorder, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 101, Short.MAX_VALUE)
+                                .addGroup(PanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(btnSaveorder)
+                                        .addComponent(btnCancelorder))
+                                .addGap(39, 39, 39))
         );
+
+        ordertitle.setFont(new java.awt.Font("Arial", 1, 18));
+        ordertitle.setText("Thêm đơn dịch vụ");
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(Panel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-            .addGroup(layout.createSequentialGroup()
-                .addComponent(ordertitle)
-                .addGap(0, 0, Short.MAX_VALUE))
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(Panel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                        .addGroup(layout.createSequentialGroup()
+                                                .addComponent(ordertitle)
+                                                .addGap(0, 0, Short.MAX_VALUE)))
+                                .addContainerGap())
         );
         layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addComponent(ordertitle)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(Panel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addComponent(ordertitle)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(Panel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         pack();
-    }// </editor-fold>//GEN-END:initComponents
+    }// </editor-fold>
 
-    private void txtBookingIdActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtBookingIdActionPerformed
-       
-    }//GEN-LAST:event_txtBookingIdActionPerformed
+    private void btnSaveorderActionPerformed(java.awt.event.ActionEvent evt) {
+        if (!validateForm()) return;
 
-    private void btnSaveorderActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSaveorderActionPerformed
-          if (!validateForm()) return;
-
-    try {
-        int bookingId = Integer.parseInt(txtBookingId.getText().trim());
-        ServiceDTO selectedService = services.get(cbServiceorder.getSelectedIndex());
-        int quantity = (Integer) spnQuantityorder.getValue();
-        String note = txtNote.getText().trim();
-
-        // Lấy giá và thời gian hiện tại
-        double unitPrice = selectedService.getUnitPrice();
-        LocalDateTime now = LocalDateTime.now();
-
-        if (editMode && currentOrder != null) {
-            // --- Chế độ sửa ---
-            currentOrder.setBookingRoomId(bookingId);
-            currentOrder.setServiceId(selectedService.getServiceId());
-            currentOrder.setQuantity(quantity);
-            currentOrder.setUnitPrice(unitPrice);
-            currentOrder.setOrderedAt(now);
-            currentOrder.setNote(note);
-            resultOrder = currentOrder;
-        } else {
-            // --- Chế độ thêm mới ---
-            resultOrder = new ServiceOrderDTO(
-                0,                // ID (auto increment)
-                bookingId,        // booking_room_id
-                selectedService.getServiceId(), // service_id
-                quantity,         // qty
-                unitPrice,        // unit_price (tự lấy từ service)
-                now,              // ordered_at (thời gian thêm mới)
-                null,             // ordered_by (chưa có user)
-                note              // note
-            );
-        }
-
-        dispose();
-
-    } catch (Exception e) {
-        e.printStackTrace();
-        JOptionPane.showMessageDialog(this,
-            "Đã xảy ra lỗi khi lưu đơn dịch vụ!",
-            "Lỗi",
-            JOptionPane.ERROR_MESSAGE);
-    }
-    }//GEN-LAST:event_btnSaveorderActionPerformed
-
-    private void btnCancelorderActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCancelorderActionPerformed
-         resultOrder = null;
-        dispose();
-    }//GEN-LAST:event_btnCancelorderActionPerformed
-
-    private void txtNoteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtNoteActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txtNoteActionPerformed
-
-    private void cbServiceorderActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cbServiceorderActionPerformed
-
-    }//GEN-LAST:event_cbServiceorderActionPerformed
-
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
         try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(ServiceOrderDialog.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(ServiceOrderDialog.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(ServiceOrderDialog.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(ServiceOrderDialog.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        }
-        //</editor-fold>
+            BookingRoomDTO selectedBookingRoom = (BookingRoomDTO) cbBookingRoom.getSelectedItem();
+            ServiceDTO selectedService = (ServiceDTO) cbServiceorder.getSelectedItem();
+            int quantity = (Integer) spnQuantityorder.getValue();
+            String note = txtNote.getText().trim();
 
-        /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-        public void run() {
-            ServiceOrderDialog dialog = new ServiceOrderDialog(new javax.swing.JFrame(), true);
-            dialog.addWindowListener(new java.awt.event.WindowAdapter() {
-                @Override
-                public void windowClosing(java.awt.event.WindowEvent e) {
-                    System.exit(0);
-                }
-            });
-            dialog.setVisible(true);
+            double unitPrice = selectedService.getUnitPrice();
+            LocalDateTime now = LocalDateTime.now();
+
+            if (editMode && currentOrder != null) {
+                // Chế độ sửa
+                currentOrder.setBookingRoomId(selectedBookingRoom.getBookingRoomId());
+                currentOrder.setServiceId(selectedService.getServiceId());
+                currentOrder.setQuantity(quantity);
+                currentOrder.setUnitPrice(unitPrice);
+                currentOrder.setOrderedAt(now);
+                currentOrder.setNote(note);
+                resultOrder = currentOrder;
+            } else {
+                // Chế độ thêm mới
+                resultOrder = new ServiceOrderDTO(
+                        0,
+                        selectedBookingRoom.getBookingRoomId(),
+                        selectedService.getServiceId(),
+                        quantity,
+                        unitPrice,
+                        now,
+                        null,
+                        note
+                );
+            }
+
+            dispose();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "Đã xảy ra lỗi khi lưu đơn dịch vụ: " + e.getMessage(),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE);
         }
-    });
     }
 
-    // Variables declaration - do not modify//GEN-BEGIN:variables
+    private void btnCancelorderActionPerformed(java.awt.event.ActionEvent evt) {
+        resultOrder = null;
+        dispose();
+    }
+
+    // Variables declaration
     private javax.swing.JPanel Panel;
     private javax.swing.JButton btnCancelorder;
     private javax.swing.JButton btnSaveorder;
+    private javax.swing.JComboBox<BookingRoomDTO> cbBookingRoom;
     private javax.swing.JComboBox<ServiceDTO> cbServiceorder;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
@@ -398,7 +398,6 @@ public class ServiceOrderDialog extends javax.swing.JDialog {
     private javax.swing.JLabel jLabel8;
     private javax.swing.JLabel ordertitle;
     private javax.swing.JSpinner spnQuantityorder;
-    private javax.swing.JTextField txtBookingId;
     private javax.swing.JTextField txtNote;
-    // End of variables declaration//GEN-END:variables
+    // End of variables declaration
 }
