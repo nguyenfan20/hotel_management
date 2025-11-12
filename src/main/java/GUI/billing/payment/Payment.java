@@ -55,9 +55,9 @@ public class Payment extends JPanel {
     private static final Color BG_COLOR = new Color(248, 249, 250);
 
     // Thông tin ngân hàng của bạn
-    private static final String BANK_ID = "970422"; // Mã ngân hàng (VD: MB Bank)
-    private static final String ACCOUNT_NO = "0123456789"; // Số tài khoản
-    private static final String ACCOUNT_NAME = "NGUYEN VAN A"; // Tên tài khoản
+    private static final String BANK_ID = "970436"; // Mã ngân hàng (VD: Vietcombank)
+    private static final String ACCOUNT_NO = "9383161867"; // Số tài khoản
+    private static final String ACCOUNT_NAME = "TRUONG TAN DAT"; // Tên tài khoản
 
     public Payment() {
         paymentBUS = new PaymentBUS();
@@ -264,7 +264,7 @@ public class Payment extends JPanel {
         // QR Info
         qrInfoLabel = new JLabel("<html><div style='text-align: center;'>"
                 + "<b style='font-size: 14px;'>Quét mã QR để thanh toán</b><br/><br/>"
-                + "Ngân hàng: <b>MB Bank</b><br/>"
+                + "Ngân hàng: <b>Vietcombank</b><br/>"
                 + "Số tài khoản: <b>" + ACCOUNT_NO + "</b><br/>"
                 + "Tên tài khoản: <b>" + ACCOUNT_NAME + "</b><br/>"
                 + "Số tiền: <b style='color: #EF4444;'>0 VNĐ</b>"
@@ -314,16 +314,16 @@ public class Payment extends JPanel {
 
             switch (method) {
                 case "Tiền mặt":
-                    referenceNo = "CASH-" + invoiceNo;
+                    referenceNo = "TM" + invoiceNo;
                     break;
                 case "Chuyển khoản":
-                    referenceNo = "BANK-" + invoiceNo;
+                    referenceNo = "FT" + invoiceNo;
                     break;
                 case "Thẻ tín dụng":
-                    referenceNo = "CARD-" + invoiceNo;
+                    referenceNo = "MC" + invoiceNo;
                     break;
                 case "Ví điện tử":
-                    referenceNo = "EWALLET-" + invoiceNo;
+                    referenceNo = "VS" + invoiceNo;
                     break;
                 default:
                     referenceNo = invoiceNo;
@@ -332,16 +332,16 @@ public class Payment extends JPanel {
             // Nếu chưa chọn invoice, chỉ dùng prefix
             switch (method) {
                 case "Tiền mặt":
-                    referenceNo = "CASH-";
+                    referenceNo = "TM";
                     break;
                 case "Chuyển khoản":
-                    referenceNo = "BANK-";
+                    referenceNo = "FT";
                     break;
                 case "Thẻ tín dụng":
-                    referenceNo = "CARD-";
+                    referenceNo = "MC";
                     break;
                 case "Ví điện tử":
-                    referenceNo = "EWALLET-";
+                    referenceNo = "VS";
                     break;
             }
         }
@@ -367,7 +367,7 @@ public class Payment extends JPanel {
             // Cập nhật thông tin hiển thị
             qrInfoLabel.setText("<html><div style='text-align: center;'>"
                     + "<b style='font-size: 14px;'>Quét mã QR để thanh toán</b><br/><br/>"
-                    + "Ngân hàng: <b>MB Bank</b><br/>"
+                    + "Ngân hàng: <b>Vietcombank</b><br/>"
                     + "Số tài khoản: <b>" + ACCOUNT_NO + "</b><br/>"
                     + "Tên tài khoản: <b>" + ACCOUNT_NAME + "</b><br/>"
                     + "Số tiền: <b style='color: #EF4444;'>" + String.format("%.0f VNĐ", amount) + "</b><br/>"
