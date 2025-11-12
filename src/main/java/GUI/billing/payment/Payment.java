@@ -39,6 +39,12 @@ public class Payment extends JPanel {
     private JLabel changeLabel;
     private JComboBox<String> discountCombo;
 
+    // Thêm các label để hiển thị preview giảm giá
+    private JLabel originalAmountLabel;
+    private JLabel discountAmountLabel;
+    private JLabel finalAmountLabel;
+    private JPanel discountPreviewPanel;
+
     // Thêm panel và label cho QR Code
     private JPanel qrCodePanel;
     private JLabel qrCodeLabel;
@@ -53,6 +59,7 @@ public class Payment extends JPanel {
     private static final Color WARNING_COLOR = new Color(245, 158, 11);
     private static final Color DANGER_COLOR = new Color(239, 68, 68);
     private static final Color BG_COLOR = new Color(248, 249, 250);
+    private static final Color DISCOUNT_COLOR = new Color(16, 185, 129);
 
     // Thông tin ngân hàng của bạn
     private static final String BANK_ID = "970436"; // Mã ngân hàng (VD: Vietcombank)
@@ -87,7 +94,15 @@ public class Payment extends JPanel {
         mainContainer.add(topSection, BorderLayout.NORTH);
         mainContainer.add(bottomSection, BorderLayout.CENTER);
 
-        add(mainContainer);
+        // Wrap mainContainer in JScrollPane with modern scrollbar
+        JScrollPane mainScrollPane = new JScrollPane(mainContainer);
+        mainScrollPane.setBorder(BorderFactory.createEmptyBorder());
+        mainScrollPane.getVerticalScrollBar().setUI(new ModernScrollBarUI());
+        mainScrollPane.getHorizontalScrollBar().setUI(new ModernScrollBarUI());
+        mainScrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        mainScrollPane.getHorizontalScrollBar().setUnitIncrement(16);
+
+        add(mainScrollPane);
     }
 
     private JPanel createPaymentFormSection() {
@@ -168,8 +183,25 @@ public class Payment extends JPanel {
         });
         formPanel.add(methodCombo, gbc);
 
-        // Row 3
+        // Row 3 - Voucher
         gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0;
+        formPanel.add(createLabel("Voucher:"), gbc);
+        gbc.gridx = 1; gbc.weightx = 1; gbc.gridwidth = 1;
+        discountCombo = new JComboBox<>();
+        discountCombo.setPreferredSize(new Dimension(200, 32));
+        loadDiscounts();
+        discountCombo.addActionListener(e -> applySelectedDiscount());
+        formPanel.add(discountCombo, gbc);
+
+        // Row 4 - Discount Preview Panel (ẩn mặc định)
+        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 4;
+        gbc.weightx = 1; gbc.weighty = 0;
+        discountPreviewPanel = createDiscountPreviewPanel();
+        discountPreviewPanel.setVisible(false);
+        formPanel.add(discountPreviewPanel, gbc);
+
+        // Row 5
+        gbc.gridx = 0; gbc.gridy = 4; gbc.weightx = 0; gbc.gridwidth = 1;
         formPanel.add(createLabel("Số tiền thanh toán:"), gbc);
         gbc.gridx = 1; gbc.weightx = 1;
         amountField = createTextField(true);
@@ -188,18 +220,8 @@ public class Payment extends JPanel {
         referenceNoField = createTextField(true);
         formPanel.add(referenceNoField, gbc);
 
-        // Row 4
-        gbc.gridx = 0; gbc.gridy = 3; gbc.weightx = 0;
-        formPanel.add(createLabel("Voucher:"), gbc);
-        gbc.gridx = 1; gbc.weightx = 1;
-        discountCombo = new JComboBox<>();
-        discountCombo.setPreferredSize(new Dimension(200, 32));
-        loadDiscounts();
-        discountCombo.addActionListener(e -> applySelectedDiscount());
-        formPanel.add(discountCombo, gbc);
-
-        // Row 5
-        gbc.gridx = 0; gbc.gridy = 4; gbc.weightx = 0;
+        // Row 6
+        gbc.gridx = 0; gbc.gridy = 5; gbc.weightx = 0;
         gbc.anchor = GridBagConstraints.NORTHWEST;
         formPanel.add(createLabel("Ghi chú:"), gbc);
         gbc.gridx = 1; gbc.weightx = 1; gbc.gridwidth = 3;
@@ -212,8 +234,8 @@ public class Payment extends JPanel {
         noteScroll.setPreferredSize(new Dimension(0, 70));
         formPanel.add(noteScroll, gbc);
 
-        // Row 6 - Change Amount
-        gbc.gridx = 0; gbc.gridy = 5; gbc.weightx = 0; gbc.gridwidth = 1;
+        // Row 7 - Change Amount
+        gbc.gridx = 0; gbc.gridy = 6; gbc.weightx = 0; gbc.gridwidth = 1;
         gbc.anchor = GridBagConstraints.WEST;
         formPanel.add(createLabel("Tiền thừa trả lại:"), gbc);
         gbc.gridx = 1; gbc.weightx = 1;
@@ -234,8 +256,8 @@ public class Payment extends JPanel {
         payButton.addActionListener(e -> processPayment());
         formPanel.add(payButton, gbc);
 
-        // Row 7 - QR Code Panel (Ẩn mặc định)
-        gbc.gridx = 0; gbc.gridy = 6; gbc.gridwidth = 4;
+        // Row 8 - QR Code Panel (Ẩn mặc định)
+        gbc.gridx = 0; gbc.gridy = 7; gbc.gridwidth = 4;
         gbc.weightx = 1; gbc.weighty = 1;
         gbc.fill = GridBagConstraints.BOTH;
         gbc.anchor = GridBagConstraints.CENTER;
@@ -291,6 +313,78 @@ public class Payment extends JPanel {
         loadUnpaidInvoices();
 
         return section;
+    }
+
+    /**
+     * Tạo panel hiển thị preview giảm giá
+     */
+    private JPanel createDiscountPreviewPanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(new Color(236, 253, 245)); // Light green background
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(DISCOUNT_COLOR, 1),
+                BorderFactory.createEmptyBorder(10, 15, 10, 15)
+        ));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(3, 10, 3, 10);
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // Tiêu đề
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
+        JLabel titleLabel = new JLabel("Chi tiết giảm giá");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        titleLabel.setForeground(DISCOUNT_COLOR);
+        panel.add(titleLabel, gbc);
+
+        // Số tiền gốc
+        gbc.gridy = 1; gbc.gridwidth = 1; gbc.weightx = 0;
+        JLabel originalLabel = new JLabel("Tổng tiền gốc:");
+        originalLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        panel.add(originalLabel, gbc);
+
+        gbc.gridx = 1; gbc.weightx = 1;
+        originalAmountLabel = new JLabel("0.00 VNĐ");
+        originalAmountLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        originalAmountLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        panel.add(originalAmountLabel, gbc);
+
+        // Số tiền giảm
+        gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0;
+        JLabel discountLabel = new JLabel("Giảm giá:");
+        discountLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        discountLabel.setForeground(DISCOUNT_COLOR);
+        panel.add(discountLabel, gbc);
+
+        gbc.gridx = 1; gbc.weightx = 1;
+        discountAmountLabel = new JLabel("- 0.00 VNĐ");
+        discountAmountLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        discountAmountLabel.setForeground(DISCOUNT_COLOR);
+        discountAmountLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        panel.add(discountAmountLabel, gbc);
+
+        // Đường kẻ ngang
+        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2;
+        JSeparator separator = new JSeparator();
+        separator.setForeground(DISCOUNT_COLOR);
+        panel.add(separator, gbc);
+
+        // Số tiền sau giảm
+        gbc.gridy = 4; gbc.gridwidth = 1; gbc.weightx = 0;
+        JLabel finalLabel = new JLabel("Tổng tiền thanh toán:");
+        finalLabel.setFont(new Font("Arial", Font.BOLD, 13));
+        finalLabel.setForeground(DANGER_COLOR);
+        panel.add(finalLabel, gbc);
+
+        gbc.gridx = 1; gbc.weightx = 1;
+        finalAmountLabel = new JLabel("0.00 VNĐ");
+        finalAmountLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        finalAmountLabel.setForeground(DANGER_COLOR);
+        finalAmountLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        panel.add(finalAmountLabel, gbc);
+
+        return panel;
     }
 
     private void onPaymentMethodChanged() {
@@ -432,20 +526,76 @@ public class Payment extends JPanel {
         }
     }
 
+    /**
+     * Áp dụng discount đã chọn - CHỈ HIỂN THỊ PREVIEW, CHƯA LƯU VÀO DB
+     */
     private void applySelectedDiscount() {
-        if (selectedInvoice == null) return;
-
-        String selected = (String) discountCombo.getSelectedItem();
-
-        // Nếu chọn "Không áp dụng", reset discount selection
-        if ("Không áp dụng".equals(selected)) {
-            selectedDiscount = null;
+        if (selectedInvoice == null) {
+            discountPreviewPanel.setVisible(false);
+            revalidate();
+            repaint();
             return;
         }
 
-        // Extract discount code and load discount info for display only
+        String selected = (String) discountCombo.getSelectedItem();
+
+        // Nếu chọn "Không áp dụng", ẩn preview và reset
+        if ("Không áp dụng".equals(selected)) {
+            selectedDiscount = null;
+            discountPreviewPanel.setVisible(false);
+
+            // Reset về số tiền gốc
+            invoiceAmountField.setText(String.format("%.2f VNĐ", originalInvoiceAmount));
+            amountField.setText(String.format("%.2f", originalInvoiceAmount));
+            calculateChange();
+            updateQRCode();
+
+            revalidate();
+            repaint();
+            return;
+        }
+
+        // Extract discount code và load discount info
         String discountCode = selected.split(" - ")[0];
         selectedDiscount = discountBUS.getDiscountByCode(discountCode);
+
+        if (selectedDiscount != null) {
+            // Tính toán số tiền giảm
+            double discountAmount = 0;
+
+            if ("PERCENTAGE".equals(selectedDiscount.getDiscountType())) {
+                // Giảm theo phần trăm
+                discountAmount = originalInvoiceAmount * (selectedDiscount.getDiscountValue() / 100.0);
+            } else {
+                // Giảm theo số tiền cố định
+                discountAmount = selectedDiscount.getDiscountValue();
+            }
+
+            // Đảm bảo không giảm quá số tiền gốc
+            if (discountAmount > originalInvoiceAmount) {
+                discountAmount = originalInvoiceAmount;
+            }
+
+            double finalAmount = originalInvoiceAmount - discountAmount;
+
+            // Cập nhật preview panel
+            originalAmountLabel.setText(String.format("%.2f VNĐ", originalInvoiceAmount));
+            discountAmountLabel.setText(String.format("- %.2f VNĐ", discountAmount));
+            finalAmountLabel.setText(String.format("%.2f VNĐ", finalAmount));
+
+            // Hiển thị preview panel
+            discountPreviewPanel.setVisible(true);
+
+            // Cập nhật số tiền cần thanh toán (CHỈ HIỂN THỊ, CHƯA LƯU DB)
+            invoiceAmountField.setText(String.format("%.2f VNĐ", finalAmount));
+            amountField.setText(String.format("%.2f", finalAmount));
+
+            calculateChange();
+            updateQRCode();
+
+            revalidate();
+            repaint();
+        }
     }
 
     private JPanel createPaymentHistorySection() {
@@ -599,9 +749,7 @@ public class Payment extends JPanel {
 
         try {
             // Lưu số tiền gốc (chưa có discount) khi load invoice lần đầu
-            if (originalInvoiceAmount == 0) {
-                originalInvoiceAmount = selectedInvoice.getSubtotal() + selectedInvoice.getTaxTotal();
-            }
+            originalInvoiceAmount = selectedInvoice.getSubtotal() + selectedInvoice.getTaxTotal();
 
             // Load booking info
             BookingDTO booking = bookingBUS.getBookingById(selectedInvoice.getBookingId());
@@ -615,6 +763,12 @@ public class Payment extends JPanel {
 
             invoiceAmountField.setText(String.format("%.2f VNĐ", selectedInvoice.getGrandTotal()));
             amountField.setText(String.format("%.2f", selectedInvoice.getGrandTotal()));
+
+            // Reset discount selection
+            discountCombo.setSelectedIndex(0);
+            selectedDiscount = null;
+            discountPreviewPanel.setVisible(false);
+
             calculateChange();
             updateQRCode();
         } catch (Exception e) {
@@ -633,8 +787,9 @@ public class Payment extends JPanel {
         changeLabel.setText("0.00 VNĐ");
         changeLabel.setForeground(SUCCESS_COLOR);
         qrCodePanel.setVisible(false);
-        originalInvoiceAmount = 0; // Reset số tiền gốc
-        selectedDiscount = null; // Reset selected discount when clearing form
+        discountPreviewPanel.setVisible(false);
+        originalInvoiceAmount = 0;
+        selectedDiscount = null;
     }
 
     private void calculateChange() {
@@ -645,7 +800,24 @@ public class Payment extends JPanel {
         }
 
         try {
-            double invoiceAmount = selectedInvoice.getGrandTotal();
+            // Lấy số tiền cần thanh toán (đã tính discount nếu có)
+            double invoiceAmount = 0;
+            if (selectedDiscount != null) {
+                // Tính lại số tiền sau discount
+                double discountAmount = 0;
+                if ("PERCENTAGE".equals(selectedDiscount.getDiscountType())) {
+                    discountAmount = originalInvoiceAmount * (selectedDiscount.getDiscountValue() / 100.0);
+                } else {
+                    discountAmount = selectedDiscount.getDiscountValue();
+                }
+                if (discountAmount > originalInvoiceAmount) {
+                    discountAmount = originalInvoiceAmount;
+                }
+                invoiceAmount = originalInvoiceAmount - discountAmount;
+            } else {
+                invoiceAmount = selectedInvoice.getGrandTotal();
+            }
+
             double paidAmount = Double.parseDouble(amountField.getText().trim());
             double change = paidAmount - invoiceAmount;
 
@@ -672,14 +844,7 @@ public class Payment extends JPanel {
             double invoiceAmount = selectedInvoice.getGrandTotal();
             double paidAmount = Double.parseDouble(amountField.getText().trim());
 
-            if (paidAmount < invoiceAmount) {
-                JOptionPane.showMessageDialog(this,
-                        String.format("Số tiền thanh toán (%.2f VNĐ) không đủ để thanh toán hóa đơn (%.2f VNĐ)!", paidAmount, invoiceAmount),
-                        "Lỗi",
-                        JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
+            // Nếu có discount được chọn, áp dụng vào DB trước khi thanh toán
             if (selectedDiscount != null) {
                 // Get fresh invoice data to ensure discount is applied correctly
                 InvoiceDTO freshInvoice = invoiceBUS.getInvoiceById(selectedInvoice.getInvoiceId());
@@ -701,19 +866,17 @@ public class Payment extends JPanel {
                 // Reload invoice with applied discount
                 selectedInvoice = invoiceBUS.getInvoiceById(selectedInvoice.getInvoiceId());
 
-                // Update amount fields with new total after discount
+                // Update amount with new total after discount
                 invoiceAmount = selectedInvoice.getGrandTotal();
-                invoiceAmountField.setText(String.format("%.2f VNĐ", invoiceAmount));
-                amountField.setText(String.format("%.2f", invoiceAmount));
-                calculateChange();
+            }
 
-                if (paidAmount < invoiceAmount) {
-                    JOptionPane.showMessageDialog(this,
-                            String.format("Sau khi áp dụng voucher, số tiền thanh toán (%.2f VNĐ) không đủ để thanh toán hóa đơn (%.2f VNĐ)!", paidAmount, invoiceAmount),
-                            "Lỗi",
-                            JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
+            // Kiểm tra số tiền thanh toán
+            if (paidAmount < invoiceAmount) {
+                JOptionPane.showMessageDialog(this,
+                        String.format("Số tiền thanh toán (%.2f VNĐ) không đủ để thanh toán hóa đơn (%.2f VNĐ)!", paidAmount, invoiceAmount),
+                        "Lỗi",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
             }
 
             PaymentDTO payment = new PaymentDTO();
@@ -735,6 +898,9 @@ public class Payment extends JPanel {
 
                 double change = paidAmount - invoiceAmount;
                 String message = "Thanh toán thành công!\n";
+                if (selectedDiscount != null) {
+                    message += String.format("Đã áp dụng voucher: %s\n", selectedDiscount.getCode());
+                }
                 if (change > 0) {
                     message += String.format("Tiền thừa trả lại: %.2f VNĐ", change);
                 }
@@ -744,7 +910,7 @@ public class Payment extends JPanel {
                 loadPaymentData();
                 loadUnpaidInvoices();
                 clearForm();
-                selectedDiscount = null; // Reset selected discount after successful payment
+                selectedDiscount = null;
             } else {
                 JOptionPane.showMessageDialog(this, "Thanh toán thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
