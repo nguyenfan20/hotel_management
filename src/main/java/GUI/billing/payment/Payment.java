@@ -10,8 +10,14 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
+import javax.imageio.ImageIO;
 
 public class Payment extends JPanel {
     private JTable paymentTable;
@@ -33,13 +39,25 @@ public class Payment extends JPanel {
     private JLabel changeLabel;
     private JComboBox<String> discountCombo;
 
+    // Thêm panel và label cho QR Code
+    private JPanel qrCodePanel;
+    private JLabel qrCodeLabel;
+    private JLabel qrInfoLabel;
+
     private InvoiceDTO selectedInvoice;
+    private double originalInvoiceAmount = 0; // Lưu số tiền gốc trước khi áp discount
+    private DiscountDTO selectedDiscount = null; // Add field to track selected discount without applying to DB
 
     private static final Color PRIMARY_COLOR = new Color(41, 98, 255);
     private static final Color SUCCESS_COLOR = new Color(34, 197, 94);
     private static final Color WARNING_COLOR = new Color(245, 158, 11);
     private static final Color DANGER_COLOR = new Color(239, 68, 68);
     private static final Color BG_COLOR = new Color(248, 249, 250);
+
+    // Thông tin ngân hàng của bạn
+    private static final String BANK_ID = "970422"; // Mã ngân hàng (VD: MB Bank)
+    private static final String ACCOUNT_NO = "0123456789"; // Số tài khoản
+    private static final String ACCOUNT_NAME = "NGUYEN VAN A"; // Tên tài khoản
 
     public Payment() {
         paymentBUS = new PaymentBUS();
@@ -144,6 +162,10 @@ public class Payment extends JPanel {
         gbc.gridx = 3; gbc.weightx = 1;
         methodCombo = new JComboBox<>(new String[]{"Tiền mặt", "Chuyển khoản", "Thẻ tín dụng", "Ví điện tử"});
         methodCombo.setPreferredSize(new Dimension(200, 32));
+        methodCombo.addActionListener(e -> {
+            onPaymentMethodChanged();
+            updateReferenceNo();
+        });
         formPanel.add(methodCombo, gbc);
 
         // Row 3
@@ -155,6 +177,7 @@ public class Payment extends JPanel {
         amountField.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyReleased(java.awt.event.KeyEvent evt) {
                 calculateChange();
+                updateQRCode();
             }
         });
         formPanel.add(amountField, gbc);
@@ -211,6 +234,50 @@ public class Payment extends JPanel {
         payButton.addActionListener(e -> processPayment());
         formPanel.add(payButton, gbc);
 
+        // Row 7 - QR Code Panel (Ẩn mặc định)
+        gbc.gridx = 0; gbc.gridy = 6; gbc.gridwidth = 4;
+        gbc.weightx = 1; gbc.weighty = 1;
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.anchor = GridBagConstraints.CENTER;
+
+        qrCodePanel = new JPanel(new BorderLayout(10, 10));
+        qrCodePanel.setBackground(new Color(248, 249, 250));
+        qrCodePanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(230, 230, 230)),
+                BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
+        qrCodePanel.setVisible(false);
+
+        JPanel qrContentPanel = new JPanel(new BorderLayout(10, 10));
+        qrContentPanel.setBackground(new Color(248, 249, 250));
+
+        // QR Code Image
+        qrCodeLabel = new JLabel("", SwingConstants.CENTER);
+        qrCodeLabel.setPreferredSize(new Dimension(250, 250));
+        qrCodeLabel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+        qrCodeLabel.setBackground(Color.WHITE);
+        qrCodeLabel.setOpaque(true);
+
+        // QR Info
+        qrInfoLabel = new JLabel("<html><div style='text-align: center;'>"
+                + "<b style='font-size: 14px;'>Quét mã QR để thanh toán</b><br/><br/>"
+                + "Ngân hàng: <b>MB Bank</b><br/>"
+                + "Số tài khoản: <b>" + ACCOUNT_NO + "</b><br/>"
+                + "Tên tài khoản: <b>" + ACCOUNT_NAME + "</b><br/>"
+                + "Số tiền: <b style='color: #EF4444;'>0 VNĐ</b>"
+                + "</div></html>", SwingConstants.CENTER);
+        qrInfoLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+
+        qrContentPanel.add(qrCodeLabel, BorderLayout.CENTER);
+        qrContentPanel.add(qrInfoLabel, BorderLayout.SOUTH);
+
+        qrCodePanel.add(qrContentPanel, BorderLayout.CENTER);
+
+        formPanel.add(qrCodePanel, gbc);
+
         // Assemble section
         JPanel contentPanel = new JPanel(new BorderLayout(0, 10));
         contentPanel.setBackground(Color.WHITE);
@@ -226,6 +293,136 @@ public class Payment extends JPanel {
         return section;
     }
 
+    private void onPaymentMethodChanged() {
+        String method = (String) methodCombo.getSelectedItem();
+        if ("Chuyển khoản".equals(method)) {
+            qrCodePanel.setVisible(true);
+            updateQRCode();
+        } else {
+            qrCodePanel.setVisible(false);
+        }
+        revalidate();
+        repaint();
+    }
+
+    private void updateReferenceNo() {
+        String method = (String) methodCombo.getSelectedItem();
+        String referenceNo = "";
+
+        if (selectedInvoice != null) {
+            String invoiceNo = selectedInvoice.getInvoiceNo();
+
+            switch (method) {
+                case "Tiền mặt":
+                    referenceNo = "CASH-" + invoiceNo;
+                    break;
+                case "Chuyển khoản":
+                    referenceNo = "BANK-" + invoiceNo;
+                    break;
+                case "Thẻ tín dụng":
+                    referenceNo = "CARD-" + invoiceNo;
+                    break;
+                case "Ví điện tử":
+                    referenceNo = "EWALLET-" + invoiceNo;
+                    break;
+                default:
+                    referenceNo = invoiceNo;
+            }
+        } else {
+            // Nếu chưa chọn invoice, chỉ dùng prefix
+            switch (method) {
+                case "Tiền mặt":
+                    referenceNo = "CASH-";
+                    break;
+                case "Chuyển khoản":
+                    referenceNo = "BANK-";
+                    break;
+                case "Thẻ tín dụng":
+                    referenceNo = "CARD-";
+                    break;
+                case "Ví điện tử":
+                    referenceNo = "EWALLET-";
+                    break;
+            }
+        }
+
+        referenceNoField.setText(referenceNo);
+    }
+
+    private void updateQRCode() {
+        if (!qrCodePanel.isVisible()) return;
+
+        try {
+            double amount = 0;
+            if (amountField.getText() != null && !amountField.getText().trim().isEmpty()) {
+                amount = Double.parseDouble(amountField.getText().trim());
+            }
+
+            // Tạo nội dung chuyển khoản
+            String description = "Thanh toan hoa don";
+            if (selectedInvoice != null) {
+                description = "TT HD " + selectedInvoice.getInvoiceNo();
+            }
+
+            // Cập nhật thông tin hiển thị
+            qrInfoLabel.setText("<html><div style='text-align: center;'>"
+                    + "<b style='font-size: 14px;'>Quét mã QR để thanh toán</b><br/><br/>"
+                    + "Ngân hàng: <b>MB Bank</b><br/>"
+                    + "Số tài khoản: <b>" + ACCOUNT_NO + "</b><br/>"
+                    + "Tên tài khoản: <b>" + ACCOUNT_NAME + "</b><br/>"
+                    + "Số tiền: <b style='color: #EF4444;'>" + String.format("%.0f VNĐ", amount) + "</b><br/>"
+                    + "Nội dung: <b>" + description + "</b>"
+                    + "</div></html>");
+
+            // Tạo URL QR Code sử dụng API của Vietqr
+            String qrUrl = String.format(
+                    "https://img.vietqr.io/image/%s-%s-compact2.png?amount=%.0f&addInfo=%s&accountName=%s",
+                    BANK_ID,
+                    ACCOUNT_NO,
+                    amount,
+                    URLEncoder.encode(description, StandardCharsets.UTF_8.toString()),
+                    URLEncoder.encode(ACCOUNT_NAME, StandardCharsets.UTF_8.toString())
+            );
+
+            // Tải và hiển thị QR Code
+            loadQRCodeImage(qrUrl);
+
+        } catch (NumberFormatException e) {
+            qrCodeLabel.setText("Vui lòng nhập số tiền hợp lệ");
+            qrCodeLabel.setIcon(null);
+        } catch (Exception e) {
+            qrCodeLabel.setText("Lỗi tạo QR Code");
+            qrCodeLabel.setIcon(null);
+            e.printStackTrace();
+        }
+    }
+
+    private void loadQRCodeImage(String urlString) {
+        new Thread(() -> {
+            try {
+                URL url = new URL(urlString);
+                BufferedImage image = ImageIO.read(url);
+
+                if (image != null) {
+                    // Resize image để vừa với label
+                    Image scaledImage = image.getScaledInstance(230, 230, Image.SCALE_SMOOTH);
+                    ImageIcon icon = new ImageIcon(scaledImage);
+
+                    SwingUtilities.invokeLater(() -> {
+                        qrCodeLabel.setIcon(icon);
+                        qrCodeLabel.setText("");
+                    });
+                }
+            } catch (Exception e) {
+                SwingUtilities.invokeLater(() -> {
+                    qrCodeLabel.setText("Không thể tải QR Code");
+                    qrCodeLabel.setIcon(null);
+                });
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
     private void loadDiscounts() {
         discountCombo.removeAllItems();
         discountCombo.addItem("Không áp dụng");
@@ -239,24 +436,16 @@ public class Payment extends JPanel {
         if (selectedInvoice == null) return;
 
         String selected = (String) discountCombo.getSelectedItem();
+
+        // Nếu chọn "Không áp dụng", reset discount selection
         if ("Không áp dụng".equals(selected)) {
-            selectedInvoice.setDiscountTotal(0.0);
-            invoiceBUS.updateInvoice(selectedInvoice);
-            loadInvoiceDetails();
+            selectedDiscount = null;
             return;
         }
 
-        // Extract discount code
+        // Extract discount code and load discount info for display only
         String discountCode = selected.split(" - ")[0];
-        DiscountDTO discount = discountBUS.getDiscountByCode(discountCode);
-        if (discount != null) {
-            if (invoiceBUS.applyDiscount(selectedInvoice.getInvoiceId(), discount.getDiscountId())) {
-                selectedInvoice = invoiceBUS.getInvoiceById(selectedInvoice.getInvoiceId());
-                loadInvoiceDetails();
-            } else {
-                JOptionPane.showMessageDialog(this, "Không thể áp dụng voucher này!", "Lỗi", JOptionPane.ERROR_MESSAGE);
-            }
-        }
+        selectedDiscount = discountBUS.getDiscountByCode(discountCode);
     }
 
     private JPanel createPaymentHistorySection() {
@@ -397,6 +586,7 @@ public class Payment extends JPanel {
 
             if (selectedInvoice != null) {
                 loadInvoiceDetails();
+                updateReferenceNo(); // Cập nhật mã tham chiếu khi chọn invoice
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -408,6 +598,11 @@ public class Payment extends JPanel {
         if (selectedInvoice == null) return;
 
         try {
+            // Lưu số tiền gốc (chưa có discount) khi load invoice lần đầu
+            if (originalInvoiceAmount == 0) {
+                originalInvoiceAmount = selectedInvoice.getSubtotal() + selectedInvoice.getTaxTotal();
+            }
+
             // Load booking info
             BookingDTO booking = bookingBUS.getBookingById(selectedInvoice.getBookingId());
             if (booking != null) {
@@ -421,6 +616,7 @@ public class Payment extends JPanel {
             invoiceAmountField.setText(String.format("%.2f VNĐ", selectedInvoice.getGrandTotal()));
             amountField.setText(String.format("%.2f", selectedInvoice.getGrandTotal()));
             calculateChange();
+            updateQRCode();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -432,9 +628,13 @@ public class Payment extends JPanel {
         invoiceAmountField.setText("");
         amountField.setText("");
         referenceNoField.setText("");
+        discountCombo.setSelectedIndex(0);
         noteArea.setText("");
         changeLabel.setText("0.00 VNĐ");
         changeLabel.setForeground(SUCCESS_COLOR);
+        qrCodePanel.setVisible(false);
+        originalInvoiceAmount = 0; // Reset số tiền gốc
+        selectedDiscount = null; // Reset selected discount when clearing form
     }
 
     private void calculateChange() {
@@ -480,6 +680,42 @@ public class Payment extends JPanel {
                 return;
             }
 
+            if (selectedDiscount != null) {
+                // Get fresh invoice data to ensure discount is applied correctly
+                InvoiceDTO freshInvoice = invoiceBUS.getInvoiceById(selectedInvoice.getInvoiceId());
+
+                // Reset discount if one was previously applied
+                if (freshInvoice.getDiscountTotal() > 0) {
+                    freshInvoice.setDiscountTotal(0.0);
+                    double resetGrandTotal = freshInvoice.getSubtotal() + freshInvoice.getTaxTotal();
+                    freshInvoice.setGrandTotal(resetGrandTotal);
+                    invoiceBUS.updateInvoice(freshInvoice);
+                }
+
+                // Apply the selected discount
+                if (!invoiceBUS.applyDiscount(selectedInvoice.getInvoiceId(), selectedDiscount.getDiscountId())) {
+                    JOptionPane.showMessageDialog(this, "Không thể áp dụng voucher!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                // Reload invoice with applied discount
+                selectedInvoice = invoiceBUS.getInvoiceById(selectedInvoice.getInvoiceId());
+
+                // Update amount fields with new total after discount
+                invoiceAmount = selectedInvoice.getGrandTotal();
+                invoiceAmountField.setText(String.format("%.2f VNĐ", invoiceAmount));
+                amountField.setText(String.format("%.2f", invoiceAmount));
+                calculateChange();
+
+                if (paidAmount < invoiceAmount) {
+                    JOptionPane.showMessageDialog(this,
+                            String.format("Sau khi áp dụng voucher, số tiền thanh toán (%.2f VNĐ) không đủ để thanh toán hóa đơn (%.2f VNĐ)!", paidAmount, invoiceAmount),
+                            "Lỗi",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            }
+
             PaymentDTO payment = new PaymentDTO();
             payment.setBookingId(selectedInvoice.getBookingId());
             payment.setInvoiceId(selectedInvoice.getInvoiceId());
@@ -508,6 +744,7 @@ public class Payment extends JPanel {
                 loadPaymentData();
                 loadUnpaidInvoices();
                 clearForm();
+                selectedDiscount = null; // Reset selected discount after successful payment
             } else {
                 JOptionPane.showMessageDialog(this, "Thanh toán thất bại!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
