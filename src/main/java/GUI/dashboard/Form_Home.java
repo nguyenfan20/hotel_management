@@ -299,7 +299,7 @@ public class Form_Home extends javax.swing.JPanel {
         leftPanel.setOpaque(false);
 
         lblWelcome = new JLabel("Chào mừng trở lại!");
-        lblWelcome.setIcon(new ImageIcon(getClass().getResource("/icon/wave.png")));
+        lblWelcome.setIcon(loadIcon("wave.png"));
         lblWelcome.setFont(new Font("Segoe UI", Font.BOLD, 28));
         lblWelcome.setForeground(new Color(30, 30, 30));
 
@@ -312,13 +312,52 @@ public class Form_Home extends javax.swing.JPanel {
         leftPanel.add(lblSubtitle);
 
         // Right: Date time
+        JPanel rightPanel = new JPanel();
+        rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
+        rightPanel.setOpaque(false);
+
         lblDateTime = new JLabel();
         lblDateTime.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         lblDateTime.setForeground(new Color(100, 100, 100));
-        lblDateTime.setHorizontalAlignment(SwingConstants.RIGHT);
+        lblDateTime.setAlignmentX(Component.RIGHT_ALIGNMENT);
+
+        // Refresh button
+        JButton btnRefresh = new JButton("Làm mới");
+        btnRefresh.setIcon(new ImageIcon(getClass().getResource("/icon/refresh.png")));
+        btnRefresh.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnRefresh.setForeground(Color.WHITE);
+        btnRefresh.setBackground(new Color(59, 130, 246));
+        btnRefresh.setFocusPainted(false);
+        btnRefresh.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
+        btnRefresh.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnRefresh.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        btnRefresh.addActionListener(e -> {
+            // Animation effect
+            btnRefresh.setEnabled(false);
+            btnRefresh.setText("Đang tải...");
+
+            new Thread(() -> {
+                try {
+                    updateDashboard();
+                    Thread.sleep(500); // Slight delay for better UX
+                } catch (InterruptedException ex) {
+                    ex.printStackTrace();
+                } finally {
+                    SwingUtilities.invokeLater(() -> {
+                        btnRefresh.setText("Làm mới");
+                        btnRefresh.setEnabled(true);
+                    });
+                }
+            }).start();
+        });
+
+        rightPanel.add(lblDateTime);
+        rightPanel.add(Box.createVerticalStrut(8));
+        rightPanel.add(btnRefresh);
+
 
         panel.add(leftPanel, BorderLayout.WEST);
-        panel.add(lblDateTime, BorderLayout.EAST);
+        panel.add(rightPanel, BorderLayout.EAST);
 
         return panel;
     }
