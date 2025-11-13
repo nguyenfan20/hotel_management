@@ -79,6 +79,17 @@ public class BookingRoom extends javax.swing.JFrame {
         addButton.addActionListener(e -> addNewBookingRoom());
         controlPanel.add(addButton);
 
+        JButton checkInAllButton = new JButton("Check-in tất cả");
+        checkInAllButton.setPreferredSize(new Dimension(140, 35));
+        checkInAllButton.setBackground(SUCCESS_COLOR);
+        checkInAllButton.setForeground(Color.WHITE);
+        checkInAllButton.setFocusPainted(false);
+        checkInAllButton.setBorderPainted(false);
+        checkInAllButton.setFont(new Font("Arial", Font.BOLD, 13));
+        checkInAllButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        checkInAllButton.addActionListener(e -> checkInAllRooms());
+        controlPanel.add(checkInAllButton);
+
         searchField = new JTextField(20);
         searchField.setPreferredSize(new Dimension(250, 35));
         searchField.setFont(new Font("Arial", Font.PLAIN, 13));
@@ -350,6 +361,47 @@ public class BookingRoom extends javax.swing.JFrame {
         }
     }
 
+    private void checkInAllRooms() {
+        List<BookingRoomDTO> roomsToCheckIn = bookingRoomData.stream()
+                .filter(br -> "BOOKED".equals(br.getStatus()))
+                .toList();
+
+        if (roomsToCheckIn.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Không có phòng nào ở trạng thái BOOKED để check-in!",
+                    "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Xác nhận check-in " + roomsToCheckIn.size() + " phòng?",
+                "Xác nhận check-in tất cả", JOptionPane.YES_NO_OPTION);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                int successCount = 0;
+                LocalDateTime checkInTime = LocalDateTime.now();
+
+                for (BookingRoomDTO br : roomsToCheckIn) {
+                    if (bookingRoomBUS.checkIn(br.getBookingRoomId(), checkInTime)) {
+                        successCount++;
+                    }
+                }
+
+                if (successCount == roomsToCheckIn.size()) {
+                    JOptionPane.showMessageDialog(this, "Check-in thành công " + successCount + " phòng!",
+                            "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Check-in thành công " + successCount + "/" + roomsToCheckIn.size() + " phòng!",
+                            "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+                }
+                loadBookingRoomData();
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Lỗi: " + e.getMessage(),
+                        "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
     private void checkOutBookingRoom(BookingRoomDTO bookingRoom) {
         if (!"CHECKED_IN".equals(bookingRoom.getStatus())) {
             JOptionPane.showMessageDialog(this, "Phòng này chưa check-in!",
@@ -369,7 +421,7 @@ public class BookingRoom extends javax.swing.JFrame {
                     if (bookingRoomBUS.areAllRoomsCheckedOut(bookingRoom.getBookingId())) {
                         // Tạo hóa đơn
                         invoiceBUS.createInvoiceOnFullCheckout(bookingRoom.getBookingId(), 1); // Giả sử createdBy = 1
-                        JOptionPane.showMessageDialog(this, "Check-out thành công và hóa đơn đã tạo!");
+                        JOptionPane.showMessageDialog(this, "Check-out thành công và hóa đơn đã được tạo!");
                     } else {
                         JOptionPane.showMessageDialog(this, "Check-out thành công!");
                     }

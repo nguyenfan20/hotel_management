@@ -347,10 +347,10 @@ public class BookingRoomBUS {
             total = total.subtract(bookingRoom.getDiscountAmount());
         }
 
-        if (bookingRoom.getTaxRate() != null && bookingRoom.getTaxRate().compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal taxAmount = total.multiply(bookingRoom.getTaxRate().divide(BigDecimal.valueOf(100)));
-            total = total.add(taxAmount);
-        }
+//        if (bookingRoom.getTaxRate() != null && bookingRoom.getTaxRate().compareTo(BigDecimal.ZERO) > 0) {
+//            BigDecimal taxAmount = total.multiply(bookingRoom.getTaxRate().divide(BigDecimal.valueOf(100)));
+//            total = total.add(taxAmount);
+//        }
 
         return total;
     }

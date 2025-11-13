@@ -21,6 +21,7 @@ import GUI.dashboard.ModernScrollBarUI;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import com.itextpdf.kernel.colors.DeviceRgb;
@@ -161,7 +162,7 @@ public class InvoiceDetail extends JDialog {
         buttonPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(230, 230, 230)));
 
         // Nút In PDF
-        JButton printButton = new JButton("In PDF");
+        JButton printButton = new JButton("In hóa đơn");
         printButton.setBackground(INFO_COLOR);
         printButton.setForeground(Color.WHITE);
         printButton.setFocusPainted(false);
@@ -458,7 +459,7 @@ public class InvoiceDetail extends JDialog {
             BookingDTO booking = bookingBUS.getBookingById(invoice.getBookingId());
             if (booking != null) {
                 bookingCodeField.setText(booking.getCode());
-                bookingDateField.setText(booking.getBookingDate().toString());
+                bookingDateField.setText(booking.getBookingDate().toLocalDate().toString());
                 bookingSourceField.setText(booking.getSource());
             }
         } catch (Exception e) {
@@ -476,14 +477,20 @@ public class InvoiceDetail extends JDialog {
                 RoomDTO room = roomBUS.getRoomById(br.getRoomId());
                 String roomNo = room != null ? room.getRoomNo() : "N/A";
 
-                long nights = java.time.temporal.ChronoUnit.DAYS.between(br.getCheckInPlan(), br.getCheckOutPlan());
+                LocalDateTime checkIn = br.getCheckInActual() != null ?
+                        br.getCheckInActual() : br.getCheckInPlan();
+                LocalDateTime checkOut = br.getCheckOutActual() != null ?
+                        br.getCheckOutActual() : br.getCheckOutPlan();
+
+                long nights = java.time.temporal.ChronoUnit.DAYS.between(checkIn, checkOut);
+                if (nights < 1) nights = 1;
                 double total = br.getRatePerNight().doubleValue() * nights;
 
                 Object[] row = {
                         stt++,
                         roomNo,
-                        br.getCheckInPlan().toLocalDate(),
-                        br.getCheckOutPlan().toLocalDate(),
+                        checkIn.toLocalDate(),
+                        checkOut.toLocalDate(),
                         String.format("%.2f VNĐ", br.getRatePerNight()),
                         String.format("%.2f VNĐ", total)
                 };
@@ -554,7 +561,7 @@ public class InvoiceDetail extends JDialog {
 
         // Chọn nơi lưu file
         JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Lưu hóa đơn PDF");
+        fileChooser.setDialogTitle("Lưu hóa đơn");
 
         // Tạo tên file mặc định
         String defaultFileName = "HoaDon_" + invoice.getInvoiceNo().replaceAll("[^a-zA-Z0-9]", "_") + ".pdf";
@@ -578,7 +585,7 @@ public class InvoiceDetail extends JDialog {
                 createPDF(filePath);
 
                 int choice = JOptionPane.showOptionDialog(this,
-                        "Xuất PDF thành công!\nFile được lưu tại:\n" + filePath + "\n\nBạn có muốn mở file?",
+                        "Xuất hóa đơn thành công!\nFile được lưu tại:\n" + filePath + "\n\nBạn có muốn mở file?",
                         "Thành công",
                         JOptionPane.YES_NO_OPTION,
                         JOptionPane.INFORMATION_MESSAGE,
@@ -603,7 +610,7 @@ public class InvoiceDetail extends JDialog {
                 }
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this,
-                        "Lỗi khi xuất PDF:\n" + ex.getMessage() + "\n\nVui lòng kiểm tra:\n" +
+                        "Lỗi khi xuất hóa đơn:\n" + ex.getMessage() + "\n\nVui lòng kiểm tra:\n" +
                                 "1. Quyền ghi file\n" +
                                 "2. Đường dẫn hợp lệ\n" +
                                 "3. File không đang được mở bởi chương trình khác",
